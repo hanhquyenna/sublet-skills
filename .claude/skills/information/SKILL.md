@@ -15,16 +15,16 @@ Skill này là bản đồ context, không thay thế luật cứng hay logic ch
 
 ## Snapshot hiện tại
 
-Snapshot này được ghi ngày **2026-09-16**, sau commit `c0c1a2a` và lần resume raw-capture gần nhất:
+Snapshot này được ghi ngày **2026-09-16**, sau lần resume raw-capture gần nhất; luôn đối chiếu runtime trước khi hành động:
 
 - Repo chính: `/Users/ad/sublet-skills` (thường gọi bằng `~/sublet-skills`).
 - Mục tiêu: dịch vụ broker sublet nhỏ ở Amsterdam, Phase 0 trong 30 ngày.
 - Người vận hành: **Kien**. Agent là mắt + trí nhớ + người soạn; Kien là người bấm/gửi.
 - Offer hiện tại: người có phòng nhận 3 viewing phù hợp trong 72h; €49 khi người được giới thiệu move-in; seeker dùng miễn phí.
-- Database lần kiểm tra gần nhất (2026-09-16): `sublet_groups=103`, `sublet_group_metrics=152`, `sublet_listings=48`, `sublet_events=62`, `sublet_scan_runs=6`, `sublet_ops_state=10`; validation queue có 45 listing `unvalidated`, 2 `validated`, 1 `inaccessible`.
-- Raw QA của group đang chạy có 48 listing URL duy nhất, raw capture không phân tích (`kind=null`), và 62 events provenance; các link mới giữ share URL nếu chưa resolve và đi qua `validate-permalink`. Có 33 public comments được lưu; timestamp/field không hiển thị vẫn giữ null và có missing fields; không suy luận dữ liệu không hiển thị.
-- Đợt backfill group activity cao nhất đang là run resumable `sublet_scan_runs.id=7`; chronological đã vượt boundary tại card **31/08 lúc 23:40**. DB ghi `posts_seen=54`, `new_listings=42`, `posts_verified=46`, `unresolved_cards=15`, `page_loads=4/4`, `boundary_reached=true`; `posts_14d_count` vẫn `null` và `posts_14d_complete=false` vì còn card unresolved/partial. Không chuyển group khi run này chưa hoàn tất.
-- Raw capture quality hiện phân bố 20 `complete`, 18 `partial`, 8 `legacy_normalized`, 2 `legacy_unknown` và 2 event thiếu quality trong 50 `context_captured` events; duplicate URL và comment-shape audit đều sạch. `legacy_*` là trạng thái provenance của dữ liệu cũ, không phải giấy phép suy đoán nội dung còn thiếu.
+- Database lần kiểm tra gần nhất (2026-09-16): `sublet_groups=103`, `sublet_group_metrics=152`, `sublet_listings=48`, `sublet_events=61`, `sublet_scan_runs=6`, `sublet_ops_state=10`; validation queue có 45 listing `unvalidated`, 2 `validated`, 1 `inaccessible` (các số này là snapshot, phải query lại trước khi dùng).
+- Raw QA của group đang chạy có 48 listing URL duy nhất, 48 `context_captured` tương ứng 1–1, raw capture không phân tích (`kind=null`), và 43 comment records public được lưu. Các link mới giữ share URL nếu chưa resolve và ghi method `facebook_copy_link`; timestamp/field không hiển thị vẫn giữ null và có missing fields; không suy luận dữ liệu không hiển thị.
+- Đợt backfill group activity cao nhất đang là run resumable `sublet_scan_runs.id=7`; chronological đã vượt boundary tại card **31/08 lúc 23:40**. DB ghi `posts_seen=57`, `new_listings=45`, `posts_verified=49`, `unresolved_cards=15`, `page_loads=4/4`, `boundary_reached=true`; `posts_14d_count` vẫn `null` và `posts_14d_complete=false` vì còn card unresolved/partial. Không chuyển group khi run này chưa hoàn tất.
+- Raw capture quality hiện phân bố 20 `complete`, 18 `partial`, 6 `legacy_normalized`, 2 `legacy_unknown` và 2 event thiếu quality trong 48 `context_captured` events; duplicate listing URL, one-to-one listing/context QA và comment-shape audit đều sạch. `legacy_*` là trạng thái provenance của dữ liệu cũ, không phải giấy phép suy đoán nội dung còn thiếu.
 - DB hiện có 75 group mang cờ `joined=true`; metric mới nhất vẫn được bổ sung từ panel trong lúc kiểm tra. Batch notification vừa đối chiếu có 44 group unique đã báo approved và đều được ghi `joined=true`. Khi hai nguồn lệch nhau, chỉ metric mới nhất có `join_status='joined'` được coi là đủ điều kiện tier 1/2.
 - Group selection hiện chỉ dùng `joined=true`, loại group `allows_sublet='no'`, rồi sort theo metric `posts_per_day` mới nhất giảm dần; không tự rank lại tier trong capture.
 - Tier 1 hiện cần Kien bật Notifications → All posts thủ công cho 8 group; các group có số cao nhưng đang pending không được đưa vào danh sách.
