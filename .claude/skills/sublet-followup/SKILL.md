@@ -5,6 +5,8 @@ description: Danh sách việc cần bạn hôm nay — thread im lặng, viewin
 
 # sublet-followup
 
+> **Đọc `partner-voice` trước khi soạn bất kỳ tin nào.** Định vị, giọng, giới hạn 90/40 từ, minh bạch ai trả phí — đều ở đó.
+
 Chạy 1 lần/ngày, buổi sáng. Không gửi gì. Đưa ra ≤10 việc, ưu tiên theo tiền và thời gian.
 
 ## Truy vấn

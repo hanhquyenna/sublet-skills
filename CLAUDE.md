@@ -24,4 +24,9 @@
 - Cấu hình: `data/config.yaml`, danh sách group: `data/groups.yaml`.
 
 ## Thứ tự skill
-scan/email → (tự động) match → draft → [người gửi] → viewing-coordinate → followup → report
+groups (tuần) → scan/email (capture thô) → intent-analyze (phân loại) → match → draft [đọc partner-voice] → [người gửi] → viewing-coordinate → followup → report
+
+## Tách tầng
+- **Capture** (`sublet-scan`, `sublet-email`): chỉ lưu post thô. Không phân loại. Tốn page load → tối giản.
+- **Analyze** (`intent-analyze`): chạy lại được, không tốn page load. Mọi rule phân loại/extract/scam ở đây.
+- **Voice** (`partner-voice`): mọi tin gửi ra ngoài phải qua đây.

@@ -132,3 +132,26 @@ alter table sublet_fees enable row level security;
 alter table sublet_messages enable row level security;
 alter table sublet_events enable row level security;
 alter table sublet_scan_runs enable row level security;
+
+-- v2: groups registry + scan cursor
+create table if not exists sublet_groups (
+  key text primary key,
+  name text not null,
+  url text unique,
+  city text,
+  tier int check (tier in (1,2,3)),
+  is_private boolean,
+  member_count int,
+  allows_sublet text check (allows_sublet in ('yes','no','unknown')) default 'unknown',
+  allows_agencies text check (allows_agencies in ('yes','no','unknown')) default 'unknown',
+  joined boolean not null default false,
+  notif_all_posts boolean not null default false,
+  offering_7d int default 0,
+  last_post_seen_at timestamptz,
+  last_scanned_at timestamptz,
+  last_ranked_at timestamptz,
+  discovered_at timestamptz not null default now(),
+  notes text
+);
+alter table sublet_groups enable row level security;
+alter table sublet_scan_runs add column if not exists cursor text;

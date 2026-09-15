@@ -1,6 +1,6 @@
 ---
 name: sublet-scan
-description: Quét post sublet mới trên Facebook qua groups/feed + notifications trong Chrome thật của người dùng (chỉ đọc, ≤4 page load), phân loại offering/seeking, chấm scam, lưu Supabase. Dùng khi người dùng gõ /sublet-scan hoặc trong /loop.
+description: CAPTURE-ONLY — quét post mới trên Facebook qua groups/feed + notifications trong Chrome thật (chỉ đọc, ≤4 page load), lưu thô (post, link, text, thời gian, group) vào sublet_listings với kind=null, dừng ở cursor của lần trước để không lặp, rồi gọi intent-analyze. Dùng với /sublet-scan hoặc trong /loop.
 ---
 
 # sublet-scan
@@ -16,19 +16,17 @@ description: Quét post sublet mới trên Facebook qua groups/feed + notificati
 1. `insert into sublet_scan_runs(mode) values ('feed') returning id` — nhớ id.
 2. Chrome (Claude in Chrome / mcp__claude-in-chrome): `navigate` tới `https://www.facebook.com/groups/feed/`. **1 page load.**
    - Nếu trang là login / checkpoint / captcha / "unusual activity": cập nhật run `stopped_reason`, báo người dùng qua Telegram, **dừng toàn bộ và không chạy lại 24h**.
-3. `get_page_text` (max_chars 30000). Scroll xuống tối đa 3 lần (`computer scroll`), mỗi lần chờ 2–5s, đọc thêm. Dừng sớm khi gặp post đã có trong DB (so `source_url`) 3 lần liên tiếp.
-4. `navigate` tới `https://www.facebook.com/notifications` — **page load 2** — đọc tiêu đề notification dạng "X posted in <group>". Lấy link post nếu có.
-5. Với mỗi post mới (chưa có `source_url` trong `sublet_listings`):
-   - Lấy: group name → map sang `group_key` từ `data/groups.yaml` (fuzzy theo tên); poster display name; thời gian tương đối ("2h") → `posted_at`; text; permalink.
-   - Phân loại `kind`: offering / seeking / other, dùng `keywords` trong groups.yaml + đọc hiểu. "Looking for" = seeking. "Available / my room / subletting" = offering.
-   - Chỉ với offering: extract area, room_type, rent_eur, deposit_eur, bills_included, available_from/to (ISO date; năm hiện tại nếu thiếu), min_term_days, furnished, registration_allowed, max_people. Không đoán giá trị không có trong text → để null.
-   - `scam_score` 0–100 và `scam_flags` theo `config.scam.flags`. ≥60 = nghi ngờ.
-   - Insert vào `sublet_listings` (source='fb_feed' hoặc 'fb_notif', source_url, raw_text = text đầy đủ). Insert `sublet_events(entity_type='listing', event='seen', source_url)`.
-   - Với seeking: insert vào `sublet_seekers(source='fb_seeking', contact_consent=false, ...)` chỉ khi có ngày + ngân sách rõ. Không lưu contact.
-6. Nếu một offering **thiếu ngày hoặc giá** và có vẻ thật: được phép mở permalink để đọc full post — **page load 3–4, tối đa 2 post/chu kỳ**, và ghi vào `mode='group_page'` run riêng. Không mở comment.
+3. `get_page_text` (max_chars 30000). Scroll xuống tối đa 3 lần (`computer scroll`), mỗi lần chờ 2–5s. **Dừng sớm** khi: gặp `cursor` của run trước (`select cursor from sublet_scan_runs where mode='feed' and cursor is not null order by id desc limit 1`), hoặc 3 permalink liên tiếp đã có trong `sublet_listings.source_url`.
+4. `navigate` tới `https://www.facebook.com/notifications` — **page load 2** — đọc "X posted in <group>", lấy link post nếu có. Bỏ qua notification cũ hơn `last_post_seen_at` của group đó (trong `sublet_groups`).
+5. Với mỗi post chưa có `source_url` trong DB: **chỉ capture, không phân loại**:
+   - `source` ('fb_feed' | 'fb_notif'), `source_url` (permalink, bỏ query string), `group_key` (map tên group → `sublet_groups.key`, fuzzy; không map được → key = slug tên, insert group mới tier=null), `poster_name` (display name như hiện), `posted_at` ("2h" → now−2h), `raw_text` (toàn bộ text post, không cắt), `kind = null`.
+   - Insert `sublet_listings`; `sublet_events(event='captured', source_url)`.
+   - Update `sublet_groups.last_post_seen_at` = max(posted_at).
+   - Permalink đầu tiên đọc được ở đầu feed → ghi vào `sublet_scan_runs.cursor` của run này.
+6. Nếu một post có `notes='needs_full_read'` (do intent-analyze đánh) : được phép mở permalink để đọc full post — **page load 3–4, tối đa 2 post/chu kỳ**, và ghi vào `mode='group_page'` run riêng. Không mở comment.
 7. Cập nhật run: `finished_at`, `page_loads`, `posts_seen`, `new_listings`.
-8. Với mỗi offering mới có scam_score < 60: chạy ngay `/sublet-match` cho listing đó, rồi `/sublet-draft` nếu có ≥3 match score ≥ 60.
-9. In tóm tắt 3 dòng: mới / nghi scam / đã match. Nếu có listing mới đáng DM → gửi Telegram (chat_id trong config) 1 tin: "🆕 {n} sublet mới. Top: {area} €{rent} {from}→{to} — draft DM sẵn, /sublet-draft để xem."
+8. Nếu `new_listings > 0`: gọi `/intent-analyze` (phân loại + extract + scam + tự match). Scan không tự phân loại.
+9. In tóm tắt 3 dòng: captured / (từ intent-analyze) offering-seeking-scam / đã match. Nếu có listing mới đáng DM → gửi Telegram (chat_id trong config) 1 tin: "🆕 {n} sublet mới. Top: {area} €{rent} {from}→{to} — draft DM sẵn, /sublet-draft để xem."
 
 ## Không làm
 - Không mở từng group trong groups.yaml. Feed đã gom.

@@ -5,6 +5,8 @@ description: Khi subletter đồng ý, chọn top 3 seeker đã trả lời YES,
 
 # viewing-coordinate
 
+> **Đọc `partner-voice` trước khi soạn bất kỳ tin nào.** Định vị, giọng, giới hạn 90/40 từ, minh bạch ai trả phí — đều ở đó.
+
 ## Khi subletter trả lời "ok"
 1. Update `sublet_listings.status='accepted', accepted_at=now()`. `sublet_events(event='offer_accepted', actor='human')`.
 2. Nếu chưa push seekers → chạy `/sublet-draft` phần push trước.

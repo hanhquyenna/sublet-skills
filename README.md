@@ -29,7 +29,7 @@ Claude Code (Mac)                         Supabase (project Lamy, bảng sublet_
 |---|---|---|
 | 08:30 | `/sublet-followup` | Đọc ≤10 việc, gửi các draft |
 | 08:30–23:00 | `/loop 12m /sublet-scan` | Để chạy nền. Telegram báo khi có sublet mới |
-| khi có listing tốt | (tự động) `/sublet-match` → `/sublet-draft` | Copy DM, mở post, gửi tay. Gõ `/sublet-draft sent <id>` |
+| khi có listing tốt | (tự động) `/intent-analyze` → `/sublet-match` → `/sublet-draft` | Copy DM, mở post, gửi tay. Gõ `/sublet-draft sent <id>` |
 | subletter "ok" | `/viewing-coordinate <listing>` | Gửi shortlist, chốt slot, gửi contact |
 | sau viewing | `/viewing-coordinate showed\|no_show <viewing_id>` | Gửi Tikkie khi đủ 3 viewing |
 | 18:00 | `/sublet-report` | Đọc metrics |
@@ -41,7 +41,10 @@ Có seeker mới: dán tin nhắn của họ vào chat và gõ `/seeker-intake`.
 
 | Skill | Làm gì | Gửi gì ra ngoài? |
 |---|---|---|
-| `sublet-scan` | groups/feed + notifications → listings, scam score, tự match | Không |
+| `sublet-groups` | Tìm group (FB search, đọc-only), rank tier theo offering/7d, cursor chống lặp | Không |
+| `sublet-scan` | **Capture-only**: groups/feed + notifications → post thô (link, text, time, group), dừng ở cursor | Không |
+| `intent-analyze` | Post thô → intent (subletter/sublettee), requirements có cấu trúc, scam score, tự match | Không |
+| `partner-voice` | Giọng + luật nói với subletter (xin hợp tác) và người tìm nhà (free, broker được subletter trả) | — (được draft/followup dùng) |
 | `sublet-email` | Email notification FB → listings (chạy được trên Hetzner) | Không |
 | `seeker-intake` | Tally/WhatsApp/text → seekers | Không |
 | `sublet-match` | `match.py` → sublet_matches có lý do | Không |

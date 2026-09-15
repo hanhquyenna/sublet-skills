@@ -5,6 +5,8 @@ description: Soạn (không gửi) DM offer €49/72h cho subletter và tin push
 
 # sublet-draft
 
+> **Đọc `partner-voice` trước khi soạn bất kỳ tin nào.** Định vị, giọng, giới hạn 90/40 từ, minh bạch ai trả phí — đều ở đó.
+
 Agent soạn. **Người dùng gửi.** Không có ngoại lệ.
 
 ## Input
