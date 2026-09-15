@@ -15,7 +15,7 @@ Skill này là bản đồ context, không thay thế luật cứng hay logic ch
 
 ## Snapshot hiện tại
 
-Snapshot này được ghi ngày **2026-09-15**, sau commit `e6e4b65`, rank metrics và cập nhật backlog:
+Snapshot này được ghi ngày **2026-09-15**, sau commit `a95fe61`, rank metrics và cập nhật backlog:
 
 - Repo chính: `/Users/ad/sublet-skills` (thường gọi bằng `~/sublet-skills`).
 - Mục tiêu: dịch vụ broker sublet nhỏ ở Amsterdam, Phase 0 trong 30 ngày.
@@ -51,6 +51,97 @@ Snapshot này được ghi ngày **2026-09-15**, sau commit `e6e4b65`, rank metr
 | Template | `templates/` | DM offer, seeker push, viewing confirm, follow-up, FAQ EN/NL |
 | Ops | `ops/` | cron Mac, Hetzner crontab, `run_skill.sh`, backup, log |
 | Config/data | `data/config.yaml`, `data/groups.yaml` | city/giờ/offer và seed group/keyword |
+
+## Onboarding contract cho agent
+
+`information` là context map, không phải giấy phép vượt luật. Agent mới phải
+đọc theo thứ tự: `information` → `CLAUDE.md` → `AGENTS.md` → `PLAN.md` → skill
+chuyên môn cần chạy. Nếu snapshot mâu thuẫn runtime thì kiểm tra trực tiếp DB,
+filesystem và browser rồi cập nhật snapshot; nếu mâu thuẫn `CLAUDE.md` thì
+`CLAUDE.md` thắng.
+
+### Quyền và giới hạn
+
+- Agent được đọc/sửa file trong repo, chạy validator, đọc/ghi Supabase qua
+  `scripts/db.py`, và commit/push khi người vận hành yêu cầu.
+- Quyền filesystem/repo không có nghĩa là được thao tác Facebook. Facebook chỉ
+  được đọc qua ChatGPT/Codex in-app browser panel trong session người dùng đã
+  login thủ công.
+- Không join group, submit form, bật notification, post, comment, like, DM,
+  send, donate, đọc DM/private content, friend list hoặc album riêng tư.
+- Khi gặp login/checkpoint/captcha/“unusual activity”, dừng ngay, ghi stop theo
+  rule và không retry trong 24 giờ.
+- DB write chỉ để lưu dữ liệu capture/progress/metrics và draft. Tin gửi ra
+  ngoài luôn là `status='draft'`; chỉ Kien tự gửi.
+
+### Skill registry hiện tại
+
+- Context/ops: `information`, `onboarding`, `sublet-worker`, `sublet-report`.
+- Group/capture: `sublet-groups`, `sublet-scan`, `sublet-backfill`,
+  `sublet-scrape-14-groups`, `sublet-email`, `sublet-diagnose`.
+- Analyze/match: `intent-analyze`, `seeker-intake`, `sublet-match`.
+- Communication/viewing: `partner-voice`, `sublet-draft`, `inbox-triage`,
+  `viewing-coordinate`, `sublet-followup`.
+
+Skill source duy nhất là `/Users/ad/sublet-skills/.claude/skills/<name>/SKILL.md`.
+`.agents/skills` chỉ là symlink dùng cho Codex; không tạo bản copy thứ hai.
+Kiểm tra bằng:
+
+```sh
+cd /Users/ad/sublet-skills
+find .claude/skills -mindepth 2 -maxdepth 2 -name SKILL.md -print | sort
+```
+
+### Database: lưu ở đâu và dùng thế nào
+
+- Database live là Supabase project **Lamy**, ref
+  `cteunhuxrghpozwbnehh`; schema chuẩn nằm tại `db/schema.sql`.
+- Secret chỉ nằm ngoài repo trong `~/.sublet-skills.env`; không in, commit hoặc
+  yêu cầu paste secret vào chat.
+- Đường chuẩn để query/update là `python3 scripts/db.py "<SQL>"`, qua RPC
+  `public.sublet_exec`; không dùng DB script để điều khiển Facebook.
+- `sublet_groups`/`sublet_group_metrics`: group identity, joined/status,
+  member/activity, tier và checkpoint 14 ngày.
+- `sublet_listings`: raw post với `source_url`, `group_key`, poster, absolute
+  `posted_at` nếu thấy, `seen_at`, full `raw_text`, `kind=null`; `text_hash` do
+  DB generate.
+- `sublet_events`: provenance/context. Event raw chuẩn là
+  `context_captured`, contract v2; `detail_audit` là QA riêng, không analyzer.
+- `sublet_scan_runs`: run, group, page loads, counts, cursor và stop reason.
+- `sublet_ops_state`/`sublet_jobs`: resumable batch/chunk progress.
+- `sublet_inbox`: cảnh báo và việc Kien cần biết; `sublet_metrics`: số đo báo cáo.
+
+### Current scrape context
+
+Mục tiêu hiện tại là `/sublet-scrape-14-groups`: tối đa 14 group đã joined,
+chọn theo `posts_per_day` mới nhất cao nhất, xử lý tuần tự từng group. Mỗi
+group dùng `/sublet-backfill <group_key> 14`, chronological, đủ 14 ngày lịch,
+không duplicate, ghi DB sau từng batch.
+
+Trước mỗi chunk, agent phải đọc run mở và DB: ưu tiên `cursor` với
+`last_verified_post_at`/`last_source_url`; `max(posted_at)` chỉ là tín hiệu
+tham chiếu; `seen_at` là thời điểm quan sát, không phải thời điểm bài đăng.
+URL đã tồn tại thì không insert lại. Không chuyển group khi còn card có
+permalink chưa xử lý. Chỉ set `posts_14d_complete=true` khi qua boundary và
+đã xử lý hết card verified; thấy nhãn “2 tuần” hoặc đạt `posts_seen` chưa đủ.
+
+Capture raw gồm toàn bộ text post, poster/profile URL public nếu hiển thị,
+comment/reply public đang thấy, commenter/profile/comment URL, timestamp tuyệt
+đối nếu Facebook expose, relative label bổ sung, media metadata hiển thị và
+public activity giới hạn. Event mới phải có `capture_contract_version=2`,
+`capture_quality`, `scan_run_id`, `page_load`, `source_surface` và đầy đủ
+`null`/`[]`/`false` keys. Không phân tích intent trong capture.
+
+### Cách tiếp tục ở session sau
+
+1. Đọc skill này và kiểm tra `git status`, current branch/commit.
+2. Query DB để xác nhận group count, latest metric, run mở, cursor, timestamp
+   và duplicate source URLs; không tin snapshot nếu runtime khác.
+3. Chạy `/sublet-scrape-14-groups`; controller giữ batch state và gọi
+   `sublet-backfill` từng group.
+4. Sau mỗi batch xác nhận listing/context/run/metric đã ghi. DB outage thì retry
+   một lần, dừng và giữ incomplete; không báo thành công giả.
+5. Sau khi raw batch hoàn tất mới chạy `intent-analyze` riêng nếu Kien yêu cầu.
 
 ## Supabase hiện tại
 
