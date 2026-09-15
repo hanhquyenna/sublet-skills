@@ -31,5 +31,6 @@ Nguồn luật: `CLAUDE.md`. File này là chỉ mục để audit. Skill tham c
 | R25 | 14-day capture is one group at a time; update DB after each batch; incomplete stays incomplete | `sublet-backfill`, `sublet-worker`, capture contract | `posts_14d_complete` only true after boundary + verified cards | enforce |
 | R26 | Raw capture stores post text plus visible public comment/reply/profile context; analysis is separate | `sublet-scan` capture contract; `sublet-backfill` | `kind is null` and `context_captured` provenance audit | enforce |
 | R27 | Every new context event carries contract version, quality, and exact run/page/surface provenance; legacy missing keys stay unknown | capture contract; `sublet-scan`; `sublet-backfill` | audit `capture_contract_version`, `capture_quality`, `scan_run_id`, `page_load`, `source_surface` | enforce |
+| R28 | The 14-group batch is sequential and resumable: DB cursor/timestamp first, dedupe before insert, DB checkpoint after every batch | `sublet-scrape-14-groups`, `sublet-backfill`, `sublet-worker` | one open browser job; no duplicate source URLs; complete only after all 14 groups | enforce |
 
 Quy trình sửa luật: sửa CLAUDE.md → cập nhật dòng ở đây → cập nhật skill enforce → thêm edge case vào `docs/edge-cases.md` nếu có → commit "rule: …".

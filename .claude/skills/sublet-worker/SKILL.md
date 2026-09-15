@@ -67,6 +67,11 @@ Với runtime có cron ≤10' (launchd + Claude Code, hoặc Hetzner): dùng ch�
 ## Ưu tiên giải thích bằng lời
 Post mới đáng tiền hơn post cũ → scan trước. Post đã capture mà chưa phân loại là vô dụng → analyze ngay sau. Backfill và verify là "việc nền", chỉ chạy khi 4 việc trên rảnh, và mỗi lần chỉ 1 mẩu để không chiếm page-load budget của scan.
 
+`/sublet-scrape-14-groups` là controller cho một batch lịch sử: nó chỉ chọn
+group và giữ state; việc đọc Facebook vẫn đi qua `/sublet-backfill <key> 14`.
+Không tạo browser job thứ hai và không chuyển group trước khi
+`posts_14d_complete=true`.
+
 ## Ước lượng thời gian thật (Amsterdam, 43 group joined)
 | Việc | Kích thước | Số tick | Xong sau |
 |---|---|---|---|

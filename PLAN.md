@@ -49,6 +49,7 @@ Bảng tổng: skill → đọc → ghi → trigger → page load
 |---|---|---|---|---|
 | onboarding | config, sublet_groups, ops_state | sublet_ops_state | tay, lần đầu | 1 |
 | sublet-groups | FB search, sublet_listings (đếm) | sublet_groups, data/groups.yaml | tuần (discover tay, rank cron CN) | ≤6/tuần |
+| sublet-scrape-14-groups | groups, latest metrics, scan runs, listings/events, batch state | batch state + gọi backfill từng group | tay/worker | không tự đọc Facebook; serialize browser jobs |
 | sublet-backfill | 1 group, chronological, 14 ngày, resumable | sublet_listings raw, context events, scan_runs, group_metrics, ops_state | tay/worker, từng group | panel-only, theo page-load budget |
 | sublet-scan | FB groups/feed, /notifications, scan_runs.cursor | sublet_listings (kind=null), sublet_scan_runs, sublet_groups.last_post_seen_at, sublet_events | cron 12' | ≤4 |
 | sublet-email | Gmail IMAP | như scan (source=fb_email) | cron 10' (Hetzner 24/7) | 0 |

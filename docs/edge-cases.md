@@ -32,6 +32,8 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | E25 | Profile/commenter không public hoặc không có permalink | lưu phần đang hiển thị với `visibility='partial'`; không đoán danh tính, không retry vô hạn | sublet-scan | manual |
 | E26 | Comment pagination vô hạn hoặc Facebook yêu cầu mở rộng | dừng ở 100 comment/reply/post hoặc page-load budget; giữ `context_captured` với `truncated=true` | sublet-scan | manual |
 | E27 | Public profile có lịch sử quá dài hoặc nội dung nhạy cảm | chỉ lưu tối đa 10 post/30 ngày; không lưu friend list, album, ảnh, demographic inference hay contact field | sublet-scan | manual |
+| E28 | Resume group có timestamp null hoặc run bị dừng | ưu tiên run cursor + verified source_url; `seen_at` chỉ là thời điểm quan sát, không dùng làm post time; không bắt đầu lại từ đầu | sublet-scrape-14-groups, sublet-backfill | manual |
+| E29 | Batch 14 group có group chưa complete hoặc bị block | giữ `current_group`, ghi blocked reason, không chuyển group/đóng batch như complete | sublet-scrape-14-groups | manual |
 
 ## C. ANALYZE — intent (chi tiết rule ở docs/intent-logic.md)
 | # | Tình huống | Xử lý | Skill | Test |

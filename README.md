@@ -45,6 +45,7 @@ Có seeker mới: dán tin nhắn của họ vào chat và gõ `/seeker-intake`.
 | `inbox-triage` | Đọc reply (Messenger đọc-only / bạn dán) → phân loại → cập nhật trạng thái → draft trả lời (FAQ điền sẵn) | **Bạn gửi** |
 | `sublet-groups` | Tìm group (FB search, đọc-only), rank tier theo offering/7d, cursor chống lặp | Không |
 | `sublet-worker` | Điểm vào cron: 1 tick = 1 job step ≤8' từ `sublet_jobs` (scan > analyze > match > email > backfill chunk > verify chunk) | Không |
+| `sublet-scrape-14-groups` | Controller batch: chọn tối đa 14 group theo activity, gọi backfill 14 ngày tuần tự, resume/dedupe/checkpoint | Không |
 | `sublet-backfill` | Đọc lịch sử 14 ngày của 1 group, resumable, panel-only, lưu raw post + public context → corpus trước khi phân tích | Không |
 | `sublet-scan` | **Capture-only**: groups/feed + notifications → post thô (link, text, time, group), dừng ở cursor | Không |
 | `intent-analyze` | Post thô → intent (subletter/sublettee), requirements có cấu trúc, scam score, tự match | Không |
