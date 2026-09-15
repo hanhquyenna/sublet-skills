@@ -88,9 +88,9 @@ Với record đầu tiên trong queue:
    và text/title hoặc media có đủ dấu hiệu khớp card raw. Một URL HTTP mở được
    nhưng dẫn sai group/sai post là `needs_review`, không phải validated.
 4. Nếu Facebook hiển thị rõ nội dung không khả dụng vì post bị xóa, private,
-   audience restriction hoặc không còn truy cập được, ghi `inaccessible`.
-   Đây là trạng thái terminal của lần xác minh; giữ nguyên raw listing và
-   share URL, không bịa `post_id`/canonical URL.
+   audience restriction hoặc không còn truy cập được, chạy **một recovery
+   attempt** trước khi kết luận inaccessible (xem mục Recovery bên dưới).
+   Chỉ khi không có một ứng viên duy nhất khớp mới ghi `inaccessible`.
 5. Nếu trang mở được nhưng không đủ dấu hiệu để khẳng định đúng bài, hoặc
    redirect lạ, timeout, DOM không đọc được, ghi `needs_review` và nêu lý do.
    Không dùng screenshot một mình để kết luận identity; chỉ dùng screenshot
@@ -98,10 +98,37 @@ Với record đầu tiên trong queue:
 6. Sau từng record, ghi DB ngay, rồi mới lấy record kế tiếp. Không đợi hết
    batch mới checkpoint.
 
+## Recovery khi link inaccessible
+
+Recovery là bước tìm link thay thế cho cùng raw card, không phải scrape lại
+toàn bộ group. Dùng cùng tab panel và tối đa một lần recovery cho mỗi record:
+
+1. Từ group URL trong context event, dùng navigation/search/feed UI của
+   Facebook để tìm các card gần `timestamp_label` hoặc `posted_at_estimated`.
+   Chỉ đọc các card hiển thị trong panel; không dùng HTTP/API hay raw page dump.
+2. Đối chiếu ứng viên với evidence đã capture theo thứ tự: group ID/name,
+   poster display name hoặc anonymous state, timestamp (absolute nếu có; nếu
+   chỉ relative thì tính uncertainty theo capture contract), rồi normalized
+   text/title fingerprint và media dấu hiệu. Group + thời gian riêng lẻ không
+   đủ để thay link vì có thể có nhiều bài cùng lúc.
+3. Nếu có **một ứng viên duy nhất** khớp mạnh, lấy direct permalink hoặc dùng
+   Share → Copy link của chính card đó, mở một lần để xác nhận, rồi coi link
+   mới là `validated`. Nếu có 0 hoặc nhiều ứng viên, không tự chọn.
+4. Nếu recovery không xác định được bài, ghi `inaccessible` (đã thử recovery)
+   hoặc `needs_review` nếu blocker/ambiguous; giữ nguyên source URL và raw
+   evidence. Không gọi một bài khác là replacement chỉ vì cùng poster/group.
+
+Recovery dùng page-load budget của validation run. Nếu cần hơn 4 loads hoặc
+Facebook hiển thị login/checkpoint/captcha/unusual activity, dừng ngay và ghi
+`needs_review`; không cố quét thêm để tìm link.
+
 ## DB write contract
 
 Giữ `sublet_listings.source_url` đúng URL đã capture, kể cả khi đó là share
-URL. Không overwrite evidence gốc bằng canonical URL. Khi thành công, update:
+URL. Không overwrite evidence gốc bằng canonical URL. Khi recovery tìm được
+link mới, coi `link_validated_url` là operational replacement và lưu
+`recovered_from_url` trong event; không xóa source URL cũ. Khi thành công,
+update:
 
 - `link_validation_status='validated'`
 - `link_validated_url=<canonical URL nếu panel expose; nếu chỉ share URL thì
@@ -110,9 +137,10 @@ URL. Không overwrite evidence gốc bằng canonical URL. Khi thành công, upd
 - tăng `link_validation_attempts`
 - `link_validation_note` ngắn, nêu method và field dùng để match
 
-Khi inaccessible, update `link_validation_status='inaccessible'`,
-`link_validated_url=null`, thời điểm, attempts và note. Khi blocker/ambiguous,
-update `needs_review`; không gọi là inaccessible.
+Khi inaccessible sau recovery, update `link_validation_status='inaccessible'`,
+`link_validated_url=null`, thời điểm, attempts và note rõ
+`recovery_attempted=true`. Khi blocker/ambiguous, update `needs_review`; không
+gọi blocker là inaccessible.
 
 Mỗi kết quả tạo một provenance event gắn `entity_id` listing:
 
@@ -153,6 +181,9 @@ không thể xác minh. Có thể lưu `redirect_url` riêng để audit, nhưng
   lấy link evidence sau.
 - Nếu source URL trùng listing khác, không tạo listing mới. Ghi validation
   event cho entity hiện có; conflict canonical/content thì `needs_review`.
+- Recovery chỉ được tự thay link khi có đúng một ứng viên khớp group + poster/
+  anonymous + timestamp + text/media evidence. Chỉ group và timestamp không
+  đủ; nhiều ứng viên phải giữ `needs_review`.
 - Nếu một bài đã validated nhưng capture sau đó thấy text khác, không overwrite
   raw history và không tự revalidate; ghi event mới và chờ yêu cầu audit.
 - Không mở comment/profile/media riêng chỉ để validate link. Comment chỉ được
