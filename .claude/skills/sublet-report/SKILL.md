@@ -1,6 +1,6 @@
 ---
 name: sublet-report
-description: Báo cáo cuối ngày và metrics Phase 0 (posts/ngày theo group, scam rate, DM→yes, fill trong 72h, show-up, fee thu, page loads) từ Supabase qua scripts/report.py, gửi Telegram. Dùng với /sublet-report [7d].
+description: Báo cáo cuối ngày và metrics Phase 0 (posts/ngày theo group, scam rate, DM→yes, fill trong 72h, show-up, fee thu, page loads) từ Supabase qua scripts/report.py, ghi sublet_inbox. Dùng với /sublet-report [7d].
 ---
 
 # sublet-report

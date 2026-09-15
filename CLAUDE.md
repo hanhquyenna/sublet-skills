@@ -6,7 +6,7 @@
 1. **Không post, comment, like, DM, join group, hay gửi bất cứ gì trên Facebook.** Agent chỉ ĐỌC. Mọi tin đi ra do người dùng tự gửi.
 2. Không mở quá **4 page load Facebook mỗi chu kỳ** scan. Không mở từng group; đọc `facebook.com/groups/feed` và `/notifications`.
 3. Không chạy scan ngoài giờ trong `data/config.yaml` (`hours`). Không chạy khi máy vừa thức dậy dưới 2 phút.
-4. **Dừng ngay** và báo Telegram nếu thấy: checkpoint, captcha, "unusual activity", yêu cầu xác minh, trang login. Không thử lại trong 24h.
+4. **Dừng ngay** và ghi `sublet_inbox(level=stop)` nếu thấy: checkpoint, captcha, "unusual activity", yêu cầu xác minh, trang login. Không thử lại trong 24h.
 5. Không đọc profile member, không lưu ảnh, không lưu số điện thoại/email từ post trừ khi poster tự ghi trong post và cần để liên hệ.
 6. Không dùng headless browser, không dùng cookie ở nơi khác ngoài Chrome thật của người dùng.
 7. Không ghi outcome (signed / moved-in) nếu không có xác nhận từ subletter hoặc seeker. Không đoán.

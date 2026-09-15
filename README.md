@@ -72,4 +72,4 @@ Có seeker mới: dán tin nhắn của họ vào chat và gõ `/seeker-intake`.
 Dưới mốc → đổi offer/giá, không đổi kiến trúc. Đạt mốc → lúc đó mới viết daemon + Hetzner cho phần email/matching, và giữ Chrome trên Mac (hoặc Mac mini) cho phần đọc.
 
 ## Hetzner (Phase 2)
-Chỉ chạy: `sublet-email`, `sublet-match`, `sublet-followup` (draft), `sublet-report`, Telegram. **Không bao giờ** chạy Chrome/Facebook trên VPS — IP datacenter + session cá nhân = checkpoint.
+Chỉ chạy: `sublet-email`, `sublet-match`, `sublet-followup` (draft), `sublet-report`. **Không bao giờ** chạy Chrome/Facebook trên VPS — IP datacenter + session cá nhân = checkpoint.

@@ -1,6 +1,6 @@
 ---
 name: onboarding
-description: Checklist khởi động cho người vận hành (bạn) — kiểm tra từng điều kiện (Chrome login, group joined, notification, Telegram, Gmail IMAP, Tally, Supabase, cron) và ghi tiến độ vào sublet_ops_state. Dùng với /onboarding lần đầu và mỗi khi đổi máy. Agent kiểm tra được gì thì tự kiểm, còn lại hỏi bạn từng câu.
+description: Checklist khởi động cho người vận hành (bạn) — kiểm tra từng điều kiện (Chrome login, group joined, notification, Gmail IMAP, Tally, Supabase, cron) và ghi tiến độ vào sublet_ops_state. Dùng với /onboarding lần đầu và mỗi khi đổi máy. Agent kiểm tra được gì thì tự kiểm, còn lại hỏi bạn từng câu.
 ---
 
 # onboarding
