@@ -5,6 +5,11 @@ description: Đọc các post thô mới trong sublet_listings (kind is null) v�
 
 # intent-analyze
 
+Analyzer chỉ đọc `sublet_listings` có `kind is null` và raw evidence từ
+`sublet_events.event='context_captured'`. Chỉ dùng context event contract v2;
+loại khỏi input mọi `detail_audit`/QA note và không biến chúng thành raw
+evidence mới. Capture fields thiếu vẫn là `null`/`[]`/`false`, không được đoán.
+
 ## Spec
 | | |
 |---|---|

@@ -57,10 +57,28 @@ listing row. Keep its progress note so the operator can inspect it later.
 
 Write one `event='context_captured'`, `actor='agent'`, linked to the listing,
 with the same keys on every event (use `null`, `[]`, or `false`; do not omit a
-key to mean “not observed”):
+key to mean “not observed”). The event must also carry provenance for the exact
+browser observation:
+
+- `capture_contract_version=2`
+- `scan_run_id` = the numeric `sublet_scan_runs.id`
+- `page_load` = the page-load ordinal within that run (or `null` when no new
+  page was loaded)
+- `source_surface='codex_in_app_browser'`
+- `capture_quality='complete'` for a new event; use `legacy_unknown` only when
+  documenting an older event that cannot be reconstructed
+
+These fields belong in the event payload even though `sublet_events` has no
+dedicated columns for them. Never use `detail_audit` as a substitute for this
+raw event.
 
 ```json
 {
+  "capture_contract_version": 2,
+  "scan_run_id": 7,
+  "page_load": 1,
+  "source_surface": "codex_in_app_browser",
+  "capture_quality": "complete",
   "post_text": "...",
   "timestamp_label": "2 weeks ago",
   "posted_at_observed": null,
@@ -134,3 +152,13 @@ run cursor/stopped reason. `posts_seen` is not automatically the 14-day total.
 
 Capture is separate from analysis: leave `kind=null`, then run
 `intent-analyze` later on the saved raw records.
+
+## Legacy event repair
+
+Existing `context_captured` events that lack these keys are **legacy/incomplete
+provenance**, not evidence that Facebook showed no value. A DB-only repair may
+add the required keys with `null`, `[]`, or `false` and set
+`capture_quality='legacy_unknown'`, but must not invent timestamps, counts,
+media, run ids, page ordinals, or surface names. Keep `detail_audit` events
+separate and exclude them from the analyzer input. Re-audit the repaired rows
+before treating them as contract-complete.

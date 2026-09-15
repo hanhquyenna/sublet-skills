@@ -30,5 +30,6 @@ Nguồn luật: `CLAUDE.md`. File này là chỉ mục để audit. Skill tham c
 | R24 | Secret không vào repo; key qua chat phải rotate | `.gitignore`; `~/.sublet-skills.env` chmod 600 | `git grep -i "service_role_key\|eyJ"` = 0 | enforce |
 | R25 | 14-day capture is one group at a time; update DB after each batch; incomplete stays incomplete | `sublet-backfill`, `sublet-worker`, capture contract | `posts_14d_complete` only true after boundary + verified cards | enforce |
 | R26 | Raw capture stores post text plus visible public comment/reply/profile context; analysis is separate | `sublet-scan` capture contract; `sublet-backfill` | `kind is null` and `context_captured` provenance audit | enforce |
+| R27 | Every new context event carries contract version, quality, and exact run/page/surface provenance; legacy missing keys stay unknown | capture contract; `sublet-scan`; `sublet-backfill` | audit `capture_contract_version`, `capture_quality`, `scan_run_id`, `page_load`, `source_surface` | enforce |
 
 Quy trình sửa luật: sửa CLAUDE.md → cập nhật dòng ở đây → cập nhật skill enforce → thêm edge case vào `docs/edge-cases.md` nếu có → commit "rule: …".

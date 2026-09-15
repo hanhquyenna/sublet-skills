@@ -69,7 +69,8 @@ chỉ là một chunk; chưa đủ điều kiện thì không báo hoàn tất.
    đọc được, hoặc DB lỗi sau một lần retry. Run vẫn incomplete và phải ghi lý do.
 4. Với mỗi post có group + permalink xác minh: lưu full `raw_text`, poster,
    timestamp tuyệt đối nếu Facebook thật sự hiển thị, `seen_at`, `kind=null`,
-   rồi lưu `context_captured` theo capture contract. Giữ comment/reply đang
+   rồi lưu `context_captured` theo capture contract v2 với `scan_run_id`,
+   `page_load`, `source_surface='codex_in_app_browser'`. Giữ comment/reply đang
    hiển thị (tối đa 100/post), profile URL public nếu có, và public activity
    trực tiếp gắn với post (tối đa 10 post hoặc 30 ngày mỗi poster/commenter).
 5. Không đoán permalink. Card thiếu link là `unresolved_cards`, không insert
