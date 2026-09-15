@@ -14,7 +14,11 @@ Quản lý "biết group nào". Chỉ đọc. Không join (bạn join tay), khô
 4. Upsert `sublet_groups` (key = slug từ tên, unique url). Group mới → `tier=null`, `joined=false`.
 5. In bảng ứng viên mới, sắp theo member_count, kèm đề xuất: "join 3 group này tuần này". Tối đa 5 đề xuất/tuần — Facebook giữ request nếu join dồn.
 
-## /sublet-groups rank  (chạy sau ≥7 ngày scan)
+## /sublet-groups rank  (chạy được ngay nhờ group_metrics; chính xác sau ≥7 ngày scan)
+0. **Tier tạm khi chưa có offering_7d** (tuần đầu): lấy `posts_per_day` mới nhất từ `sublet_group_metrics` cho mỗi group đã `joined`:
+   - ≥3 post/ngày và allows_sublet != no → tier 1 (tối đa 8 group; nhiều hơn → chọn theo posts_per_day)
+   - 0.5–3 → tier 2 · <0.5 hoặc không có metrics → tier 3
+   Ghi `notes='tier tạm từ posts_per_day'`. Khi có `offering_7d` (bước 1–2) → ghi đè.
 1. `select group_key, count(*) filter (where kind='offering' and seen_at > now()-interval '7 days') as offering_7d, avg(scam_score) ... from sublet_listings group by group_key`.
 2. Quy tắc tier:
    - tier 1: offering_7d ≥ 10 và allows_sublet != no → đọc qua feed (đã là member, notification All posts)

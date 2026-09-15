@@ -233,3 +233,50 @@ Quy trình sửa: sửa file → commit với message "rule: <gì> vì <lý do>"
 | Bất kỳ | DM→ok <20% sau 50 DM | Đổi offer (giá/promise), không đổi kiến trúc |
 | Bất kỳ | fee thu <70% sau 10 deal | `fee_trigger` → `three_viewings_72h` |
 | Bất kỳ | 1 checkpoint Facebook | Giảm cadence ×2, xem lại page loads, 7 ngày không scan bằng browser (chỉ email) |
+
+---
+
+## J. Chi phí và cải tiến — xếp theo ROI (cập nhật 2026-09-15)
+
+### J1. Chi phí thật của hệ thống này
+Server ~€0 (Supabase free, Mac của bạn). Chi phí duy nhất đáng kể là **LLM token**, và nó đến từ 3 chỗ:
+
+| Nguồn token | Ước tính/ngày (Amsterdam, 40 group) | Cách cắt |
+|---|---|---|
+| `sublet-scan` đọc feed (text a11y ~20–30k ký tự × 60 chu kỳ) | lớn nhất nếu để LLM đọc cả feed | **Không cho LLM đọc feed.** Extract post bằng DOM/a11y → chỉ đưa LLM text từng post *mới* (đã lọc bằng cursor + text_hash). Từ ~1.5M token/ngày xuống ~100k |
+| `intent-analyze` (40 post/batch) | ~50–100 post/ngày × ~1.5k token | Dùng **Haiku 4.5** cho phân loại (doc + post ngắn, rule rõ) — rẻ ~10× Opus, eval mù đã cho thấy rule đủ rõ. Opus chỉ cho draft/voice |
+| `sublet-draft` / `inbox-triage` | ≤10 DM + ≤30 reply/ngày | Nhỏ; giữ model tốt vì đây là thứ khách đọc |
+| `sublet-backfill` | 300 post/group × 1 lần | Chạy Haiku; 1 lần |
+
+→ Mục tiêu: **< €1/ngày** LLM ở Phase 0. Đo bằng: log token trong `sublet_scan_runs.notes` và `sublet_events.payload.tokens`.
+
+### J2. Đã làm hôm nay (rẻ, ROI cao)
+| # | Cải tiến | Vì sao ROI cao | Ở đâu |
+|---|---|---|---|
+| 1 | **Dedupe cross-post** (`text_hash` + `canonical_id` + fingerprint poster/rent/from) | 1 subletter đăng 5 group = 1 DM thay vì 5 → tránh spam, tiết kiệm 80% DM | schema v2, `sublet-scan` bước 5, `intent-analyze` bước 11, view `deal_queue` |
+| 2 | **Tier tạm từ `group_metrics.posts_per_day`** | Không phải chờ 7 ngày để biết đọc group nào; Codex đã có số này cho 47 group | `sublet-groups rank` bước 0 |
+| 3 | **Views** (`v_deal_queue`, `v_analyze_queue`, `v_seekers_active`, `v_today`) | Skill ngắn hơn, ít lỗi SQL, ít token | schema v2; `sublet-draft`, `sublet-followup`, `intent-analyze` |
+| 4 | **`push_count`/`last_pushed_at`** giới hạn ≤3 push/seeker/ngày | Không đốt pool seeker | schema v2, `sublet-draft` |
+| 5 | **Backup JSON hàng ngày** (`ops/backup.sh`, launchd 23:30, Hetzner cron) | Free tier không có PITR; mất DB = mất 30 ngày | ops/ |
+| 6 | `updated_at` + trigger, `in_reply_to`, `city`, `payment_link` | Followup tính "im lặng bao lâu"; reply nối với offer; mở thành phố 2 | schema v2 |
+| 7 | CLAUDE.md #6 runtime-neutral (Claude in Chrome / Codex panel) | 2 agent không sửa qua lại cùng 1 dòng | CLAUDE.md |
+
+### J3. Backlog — xếp theo (giá trị ÷ công), làm theo thứ tự
+| # | Việc | Công | Giá trị | Khi nào |
+|---|---|---|---|---|
+| 1 | **Post extractor bằng DOM/a11y** trong scan: tách từng post (poster, time, text, permalink) trước khi đưa LLM | 1–2h | Cắt 90% token scan, tăng độ chính xác permalink | Trước khi bật cron scan |
+| 2 | **Model routing**: intent-analyze + backfill → Haiku 4.5; draft/inbox/voice → Opus/Sonnet | 30' (config + 1 dòng trong skill) | ~10× rẻ phần phân loại | Cùng lúc với #1 |
+| 3 | **QA loop trên corpus thật** sau backfill group đầu (20 post, sửa doc §12, `--all`) | 1h với bạn | Edge case thật mà test giả không có | Ngay khi backfill xong |
+| 4 | **Seeker form → webhook** (Tally → Supabase REST insert trực tiếp) thay vì export CSV | 30' | Seeker vào pool tức thì, không cần chạy intake tay | Khi có form |
+| 5 | Token accounting: ghi tokens vào `sublet_events.payload` mỗi skill | 30' | Biết chính xác €/ngày | Tuần 1 |
+| 6 | **Rotate service key + DB password** sau khi Codex setup xong | 5' | Key đã đi qua chat | Hôm nay |
+| 7 | `sublet_group_metrics` → tự động: sublet-groups discover ghi metrics thay vì Codex làm tay | 1h | Lặp lại được cho thành phố 2 | Phase 1 |
+| 8 | Enum Postgres thay `check` | 30' | Sạch hơn, không cấp bách | Phase 1 |
+| 9 | Hetzner cho email/match/followup/report/backup | 2h | 24/7 phần không cần browser | Khi laptop-closed thành vấn đề thật |
+| 10 | `outreach-prep` (điền sẵn draft vào ô Messenger, bạn Enter) | 2h | 10 DM = 1 phút | Chỉ nếu tap gửi thành nút thắt |
+
+### J4. Không làm (đã cân nhắc, không đáng)
+- Vector search / embeddings cho match: date + budget + area deterministic là đủ; embeddings chỉ thêm chi phí và khó giải thích cho subletter.
+- Realtime (Supabase realtime/websocket): cron 12' đủ cho sublet.
+- Multi-account Facebook: không, vì lý do ban.
+- Dashboard web: `sublet_v_today` + `/sublet-followup` là dashboard. Làm UI khi có người thứ 2 vận hành.

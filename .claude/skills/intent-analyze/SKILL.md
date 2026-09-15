@@ -10,7 +10,7 @@ Tầng phân tích tách khỏi tầng capture: chạy lại được bất cứ
 **Nguồn sự thật cho mọi rule là `docs/intent-logic.md`.** Đọc nó trước khi phân loại. SKILL.md này chỉ là quy trình; nếu hai nơi khác nhau, docs thắng.
 
 ## Input
-`select * from sublet_listings where kind is null order by seen_at limit 40` (batch). Thêm tham số `--all` để phân tích lại toàn bộ (khi đổi rule).
+`select * from sublet_v_analyze_queue` (40 post kind is null, cũ nhất trước). Thêm tham số `--all` để phân tích lại toàn bộ (khi đổi rule).
 
 ## Với mỗi post (theo docs/intent-logic.md)
 1. **kind**: offering / seeking / other — theo mục 0–3 (đối tượng của động từ, không phải động từ).
@@ -23,7 +23,8 @@ Tầng phân tích tách khỏi tầng capture: chạy lại được bất cứ
 8. **deal_score**: mục 7 (0–100; DM khi ≥60 và confidence ≠ low).
 9. **confidence**: mục 10; low → `notes='needs_full_read'`.
 10. **seeking → seeker**: mục 5; không lưu contact; `contact_consent=false`.
-11. Update listing; `sublet_events(event='analyzed', payload={kind, subtype, poster_type, scam_score, deal_score, confidence})`.
+11. **Cross-post fingerprint** (chỉ offering, canonical_id còn null): tìm listing offering khác cùng city có cùng `poster_name` và `rent_eur` và `available_from` (±1 ngày), seen_at sớm hơn → set `canonical_id` = bản sớm nhất. Cùng 1 người đăng 5 group = 1 deal, 1 DM.
+12. Update listing (`analyzed_at=now()`); `sublet_events(event='analyzed', payload={kind, subtype, poster_type, scam_score, deal_score, confidence})`.
 
 ## Sau batch
 - Với offering mới: `deal_score ≥ 60`, `scam_score < 60`, `confidence != low`, `poster_type != agency`, có `available_from` và `rent_eur` → gọi `/sublet-match`.

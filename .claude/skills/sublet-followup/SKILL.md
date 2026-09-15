@@ -10,6 +10,7 @@ description: Danh sách việc cần bạn hôm nay — thread im lặng, viewin
 Chạy 1 lần/ngày, buổi sáng. Không gửi gì. Đưa ra ≤10 việc, ưu tiên theo tiền và thời gian.
 
 ## Truy vấn
+0. `select * from sublet_v_today` — gom sẵn draft chưa gửi, viewing 36h tới, fee mở, inbox chưa done. Dùng làm khung; các mục dưới bổ sung phần view chưa có.
 1. **Draft chưa gửi**: `sublet_messages status='draft'` cũ hơn 2h → liệt kê, nhắc gửi hoặc xoá.
 2. **DM không trả lời**: listings `status='contacted'`, `contacted_at` 3–4 ngày trước, chưa có message `direction='in'` → draft follow-up #1 (templates/followup.md). Nếu đã có follow-up #1 và thêm 4 ngày → đánh `status='dead'`, không draft nữa.
 3. **"Maybe later"**: listings có notes chứa "later"/"maybe", 5 ngày → draft check-in với số seeker đang match.

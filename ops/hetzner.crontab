@@ -14,6 +14,7 @@ SUBLET_IMAP_PASS=
 # followup sáng, report tối
 30 8 * * *    cd /opt/sublet-skills && ops/run_skill.sh sublet-followup
 0 18 * * *    cd /opt/sublet-skills && ops/run_skill.sh sublet-report
+30 23 * * *   cd /opt/sublet-skills && ops/run_skill.sh backup
 # rank group Chủ nhật
 0 10 * * 0    cd /opt/sublet-skills && ops/run_skill.sh sublet-groups rank
 

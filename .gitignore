@@ -4,3 +4,5 @@ data/*.local.yaml
 *.json.tmp
 __pycache__/
 .DS_Store
+ops/backup/
+ops/logs/

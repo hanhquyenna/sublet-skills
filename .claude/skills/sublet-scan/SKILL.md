@@ -20,6 +20,7 @@ description: CAPTURE-ONLY — quét post mới trên Facebook qua groups/feed + 
 4. `navigate` tới `https://www.facebook.com/notifications` — **page load 2** — đọc "X posted in <group>", lấy link post nếu có. Bỏ qua notification cũ hơn `last_post_seen_at` của group đó (trong `sublet_groups`).
 5. Với mỗi post chưa có `source_url` trong DB: **chỉ capture, không phân loại**:
    - `source` ('fb_feed' | 'fb_notif'), `source_url` (permalink, bỏ query string), `group_key` (map tên group → `sublet_groups.key`, fuzzy; không map được → key = slug tên, insert group mới tier=null), `poster_name` (display name như hiện), `posted_at` ("2h" → now−2h), `raw_text` (toàn bộ text post, không cắt), `kind = null`.
+   - **Dedupe trước khi insert**: `select id from sublet_listings where text_hash = md5(lower(regexp_replace(<raw_text>, '\s+', ' ', 'g'))) limit 1`. Có → insert vẫn (giữ source_url riêng cho provenance) nhưng set `canonical_id = <id đó>` và **không** đưa vào hàng đợi DM. Không có → insert bình thường.
    - Insert `sublet_listings`; `sublet_events(event='captured', source_url)`.
    - Update `sublet_groups.last_post_seen_at` = max(posted_at).
    - Permalink đầu tiên đọc được ở đầu feed → ghi vào `sublet_scan_runs.cursor` của run này.

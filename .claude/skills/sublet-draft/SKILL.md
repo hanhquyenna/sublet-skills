@@ -10,7 +10,7 @@ description: Soạn (không gửi) DM offer €49/72h cho subletter và tin push
 Agent soạn. **Người dùng gửi.** Không có ngoại lệ.
 
 ## Input
-Listing id (hoặc mới nhất có status in ('new','matched')). Đọc `data/config.yaml` (offer, language_out) và template tương ứng.
+Listing id, hoặc `select * from sublet_v_deal_queue limit 1` (đã lọc deal_score ≥60, scam <60, confidence ≠ low, không agency, không cross-post). Kiểm `sublet_seekers.push_count` hôm nay của mỗi seeker ≤ 3 trước khi draft push; update `push_count`, `last_pushed_at` khi bạn báo sent. Đọc `data/config.yaml` (offer, language_out) và template tương ứng.
 
 ## DM offer cho subletter
 1. Điền `templates/dm_offer.md` (EN hoặc NL theo config). Viết lại câu đầu theo chi tiết thật của post (khu, ngày, 1 chi tiết đặc trưng) — không copy nguyên template.

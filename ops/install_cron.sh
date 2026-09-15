@@ -39,6 +39,8 @@ make_plist email sublet-email "<key>StartInterval</key><integer>600</integer>"
 make_plist followup sublet-followup "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>30</integer></dict>"
 # 5. report 18:00
 make_plist report sublet-report "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>"
+# 7. backup 23:30
+make_plist backup "backup" "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>23</integer><key>Minute</key><integer>30</integer></dict>"
 # 6. groups rank Chủ nhật 10:00
 make_plist groups "sublet-groups rank" "<key>StartCalendarInterval</key><dict><key>Weekday</key><integer>0</integer><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>"
 

@@ -33,6 +33,7 @@ if [[ "$SKILL" == "sublet-scan" || "$SKILL" == "inbox-triage" || "$SKILL" == "su
 fi
 
 echo "$(date +%T) run $SKILL $ARGS" >> "$LOG"
+if [[ "$SKILL" == "backup" ]]; then zsh ops/backup.sh >> "$LOG" 2>&1; echo "$(date +%T) done backup" >> "$LOG"; exit 0; fi
 case "$RUNNER" in
   claude) claude -p "/$SKILL $ARGS" --permission-mode acceptEdits >> "$LOG" 2>&1 ;;
   codex)  codex exec "Run the $SKILL skill. $ARGS" >> "$LOG" 2>&1 ;;
