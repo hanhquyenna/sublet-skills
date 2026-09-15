@@ -7,7 +7,7 @@
 2. Không mở quá **4 page load Facebook mỗi chu kỳ** scan. Không mở từng group; đọc `facebook.com/groups/feed` và `/notifications`.
 3. Không chạy scan ngoài giờ trong `data/config.yaml` (`hours`). Không chạy khi máy vừa thức dậy dưới 2 phút.
 4. **Dừng ngay** và ghi `sublet_inbox(level=stop)` nếu thấy: checkpoint, captcha, "unusual activity", yêu cầu xác minh, trang login. Không thử lại trong 24h.
-5. Không đọc profile member, không lưu ảnh, không lưu số điện thoại/email từ post trừ khi poster tự ghi trong post và cần để liên hệ.
+5. Được đọc **public profile**, lịch sử public giới hạn của poster/commenter, và comment/reply gắn với post housing đã capture để lưu raw context. Chỉ đọc nội dung đang công khai; không vào DM, nội dung private/ẩn, friend list, album/ảnh, không suy luận thuộc tính nhạy cảm, và không tách riêng số điện thoại/email thành hồ sơ liên hệ. Không thao tác trên profile/comment.
 6. Mọi thao tác Facebook chỉ qua **browser thật của người dùng, đã login tay** — Claude Code: Claude in Chrome; Codex: in-app browser panel. Không CLI/script/web-fetch/API, không headless, không Chrome session khác, không cookie ở nơi khác.
 7. Không ghi outcome (signed / moved-in) nếu không có xác nhận từ subletter hoặc seeker. Không đoán.
 8. Không xếp hạng seeker theo quốc tịch, giới tính, tuổi, tôn giáo, hay bất kỳ tiêu chí phân biệt nào. Chỉ: ngày, ngân sách, khu vực, số người, registration, pets.
@@ -30,6 +30,6 @@
 groups (tuần) → scan/email (capture thô) → intent-analyze (phân loại) → match → draft [đọc partner-voice] → [người gửi] → viewing-coordinate → followup → report
 
 ## Tách tầng
-- **Capture** (`sublet-scan`, `sublet-email`): chỉ lưu post thô. Không phân loại. Tốn page load → tối giản.
+- **Capture** (`sublet-scan`, `sublet-email`): lưu post thô và public context được phép (comment/reply + public profile activity giới hạn). Không phân loại. Tốn page load → tối giản.
 - **Analyze** (`intent-analyze`): chạy lại được, không tốn page load. Mọi rule phân loại/extract/scam ở đây.
 - **Voice** (`partner-voice`): mọi tin gửi ra ngoài phải qua đây.

@@ -21,14 +21,17 @@ Snapshot này được ghi ngày **2026-09-15**, sau commit `e6e4b65`, rank metr
 - Mục tiêu: dịch vụ broker sublet nhỏ ở Amsterdam, Phase 0 trong 30 ngày.
 - Người vận hành: **Kien**. Agent là mắt + trí nhớ + người soạn; Kien là người bấm/gửi.
 - Offer hiện tại: người có phòng nhận 3 viewing phù hợp trong 72h; €49 khi người được giới thiệu move-in; seeker dùng miễn phí.
-- Database lần kiểm tra gần nhất: `sublet_groups=93`, `sublet_group_metrics=91`, `sublet_listings=0`, `sublet_seekers=0`, `sublet_ops_state=7`.
-- DB hiện có 82 group mang cờ `joined=true`; metric mới nhất vẫn được bổ sung từ panel trong lúc kiểm tra. Khi hai nguồn lệch nhau, chỉ metric mới nhất có `join_status='joined'` được coi là đủ điều kiện tier 1/2.
-- `sublet-groups rank` đã chạy lại từ `posts_per_day`: 4 group đủ ngưỡng tier 1 (18, 13, 5, 4 post/ngày); phân bố tier hiện tại là 4 tier 1, 1 tier 2, 78 tier 3 và 10 chưa xếp tier. `offering_7d` chưa đủ dữ liệu để ghi đè tier tạm.
-- Tier 1 hiện cần Kien bật Notifications → All posts thủ công cho 4 group; các group có số cao nhưng đang pending không được đưa vào danh sách.
-- Discovery Facebook dùng các batch query English/Dutch về Amsterdam, student housing, kamers, onderhuur và Nederland; tổng DB hiện có 93 group. `data/groups.yaml` đã được đồng bộ từ DB, giữ trường `keywords` và notes.
+- Database lần kiểm tra gần nhất: `sublet_groups=103`, `sublet_group_metrics=152`, `sublet_listings=10`, `sublet_seekers=0`, `sublet_ops_state=9`.
+- Đã audit detail page bằng ChatGPT in-app browser cho 10/10 listings hiện có. Mỗi listing có một `sublet_events.event='detail_audit'`; các bài bị feed collapse đã được lưu lại full text nhìn thấy. Tất cả vẫn `kind=null` và `posted_at=null` vì detail page không expose thời điểm tạo post đáng tin cậy.
+- Đợt backfill group activity cao nhất đang là run resumable `sublet_scan_runs.id=7`; đã thấy boundary “2 tuần” nhưng chưa chứng minh capture đủ mọi card. Vì vậy `posts_14d_count` vẫn chưa được chốt và `posts_14d_complete=false`; không báo 8/10 listings đã là tổng 14 ngày.
+- Raw capture QA: 10 `context_captured` events hiện chưa có payload đồng nhất cho `reaction_count`, `comment_count`, `timestamp_label`, `media[]` và `truncated`; không được coi đó là “không có dữ liệu”. `sublet-scan` đã được sửa để các lần capture sau luôn ghi đủ key với giá trị raw/null/[] phù hợp.
+- DB hiện có 75 group mang cờ `joined=true`; metric mới nhất vẫn được bổ sung từ panel trong lúc kiểm tra. Batch notification vừa đối chiếu có 44 group unique đã báo approved và đều được ghi `joined=true`. Khi hai nguồn lệch nhau, chỉ metric mới nhất có `join_status='joined'` được coi là đủ điều kiện tier 1/2.
+- `sublet-groups rank` đã chạy lại từ `posts_per_day`: 8 group tier 1; phân bố tier hiện tại là 8 tier 1, 7 tier 2, 83 tier 3 và 5 chưa xếp tier. `offering_7d` chưa đủ dữ liệu để ghi đè tier tạm.
+- Tier 1 hiện cần Kien bật Notifications → All posts thủ công cho 8 group; các group có số cao nhưng đang pending không được đưa vào danh sách.
+- Discovery Facebook dùng các batch query English/Dutch về Amsterdam, student housing, kamers, onderhuur và Nederland; tổng DB hiện có 103 group. `data/groups.yaml` đã được đồng bộ từ DB, giữ trường `keywords` và notes.
 - `data/config.yaml`: city Amsterdam, timezone `Europe/Amsterdam`, agent nói tiếng Việt, template gửi ra ngoài English, tên Kien. Còn trống `email.imap_user` và `seeker_form.url`; đã thêm advisory model routing: `gpt-5.6-luna` cho intent/backfill, `gpt-6-astra` cho draft/inbox/partner voice.
 - `sublet_v_today` tồn tại và lần kiểm tra trả về rỗng; chưa có pipeline DM/viewing/fee.
-- Chưa có seeker/listing thực tế, chưa chạy pipeline DM/viewing/fee.
+- Có raw listings/context để capture QA; chưa có seeker, match, DM, viewing hay fee pipeline. Không được chạy outreach chỉ từ raw capture.
 - Ba quyết định để dữ liệu sau 30 ngày: `fee_trigger` (move-in hay 3 viewings/72h), promise 72h hay 24h, và có thêm `outreach-prep` hay không.
 
 ## Bản đồ project
@@ -78,7 +81,7 @@ Login Facebook là việc Kien làm tay trong ChatGPT browser panel. Agent chỉ
 
 Nếu thấy login, checkpoint, captcha hoặc “unusual activity”: dừng, ghi stop nếu workflow yêu cầu, không retry 24h.
 
-Giới hạn quan trọng: discovery tối đa 3 query và ≤6 Facebook page loads/tuần; scan ≤4 page loads/chu kỳ; inbox-triage ≤6; group page riêng ≤20/ngày; join do người dùng tự làm, tối đa 5 group/tuần theo skill. Không cố né phát hiện automation.
+Giới hạn quan trọng: discovery tối đa 3 query và ≤6 Facebook page loads/tuần; scan ≤4 page loads/chu kỳ; inbox-triage ≤6; group page riêng theo daily budget; backfill từng group, cửa sổ 14 ngày, cập nhật DB sau từng batch. Join do người dùng tự làm. Không cố né phát hiện automation.
 
 ## Pipeline và nơi ghi dữ liệu
 

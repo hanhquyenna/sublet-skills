@@ -16,7 +16,7 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 |---|---|---|---|---|
 | E10 | Checkpoint / captcha / login giữa chu kỳ | dừng ngay, `stopped_reason`, `sublet_inbox(stop)`, `scan_paused_until=+24h`; run_skill gate | sublet-scan, run_skill | manual |
 | E11 | Feed hiện lại post cũ (cache) | cursor + 3 URL đã biết liên tiếp → dừng; `source_url` unique | sublet-scan | — |
-| E12 | Post không có permalink đọc được | `source_url='feed:'||hash||date`; `notes='no_permalink'`; không DM cho đến khi có link | sublet-scan | — |
+| E12 | Post không có permalink đọc được | không insert listing; giữ `unresolved_cards` + raw observation trong run cursor, không đoán URL và không DM | sublet-scan, sublet-backfill | manual |
 | E13 | Post chỉ có ảnh + 1 emoji | capture; analyze → `other`/low, `needs_full_read`; scan mở permalink ≤2/chu kỳ | sublet-scan, intent-analyze | — |
 | E14 | Post rất dài (>2000 ký tự) | capture đầy đủ `raw_text`; analyze đọc 1500 ký tự đầu + 300 cuối (EDIT: found thường ở cuối) | intent-analyze | — |
 | E15 | Cùng text đăng 5 group | `text_hash` trùng → `canonical_id`, 1 DM | sublet-scan | — |
@@ -29,6 +29,9 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | E22 | Vượt 350 page load/ngày | scan dừng, `stopped_reason='volume'` | sublet-scan | — |
 | E23 | Backfill chạy lại cùng group | `ops_state backfill_<key>` có → dừng | sublet-backfill | — |
 | E24 | Group không cho sort chronological | fallback: sort mặc định, dừng khi 20 post liên tiếp cũ hơn `days` | sublet-backfill | — |
+| E25 | Profile/commenter không public hoặc không có permalink | lưu phần đang hiển thị với `visibility='partial'`; không đoán danh tính, không retry vô hạn | sublet-scan | manual |
+| E26 | Comment pagination vô hạn hoặc Facebook yêu cầu mở rộng | dừng ở 100 comment/reply/post hoặc page-load budget; giữ `context_captured` với `truncated=true` | sublet-scan | manual |
+| E27 | Public profile có lịch sử quá dài hoặc nội dung nhạy cảm | chỉ lưu tối đa 10 post/30 ngày; không lưu friend list, album, ảnh, demographic inference hay contact field | sublet-scan | manual |
 
 ## C. ANALYZE — intent (chi tiết rule ở docs/intent-logic.md)
 | # | Tình huống | Xử lý | Skill | Test |

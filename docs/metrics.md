@@ -10,6 +10,10 @@
 | capture | page_loads_24h | sum scan_runs.page_loads 24h | ≤350 (R03) | sublet-scan |
 | capture | page_loads_per_run_max | max page_loads/run 24h | ≤4 (R02) | sublet-scan |
 | capture | dedupe_ratio | listings có canonical_id / offering 7d | 0.2–0.5 (cross-post thật) | scan, analyze |
+| capture | comments_captured_24h | raw public comments/replies trong `context_captured` 24h | theo page-load budget | sublet-scan |
+| capture | profile_context_items_24h | raw public poster/commenter activity items 24h | theo page-load budget | sublet-scan |
+| capture | groups_14d_complete | count group metrics có `posts_14d_complete=true` | theo backfill plan | sublet-backfill |
+| capture | posts_14d_verified | sum `posts_14d_count` chỉ ở group metrics complete | theo backfill plan | sublet-backfill |
 | capture | stops_24h | runs stopped_reason in (checkpoint, volume) | 0 | sublet-scan |
 | analyze | analyzed_24h | listings analyzed_at >24h | = captured | intent-analyze |
 | analyze | offering_7d / seeking_7d / other_7d | count by kind | — (đo thị trường) | intent-analyze |

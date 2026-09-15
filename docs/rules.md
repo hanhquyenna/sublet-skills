@@ -9,7 +9,7 @@ Nguồn luật: `CLAUDE.md`. File này là chỉ mục để audit. Skill tham c
 | R03 | ≤~350 page load/ngày | `sublet-scan` điều kiện 2 (đếm 24h) | metric `capture.page_loads_24h` ≤350 | enforce |
 | R04 | Chỉ chạy 08–23 Amsterdam; không chạy <2' sau wake | `ops/run_skill.sh` gate giờ + boottime | log `ops/logs/*.log` có "skip (ngoài giờ)" | enforce |
 | R05 | Checkpoint/captcha/login → dừng, `sublet_inbox(stop)`, `scan_paused_until` +24h | `sublet-scan` bước 2; `run_skill.sh` gate pause | metric `ops.checkpoints` ; log "skip (paused)" | enforce |
-| R06 | Không đọc profile, không lưu ảnh, không lưu contact từ post | `sublet-scan` "Không làm"; `intent-analyze` bước 10; `seeker-intake` | review: `sublet_seekers.contact is null where source='fb_seeking'` | enforce |
+| R06 | Chỉ đọc public profile/activity giới hạn của poster/commenter gắn với post đã capture; không private/DM/friend list/ảnh, không tách contact thành hồ sơ | `CLAUDE.md #5`; `sublet-scan` context capture; `intent-analyze` bước 10; `seeker-intake` | audit payload: có `source_url`, `visibility`; không có contact/profile harvest ngoài context | enforce |
 | R07 | Không headless, không cookie ngoài browser thật đã login tay | CLAUDE.md #6; AGENTS.md | không đo được tự động — audit tay | policy |
 | R08 | Không ghi filled/signed/paid nếu không có xác nhận; ghi nguồn vào events.payload | `viewing-coordinate` "Sau viewing"; `inbox-triage` bảng | `sublet_events` cho mọi `filled/signed/paid` phải có `payload.source` | enforce |
 | R09 | Không xếp hạng theo nationality/gender/age/religion | `scripts/match.py` chỉ dùng dates/budget/area/people/reg/pets/occupation; `poster_constraints` lưu nguyên văn không chấm | code review `match.py` | enforce |
@@ -28,5 +28,7 @@ Nguồn luật: `CLAUDE.md`. File này là chỉ mục để audit. Skill tham c
 | R22 | Agent không tự join group, không tự login | `onboarding` mục 4, 6; `sublet-groups` | `sublet_groups.joined` chỉ do người tick | enforce |
 | R23 | Không nhận yêu cầu thu phí từ seeker (kể cả khi subletter đòi) — từ chối + cảnh báo | `partner-voice`; `inbox-triage` E-case | `sublet_inbox(warning)` | enforce |
 | R24 | Secret không vào repo; key qua chat phải rotate | `.gitignore`; `~/.sublet-skills.env` chmod 600 | `git grep -i "service_role_key\|eyJ"` = 0 | enforce |
+| R25 | 14-day capture is one group at a time; update DB after each batch; incomplete stays incomplete | `sublet-backfill`, `sublet-worker`, capture contract | `posts_14d_complete` only true after boundary + verified cards | enforce |
+| R26 | Raw capture stores post text plus visible public comment/reply/profile context; analysis is separate | `sublet-scan` capture contract; `sublet-backfill` | `kind is null` and `context_captured` provenance audit | enforce |
 
 Quy trình sửa luật: sửa CLAUDE.md → cập nhật dòng ở đây → cập nhật skill enforce → thêm edge case vào `docs/edge-cases.md` nếu có → commit "rule: …".

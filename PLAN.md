@@ -49,7 +49,7 @@ Bảng tổng: skill → đọc → ghi → trigger → page load
 |---|---|---|---|---|
 | onboarding | config, sublet_groups, ops_state | sublet_ops_state | tay, lần đầu | 1 |
 | sublet-groups | FB search, sublet_listings (đếm) | sublet_groups, data/groups.yaml | tuần (discover tay, rank cron CN) | ≤6/tuần |
-| sublet-backfill | 1 group, chronological, 60–90 ngày | sublet_listings raw, scan_runs, ops_state backfill_<key> | tay, 1 lần/group | ≤2 loads + scroll |
+| sublet-backfill | 1 group, chronological, 14 ngày, resumable | sublet_listings raw, context events, scan_runs, group_metrics, ops_state | tay/worker, từng group | panel-only, theo page-load budget |
 | sublet-scan | FB groups/feed, /notifications, scan_runs.cursor | sublet_listings (kind=null), sublet_scan_runs, sublet_groups.last_post_seen_at, sublet_events | cron 12' | ≤4 |
 | sublet-email | Gmail IMAP | như scan (source=fb_email) | cron 10' (Hetzner 24/7) | 0 |
 | intent-analyze | sublet_listings kind is null | sublet_listings (kind, fields, scam), sublet_seekers (từ seeking), sublet_events | sau scan/email | 0 |
@@ -63,7 +63,7 @@ Bảng tổng: skill → đọc → ghi → trigger → page load
 | sublet-report | mọi bảng | sublet_inbox | cron 18:00 | 0 |
 
 ### C1. sublet-groups
-- **Logic:** discover = FB search 3 query × 1 load, parse tên/url/member/private, upsert `sublet_groups` (tier=null). rank = đếm `offering_7d` từ `sublet_listings`, áp rule tier 1 (≥10) / 2 (2–9) / 3 (<2 hoặc allows_sublet=no), ghi ngược `data/groups.yaml`.
+- **Logic:** discover = FB search 3 query × 1 load, parse tên/url/member/private, upsert `sublet_groups` (tier=null). rank = đếm `offering_7d` từ `sublet_listings`, áp rule tier 1 (≥10) / 2 (2–9) / 3 (<2 hoặc allows_sublet=no), ghi ngược `data/groups.yaml`. `posts_per_day` chỉ xếp thứ tự capture khi offering_7d hoặc 14-day capture chưa đủ.
 - **Dữ liệu:** `sublet_groups(key, name, url, tier, is_private, member_count, allows_sublet, allows_agencies, joined, notif_all_posts, offering_7d, last_post_seen_at, last_scanned_at, last_ranked_at, notes)`.
 - **Xử lý lỗi:** search không hiện kết quả → thử query kế; group không có member count → null; url trùng → update, không insert.
 - **Cập nhật logic:** ngưỡng tier ở mục "/sublet-groups rank" trong SKILL.md; query search trong `config.city` + danh sách từ khoá trong SKILL.md.
@@ -71,7 +71,7 @@ Bảng tổng: skill → đọc → ghi → trigger → page load
 ### C2. sublet-scan (capture-only)
 - **Logic:** kiểm giờ + tổng page_loads 24h (≥350 → dừng) + skip ngẫu nhiên 1/12 → mở `groups/feed` → đọc từ trên xuống → dừng khi gặp `cursor` run trước hoặc 3 URL đã biết → `/notifications` → insert thô mỗi post mới → ghi cursor = permalink đầu tiên → gọi `/intent-analyze`.
 - **Dữ liệu ghi:** `sublet_listings(source, source_url [unique], group_key, poster_name, posted_at, seen_at, raw_text, kind=null)`; `sublet_scan_runs(mode, page_loads, posts_seen, new_listings, cursor, stopped_reason)`; `sublet_events(event='captured')`.
-- **Xử lý:** login/checkpoint/captcha → `stopped_reason`, `sublet_inbox(level='stop')`, không chạy 24h (ghi `sublet_ops_state('scan_paused_until')`). Không map được group → tạo group key mới tier=null. Post không có permalink → `source_url='feed:'||hash(text)||date`.
+- **Xử lý:** login/checkpoint/captcha → `stopped_reason`, `sublet_inbox(level='stop')`, không chạy 24h (ghi `sublet_ops_state('scan_paused_until')`). Không map được group → tạo group key mới tier=null. Post không có permalink → không insert listing; ghi unresolved observation trong run cursor, không đoán URL.
 - **Cập nhật logic:** cadence/ngưỡng trong `config.scan`; điều kiện dừng trong SKILL.md bước 3.
 
 ### C3. sublet-email
@@ -253,7 +253,7 @@ Server ~€0 (Supabase free, Mac của bạn). Chi phí duy nhất đáng kể l
 | `sublet-scan` đọc feed (text a11y ~20–30k ký tự × 60 chu kỳ) | lớn nhất nếu để LLM đọc cả feed | **Không cho LLM đọc feed.** Extract post bằng DOM/a11y → chỉ đưa LLM text từng post *mới* (đã lọc bằng cursor + text_hash). Từ ~1.5M token/ngày xuống ~100k |
 | `intent-analyze` (40 post/batch) | ~50–100 post/ngày × ~1.5k token | Dùng **Haiku 4.5** cho phân loại (doc + post ngắn, rule rõ) — rẻ ~10× Opus, eval mù đã cho thấy rule đủ rõ. Opus chỉ cho draft/voice |
 | `sublet-draft` / `inbox-triage` | ≤10 DM + ≤30 reply/ngày | Nhỏ; giữ model tốt vì đây là thứ khách đọc |
-| `sublet-backfill` | 300 post/group × 1 lần | Chạy Haiku; 1 lần |
+| `sublet-backfill` | post/group trong cửa sổ 14 ngày × 1 lần | Chạy theo chunk resumable; không phân tích trong capture |
 
 → Mục tiêu: **< €1/ngày** LLM ở Phase 0. Đo bằng: log token trong `sublet_scan_runs.notes` và `sublet_events.payload.tokens`.
 

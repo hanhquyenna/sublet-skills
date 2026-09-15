@@ -45,7 +45,7 @@ Có seeker mới: dán tin nhắn của họ vào chat và gõ `/seeker-intake`.
 | `inbox-triage` | Đọc reply (Messenger đọc-only / bạn dán) → phân loại → cập nhật trạng thái → draft trả lời (FAQ điền sẵn) | **Bạn gửi** |
 | `sublet-groups` | Tìm group (FB search, đọc-only), rank tier theo offering/7d, cursor chống lặp | Không |
 | `sublet-worker` | Điểm vào cron: 1 tick = 1 job step ≤8' từ `sublet_jobs` (scan > analyze > match > email > backfill chunk > verify chunk) | Không |
-| `sublet-backfill` | Đọc lịch sử 60–90 ngày của 1 group, 1 lần, human pace → corpus để soi edge case trước khi DM | Không |
+| `sublet-backfill` | Đọc lịch sử 14 ngày của 1 group, resumable, panel-only, lưu raw post + public context → corpus trước khi phân tích | Không |
 | `sublet-scan` | **Capture-only**: groups/feed + notifications → post thô (link, text, time, group), dừng ở cursor | Không |
 | `intent-analyze` | Post thô → intent (subletter/sublettee), requirements có cấu trúc, scam score, tự match | Không |
 | `partner-voice` | Giọng + luật nói với subletter (xin hợp tác) và người tìm nhà (free, broker được subletter trả) | — (được draft/followup dùng) |

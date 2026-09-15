@@ -16,7 +16,9 @@ description: Tìm và xếp hạng group Facebook housing/sublet cho một thàn
 | **Edge cases** | E01 E02 E04 E05 → `docs/edge-cases.md` |
 | **Rules** | R02 R22 → `docs/rules.md` |
 
-Quản lý "biết group nào". Chỉ đọc. Không join (bạn join tay), không post.
+Quản lý "biết group nào". Chỉ đọc. Không join, không submit membership form,
+không bật notification, không post/comment/like/DM/send (người dùng tự thao tác
+nếu muốn).
 
 ## /sublet-groups discover  (chạy 1 lần/tuần, ≤6 page load)
 1. Chrome: `navigate` `https://www.facebook.com/search/groups/?q=<query>` cho tối đa 3 query từ `data/config.yaml → city` × ["housing", "sublet", "rooms apartments"] (thêm "huurwoning", "kamer" nếu NL). **1 page load/query.** Scroll 2 lần, `get_page_text`.
@@ -30,6 +32,9 @@ Quản lý "biết group nào". Chỉ đọc. Không join (bạn join tay), khô
    - ≥3 post/ngày và allows_sublet != no → tier 1 (tối đa 8 group; nhiều hơn → chọn theo posts_per_day)
    - 0.5–3 → tier 2 · <0.5 hoặc không có metrics → tier 3
    Ghi `notes='tier tạm từ posts_per_day'`. Khi có `offering_7d` (bước 1–2) → ghi đè.
+   - Nếu metric stale hoặc `posts_14d_complete=false`, giữ trạng thái
+     unverified trong notes; chỉ dùng `posts_per_day` để xếp thứ tự capture,
+     không gọi đó là offering thật.
 1. `select group_key, count(*) filter (where kind='offering' and seen_at > now()-interval '7 days') as offering_7d, avg(scam_score) ... from sublet_listings group by group_key`.
 2. Quy tắc tier:
    - tier 1: offering_7d ≥ 10 và allows_sublet != no → đọc qua feed (đã là member, notification All posts)
@@ -52,3 +57,10 @@ Bảng: key · tier · joined · notif_all_posts · offering_7d · last_scanned_
 - Không mở từng group để scan; feed gom. Mở trang group riêng ≤20/ngày, chỉ khi cần full post.
 - discover ≤6 page load/tuần; join ≤5 group/tuần, do bạn bấm.
 - Không dùng search với từ khoá lặp lại mỗi giờ — search 1 lần/tuần là đủ.
+
+## Handoff sang 14-day capture
+
+Khi đã có danh sách joined và metric, giao từng group cho
+`/sublet-backfill <group_key> 14`, theo thứ tự `posts_per_day` giảm dần. Một
+group phải được ghi checkpoint vào DB sau mỗi chunk; không chuyển sang group kế
+tiếp chỉ vì đã chạm nhãn “2 tuần”.

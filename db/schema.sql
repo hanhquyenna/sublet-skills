@@ -346,7 +346,7 @@ create table if not exists sublet_group_metrics (
   id bigserial primary key,
   group_key text references sublet_groups(key) on delete cascade,
   checked_at timestamptz not null default now(),
-  join_status text,                 -- member | pending | not_member | unknown
+  join_status text,                 -- joined | pending | not_joined | blocked | unknown
   member_count int,
   posts_per_day numeric,
   last_active_post_at timestamptz,
@@ -354,10 +354,16 @@ create table if not exists sublet_group_metrics (
   last_active_post_url text,
   membership_questions jsonb,       -- câu hỏi khi join (để bạn trả lời tay)
   activity_sample jsonb,            -- vài post gần nhất (title/snippet/url) làm mẫu
-  source text                       -- panel | web
+  source text,                      -- panel | web
+  posts_14d_count int,
+  posts_14d_complete boolean not null default false,
+  posts_14d_checked_at timestamptz
 );
 create index if not exists sublet_group_metrics_group_idx on sublet_group_metrics(group_key, checked_at desc);
 alter table sublet_group_metrics enable row level security;
+alter table sublet_group_metrics add column if not exists posts_14d_count int;
+alter table sublet_group_metrics add column if not exists posts_14d_complete boolean not null default false;
+alter table sublet_group_metrics add column if not exists posts_14d_checked_at timestamptz;
 
 -- ---------- metrics (1 dòng/ngày/metric; sublet-report ghi 18:00) ----------
 create table if not exists sublet_metrics (

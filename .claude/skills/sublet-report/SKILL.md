@@ -31,6 +31,15 @@ description: Báo cáo cuối ngày và metrics Phase 0 (posts/ngày theo group,
 3. Thêm 3 dòng nhận xét của agent: group nào đáng lên tier 1 / xuống tier 3; yes-rate so với mốc 30%; có dấu hiệu volume Facebook cao không.
 4. Insert `sublet_inbox(level='info', title='Report {date}', body=<markdown>)`. In bản đầy đủ ra terminal.
 
+### Quy tắc báo cáo backfill 14 ngày
+
+- Báo riêng `posts_14d_count` chỉ khi `posts_14d_complete=true`; nếu chưa đủ,
+  báo `known_verified_posts` và lý do incomplete, không gọi đó là tổng 14 ngày.
+- Tách rõ activity tổng (`posts_per_day`) khỏi offering thật (`kind='offering'`).
+- Có thể đếm raw comments/replies và public-context items từ
+  `context_captured`, nhưng không biến chúng thành listing, seeker, match hay
+  điểm scam trước bước `intent-analyze`.
+
 ## Mốc Phase 0 (30 ngày) — để tự đánh giá
 - ≥200 offering thật/tháng trong tier 1–2
 - DM→yes ≥ 30% (dưới 20% = đổi offer)

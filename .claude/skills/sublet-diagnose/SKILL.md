@@ -1,6 +1,6 @@
 ---
 name: sublet-diagnose
-description: Chẩn đoán vì sao post sublet của bạn (hoặc của subletter đang hợp tác) có 0 phản hồi — pending approval, bị gỡ, đăng sai giờ, thiếu giá/ngày/ảnh, group không cho sublet — và đề xuất sửa. Dùng với /sublet-diagnose <link post>.
+description: Chẩn đoán vì sao post sublet của bạn (hoặc của subletter đang hợp tác) có 0 phản hồi — pending approval, bị gỡ, đăng sai giờ, thiếu giá/ngày/ảnh, group không cho sublet — và đề xuất sửa. Dùng với /sublet-diagnose [link post].
 ---
 
 # sublet-diagnose

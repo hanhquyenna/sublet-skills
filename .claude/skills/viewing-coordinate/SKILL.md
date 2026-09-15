@@ -1,6 +1,6 @@
 ---
 name: viewing-coordinate
-description: Khi subletter đồng ý, chọn top 3 seeker đã trả lời YES, soạn tin đề xuất slot cho subletter và tin xác nhận + reminder cho seeker, tạo sublet_viewings, theo dõi show/no-show và trigger fee sau 3 viewing. Dùng khi gõ /viewing-coordinate <listing>.
+description: Khi subletter đồng ý, chọn top 3 seeker đã trả lời YES, soạn tin đề xuất slot cho subletter và tin xác nhận + reminder cho seeker, tạo sublet_viewings, theo dõi show/no-show và trigger fee sau 3 viewing. Dùng khi gõ /viewing-coordinate [listing].
 ---
 
 # viewing-coordinate

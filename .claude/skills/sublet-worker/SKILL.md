@@ -1,6 +1,6 @@
 ---
 name: sublet-worker
-description: Điểm vào duy nhất cho cron — mỗi tick làm ĐÚNG 1 job step có time-box (≤8 phút) từ hàng đợi sublet_jobs theo ưu tiên (scan > analyze > match > email > backfill chunk > verify_group chunk), ghi tiến độ vào progress rồi thoát. Không bao giờ chạy 92 group trong 1 prompt. Dùng với /sublet-worker; cron gọi mỗi 10'.
+description: Điểm vào duy nhất cho cron — mỗi tick làm ĐÚNG 1 job step có time-box (≤8 phút) từ hàng đợi sublet_jobs theo ưu tiên (scan → analyze → match → email → backfill chunk → verify_group chunk), ghi tiến độ vào progress rồi thoát. Không bao giờ chạy 92 group trong 1 prompt. Dùng với /sublet-worker; cron gọi mỗi 10'.
 ---
 
 # sublet-worker
@@ -26,7 +26,7 @@ description: Điểm vào duy nhất cho cron — mỗi tick làm ĐÚNG 1 job s
    - `analyze` priority 20 nếu `select count(*) from sublet_v_analyze_queue` > 0
    - `match` priority 30 cho mỗi listing trong `sublet_v_deal_queue` chưa có match (key = listing_id)
    - `email` priority 40 nếu `env_imap=yes` và job email done gần nhất > 10'
-   - `backfill` priority 60 cho mỗi group tier 1 `joined` chưa có `ops_state backfill_<key>` (key = group_key) — **chỉ 1 group `running` tại 1 thời điểm**
+   - `backfill` priority 60 cho mỗi group đã joined, ưu tiên `posts_per_day` mới nhất cao nhất, chưa có `ops_state backfill_<key>` (key = group_key) — cửa sổ mặc định 14 ngày, **chỉ 1 group `running` tại 1 thời điểm**
    - `verify_group` priority 70 cho group `joined=false` hoặc chưa có `sublet_group_metrics` (key = group_key), theo lô 5 group/step
    - `groups_rank` priority 80 nếu CN và chưa chạy hôm nay
 3. **Chọn 1 job**: `select * from sublet_jobs where status='queued' and next_run_at <= now() order by priority, next_run_at limit 1`. Không có → in "idle", thoát.
@@ -36,10 +36,33 @@ description: Điểm vào duy nhất cho cron — mỗi tick làm ĐÚNG 1 job s
    - `analyze` → `/intent-analyze` 1 batch 40 → còn hàng đợi thì `queued` lại với `next_run_at=now()`, hết thì `done`
    - `match` → `/sublet-match <key>` → `done`
    - `email` → `/sublet-email` → `done`
-   - `backfill` → `/sublet-backfill <key>` **chế độ chunk**: tiếp từ `progress.last_post_at`, tối đa 6 phút hoặc 60 post; ghi `progress={last_post_at, posts_done, scrolls}`; chưa tới `days` → `queued`, `next_run_at=now()+15'` (nghỉ giữa chunk = human pace); tới → `done` + `ops_state backfill_<key>`
+   - `backfill` → `/sublet-backfill <key> 14` **chế độ chunk**: tiếp từ run cursor, tối đa 6 phút hoặc 60 post; ghi `progress={window_days:14,last_verified_post_at,last_source_url,posts_verified,unresolved_cards,scrolls}`; chưa qua boundary/verified cards → `queued`, `next_run_at=now()+15'`; tới và đủ mọi điều kiện → `done` + `posts_14d_complete=true` + `ops_state backfill_<key>`
    - `verify_group` → mở ≤5 group page (5 load), ghi `sublet_group_metrics` + `sublet_groups.joined/is_private/member_count`; `progress.checked += 5`; hết lô → `done`
    - `groups_rank` → `/sublet-groups rank` → `done`
 6. Ghi `finished_at`, in 1 dòng: `job#id type key → status (Xs, page_loads=N)`. Lỗi → `status='queued'`, `attempts+1`, `last_error`, `next_run_at=now()+10'` (R21).
+
+## Chế độ session — khi scheduler chỉ cho 1 prompt/giờ (Codex desktop)
+Gọi `/sublet-worker --session 50m`. Thay vì 1 step rồi thoát, lặp bước 1–6 cho đến khi hết ngân sách thời gian:
+
+```
+t=0      scan (2 load)                      ← post mới, ưu tiên nhất
+t≈2'     analyze × N batch (không browser)   ← cho đến khi hàng đợi rỗng
+t≈8'     match × N, email                    ← không browser
+t≈12'    sleep 60–180s (shell `sleep`), rồi: backfill 1 chunk HOẶC verify 1 lô 5 group   ← việc nền, tối đa 2 mẩu/session
+t≈30'    sleep 60–180s, scan lần 2           ← cadence thực = 30', đủ cho sublet
+t≈35'    analyze/match phần mới
+t≈45'    (nếu còn) 1 mẩu nền nữa
+t=50'    thoát, in tổng kết: jobs done/failed, page_loads session, giờ scan kế
+```
+Giới hạn cứng trong 1 session: **≤12 page load** (2 scan + 1 chunk backfill hoặc 5 verify + dự phòng), sleep ≥60s giữa 2 lần chạm browser, dừng ngay khi thấy checkpoint (R05), thoát sớm nếu `hours` kết thúc. Mỗi step vẫn ghi `sublet_jobs` như bình thường → nếu prompt chết giữa chừng, session sau dọn (E106) và tiếp.
+
+Với runtime có cron ≤10' (launchd + Claude Code, hoặc Hetzner): dùng chế độ 1 step/tick như trên, không cần session.
+
+| Runtime | Lịch | Chế độ | Cadence scan thực |
+|---|---|---|---|
+| Codex desktop (schedule ≥1h) | mỗi giờ 08–22 | `--session 50m` | ~30' |
+| Claude Code + launchd | mỗi 10' | 1 step | ~10–12' |
+| Hetzner cron | mỗi 10' 24/7 | 1 step, chỉ job không browser | — |
 
 ## Ưu tiên giải thích bằng lời
 Post mới đáng tiền hơn post cũ → scan trước. Post đã capture mà chưa phân loại là vô dụng → analyze ngay sau. Backfill và verify là "việc nền", chỉ chạy khi 4 việc trên rảnh, và mỗi lần chỉ 1 mẩu để không chiếm page-load budget của scan.
@@ -49,7 +72,7 @@ Post mới đáng tiền hơn post cũ → scan trước. Post đã capture mà 
 |---|---|---|---|
 | scan | 2 load, feed gom 92 group | mỗi tick 1 lần | liên tục |
 | verify 50 group còn lại | 5 group/tick | 10 tick | ~2 giờ |
-| backfill 8 group tier 1 × 60 ngày | ~300 post/group, 60 post/chunk | 5 chunk/group → 40 tick | ~1 tuần (xen kẽ với scan, human pace) |
+| backfill từng group joined × 14 ngày | phụ thuộc activity, tối đa 60 post/chunk | nhiều chunk/group → nối qua tick | theo activity và page-load budget |
 | analyze 2.400 post backfill | 40/batch | 60 tick | cùng tuần |
 
 Không cần nhanh hơn: Phase 0 là 30 ngày.

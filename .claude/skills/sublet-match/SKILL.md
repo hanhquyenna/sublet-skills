@@ -1,6 +1,6 @@
 ---
 name: sublet-match
-description: Ghép một listing sublet với pool seekers bằng scripts/match.py (date window, budget, area, hard constraints), lưu sublet_matches kèm lý do và cờ rủi ro. Dùng khi có listing mới, hoặc người dùng gõ /sublet-match <listing_id|mô tả>.
+description: Ghép một listing sublet với pool seekers bằng scripts/match.py (date window, budget, area, hard constraints), lưu sublet_matches kèm lý do và cờ rủi ro. Dùng khi có listing mới, hoặc người dùng gõ /sublet-match [listing_id hoặc mô tả].
 ---
 
 # sublet-match
