@@ -7,7 +7,7 @@ Nguồn luật: `CLAUDE.md`. File này là chỉ mục để audit. Skill tham c
 | R01 | Agent không post/comment/like/DM/join/gửi gì trên Facebook | CLAUDE.md #1; mọi skill chỉ có tool đọc; `sublet_messages.status='sent'` chỉ do người đổi | metric `outreach.sent_by_agent` phải = 0 (event actor='agent' & event='sent') | enforce |
 | R02 | ≤4 page load/chu kỳ scan; ≤6 inbox-triage; ≤3 diagnose; ≤6/tuần discover | `sublet-scan` bước 2–6; `sublet_scan_runs.page_loads` | metric `capture.page_loads_per_run` max ≤4 | enforce |
 | R03 | ≤~350 page load/ngày | `sublet-scan` điều kiện 2 (đếm 24h) | metric `capture.page_loads_24h` ≤350 | enforce |
-| R04 | Chỉ chạy 08–23 Amsterdam; không chạy <2' sau wake | `ops/run_skill.sh` gate giờ + boottime | log `ops/logs/*.log` có "skip (ngoài giờ)" | enforce |
+| R04 | Chạy theo `data/config.yaml→hours`; từ 2026-09-16 = 24/7 theo yêu cầu Kien (không còn chặn ngoài giờ); không chạy <2' sau wake | `ops/run_skill.sh` gate giờ (nay luôn pass) + boottime | log `ops/logs/*.log` có "skip (ngoài giờ)" chỉ khi hours bị thu hẹp lại | enforce |
 | R05 | Checkpoint/captcha/login → dừng, `sublet_inbox(stop)`, `scan_paused_until` +24h | `sublet-scan` bước 2; `run_skill.sh` gate pause | metric `ops.checkpoints` ; log "skip (paused)" | enforce |
 | R06 | Chỉ đọc public profile/activity giới hạn của poster/commenter gắn với post đã capture; không private/DM/friend list/ảnh, không tách contact thành hồ sơ | `CLAUDE.md #5`; `sublet-scan` context capture; `intent-analyze` bước 10; `seeker-intake` | audit payload: có `source_url`, `visibility`; không có contact/profile harvest ngoài context | enforce |
 | R07 | Không headless, không cookie ngoài browser thật đã login tay | CLAUDE.md #6; AGENTS.md | không đo được tự động — audit tay | policy |

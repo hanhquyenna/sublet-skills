@@ -51,7 +51,7 @@ Pipeline `intent-analyze` chính thức, match, messaging, viewing và outreach 
 | `analyze-insights` | Đọc-only trên DB (không mở Facebook): offering/seeking/other thô, cụm trùng lặp, cờ rủi ro, tóm tắt vào inbox/metrics; không re-đọc listing đã `insight_reviewed` | Không |
 
 ## Giới hạn an toàn (đã code vào skill)
-- ≤4 page load Facebook/chu kỳ, ≤~400/ngày, chỉ 08–23h, dừng ngay khi thấy checkpoint.
+- ≤4 page load Facebook/chu kỳ, ≤~400/ngày, 24/7 (đổi từ 08–23h ngày 2026-09-16 theo yêu cầu Kien), dừng ngay khi thấy checkpoint.
 - Agent không bao giờ post/comment/like/DM/join. Mọi tin đi ra do người gửi.
 - Không thu tiền hộ, không giữ deposit, không chuyển địa chỉ chính xác qua bạn.
 - Không xếp hạng theo quốc tịch/giới tính/tuổi.

@@ -12,8 +12,8 @@ models:
   partner_voice: gpt-6-astra
 
 hours:
-  start: "08:00"
-  end: "23:00"
+  start: "00:00"
+  end: "23:59"  # 24/7 theo yêu cầu Kien 2026-09-16; xem CLAUDE.md #3
 scan:
   cadence_minutes: 12
   max_page_loads_per_cycle: 4

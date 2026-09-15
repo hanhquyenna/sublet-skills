@@ -20,10 +20,16 @@ RUNNER="${SUBLET_RUNNER:-claude}"
 LOG="ops/logs/$(date +%Y-%m-%d).log"
 mkdir -p ops/logs
 
-# Giờ chạy theo config (08–23 Amsterdam). Ngoài giờ → thoát im lặng.
-H=$(TZ=Europe/Amsterdam date +%H)
-if [[ "$SKILL" == "sublet-scrape-14-groups" && ( $H -lt 8 || $H -ge 23 ) ]]; then
-  echo "$(date +%T) skip $SKILL (ngoài giờ)" >> "$LOG"; exit 0
+# Giờ chạy đọc trực tiếp từ data/config.yaml (hours.start/hours.end), không hardcode.
+# Từ 2026-09-16 config đặt 00:00–23:59 (24/7) theo yêu cầu Kien; đổi lại config nếu cần thu hẹp giờ.
+NOWMIN=$(( 10#$(TZ=Europe/Amsterdam date +%H) * 60 + 10#$(TZ=Europe/Amsterdam date +%M) ))
+STARTSTR=$(grep -A2 '^hours:' data/config.yaml | grep 'start:' | sed -E 's/.*"([0-9]{2}):([0-9]{2})".*/\1 \2/')
+ENDSTR=$(grep -A2 '^hours:' data/config.yaml | grep 'end:' | sed -E 's/.*"([0-9]{2}):([0-9]{2})".*/\1 \2/')
+STARTMIN=$(( 10#$(echo $STARTSTR | awk '{print $1}') * 60 + 10#$(echo $STARTSTR | awk '{print $2}') ))
+ENDMIN=$(( 10#$(echo $ENDSTR | awk '{print $1}') * 60 + 10#$(echo $ENDSTR | awk '{print $2}') ))
+# start=00:00 và end=23:59 (hoặc lớn hơn) nghĩa là 24/7, không chặn giờ nào.
+if [[ "$SKILL" == "sublet-scrape-14-groups" && ! ( $STARTMIN -eq 0 && $ENDMIN -ge 1439 ) && ( $NOWMIN -lt $STARTMIN || $NOWMIN -ge $ENDMIN ) ]]; then
+  echo "$(date +%T) skip $SKILL (ngoài giờ config: ${STARTSTR// /:}-${ENDSTR// /:})" >> "$LOG"; exit 0
 fi
 
 # Skill cần Chrome thật chỉ chạy khi máy thức > 2 phút và có màn hình mở
