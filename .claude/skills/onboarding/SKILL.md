@@ -31,7 +31,7 @@ Mục tiêu: sau khi chạy xong, hệ thống chạy tự động mà bạn ch�
 11. `whatsapp_channel` — (tuỳ chọn) tạo WhatsApp Community/Telegram channel "Verified sublets Amsterdam", link vào config.
 
 ### Ngày 1 — automation
-12. `cron_installed` — `ops/install_cron.sh` chạy xong; `launchctl list | grep sublet` có các job. Agent kiểm.
+12. `cron_installed` — `launchctl list | grep com.sublet` có các job. Chưa có → **bạn** chạy `zsh ops/install_cron.sh` (agent không tự cài launchd). `run_skill.sh` tự bỏ qua scan/inbox khi `chrome_fb_login != yes`, nên cài sớm không sao.
 13. `first_scan` — `/sublet-scan` chạy tay 1 lần thành công: có run trong `sublet_scan_runs`, ≥1 listing captured (nếu feed có).
 14. `first_analyze` — `/intent-analyze` → ≥1 offering có kind.
 15. `voice_reviewed` — bạn đã đọc `partner-voice/SKILL.md` và sửa 2 dòng định vị theo giọng mình. Bạn tick.

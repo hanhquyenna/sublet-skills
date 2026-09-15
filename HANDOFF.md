@@ -17,19 +17,19 @@ Bạn tiếp quản dự án `sublet-skills` — bộ skill vận hành dịch v
 7. docs/intent-logic.md — cách hiểu một post, bằng lời; intent-analyze phải theo file này
 
 TRẠNG THÁI HIỆN TẠI (2026-09-15):
-- Code + schema xong. Onboarding đã chạy 1 lần: mọi mục ⬜ vì máy chưa có env. Người vận hành sẽ chạy `zsh ops/setup_env.sh` (tạo ~/.sublet-skills.env: SUPABASE_DB_URL, SUBLET_IMAP_USER/PASS; điền config.yaml: your_first_name, imap_user, seeker_form.url). Chưa join group nào. Chưa có seeker. Chrome đang ở trang login Facebook.
+- Code + schema xong. Onboarding: env_file ✅, supabase_ok ✅ (db.py trả 7 groups), inbox_ok ✅, config your_first_name=Kien ✅. Còn ⬜: chrome_fb_login (Chrome đang ở trang login), env_imap, seeker_form.url, groups (0/6 joined), cron. Chưa có seeker.
 - Kiến trúc: KNOW (sublet-groups) → CAPTURE (sublet-scan qua Chrome thật / sublet-email qua IMAP, lưu thô kind=null) → ANALYZE (intent-analyze theo docs/intent-logic.md: kind, subtype, poster_type, fields, scam_score, deal_score, confidence) → MATCH (scripts/match.py deterministic) → VOICE/RUN (partner-voice; sublet-draft; inbox-triage; viewing-coordinate; sublet-followup). Ops: onboarding, sublet-report, sublet-diagnose, seeker-intake.
 - Không có Telegram/notification. Mọi thứ tôi cần biết → bảng sublet_inbox. /sublet-followup là nơi tôi đọc.
 - Offer: €49 khi người tôi giới thiệu dọn vào (config.offer.fee_trigger=move_in). Miễn phí cho người tìm nhà. Định vị: broker nhỏ, không phải agency, không nhắc AI trong tin nhắn.
 
 MÔI TRƯỜNG CỦA BẠN (Codex):
-- Env: `source ~/.sublet-skills.env` đầu mỗi session. Chưa có file → dừng, bảo tôi chạy `zsh ops/setup_env.sh`. Không tự bịa giá trị, không hỏi tôi paste secret vào chat.
+- Env: **đã có** `~/.sublet-skills.env` (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY, chmod 600). `scripts/db.py` tự đọc file đó — không cần source, không cần psycopg2, không cần postgres password (đi qua REST rpc `sublet_exec`). Thiếu IMAP (SUBLET_IMAP_USER/PASS) → chỉ ảnh hưởng `sublet-email`; bảo tôi thêm bằng `zsh ops/setup_env.sh` khi cần. Không tự bịa giá trị, không hỏi tôi paste secret vào chat.
 - DB: mọi chỗ skill viết "execute_sql" → `python3 scripts/db.py "<sql>"` (cần `pip3 install psycopg2-binary`). Hoặc Supabase MCP theo ops/codex-config.example.toml. Tables: sublet_listings, sublet_seekers, sublet_matches, sublet_viewings, sublet_fees, sublet_messages, sublet_events, sublet_scan_runs, sublet_groups, sublet_ops_state, sublet_inbox.
 - Browser: Chrome DevTools MCP attach vào Chrome profile riêng đã login Facebook, cổng 9222, KHÔNG headless, KHÔNG --enable-automation (lệnh trong AGENTS.md). Thấy trang login → ghi ops_state chrome_fb_login=no, bảo tôi login tay, KHÔNG tự login, KHÔNG thử lại trong session đó.
 - Headless run: ops/run_skill.sh <skill> với SUBLET_RUNNER=codex.
 
 VIỆC ĐẦU TIÊN CỦA BẠN, THEO THỨ TỰ:
-1. Kiểm `~/.sublet-skills.env` tồn tại và `python3 scripts/db.py "select count(*) from sublet_groups"` trả về 7. Không được → in đúng lỗi, bảo tôi chạy setup_env.sh, dừng. Được → chạy skill `onboarding`, tự kiểm mọi mục kiểm được, hỏi tôi từng mục còn lại, ghi sublet_ops_state.
+1. Chạy `python3 scripts/db.py "select count(*) from sublet_groups"` → phải ra 7 (env đã có sẵn). Rồi chạy skill `onboarding`: đọc `sublet_ops_state` trước, chỉ hỏi mục chưa ✅, ghi kết quả.
 2. Chạy `sublet-groups status` → in group tier 1–2 chưa joined → nhắc tôi join ≤5/ngày và bật Notifications → All posts.
 3. Khi tôi báo đã join ≥1 group và Chrome đã login: chạy `sublet-scan` 1 lần (≤4 page load) → `intent-analyze` → in bảng captured / offering theo subtype / seeking / other / dead / scam. Đây là bằng chứng pipeline chạy.
 4. Khi có ≥3 seeker (`seeker-intake`): `sublet-match` cho offering deal_score cao nhất → `sublet-draft` → in draft DM để tôi gửi.

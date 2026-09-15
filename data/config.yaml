@@ -17,7 +17,7 @@ offer:
   fee_trigger: move_in        # move_in | three_viewings_72h — đổi sau 10 deal nếu thu <70%
   promise: "3 qualified viewings within 72h, or free"
   attribution_days: 30
-  your_first_name: ""
+  your_first_name: "Kien"
 
 email:
   imap_host: imap.gmail.com
