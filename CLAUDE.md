@@ -17,6 +17,7 @@
 - Match score tính bằng `scripts/match.py` (deterministic). LLM chỉ viết `reasons`.
 - Mọi draft (DM, push, confirm) ghi vào DB với `status='draft'` và đưa cho người dùng duyệt. Chỉ người dùng đổi sang `sent`.
 - Ghi `sublet_scan_runs` mỗi chu kỳ (page_loads, new_posts) để tự kiểm soát volume.
+- Agent không gửi thông báo đi đâu. Mọi thứ cần người dùng biết → `sublet_inbox`. `/sublet-followup` là nơi người dùng đọc.
 - Ngôn ngữ giao tiếp với người dùng: tiếng Việt. Template gửi ra ngoài: EN (mặc định) hoặc NL theo `config.yaml`.
 
 ## Dữ liệu

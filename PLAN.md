@@ -57,7 +57,7 @@ Bảng tổng: skill → đọc → ghi → trigger → page load
 | viewing-coordinate | matches replied, viewings | sublet_viewings, sublet_fees, sublet_messages (draft), status | khi accepted; tay | 0 |
 | sublet-followup | mọi bảng | sublet_messages (draft) | cron 08:30 | 0 |
 | sublet-diagnose | 1 post FB + group | listings.notes, events | tay | ≤3 |
-| sublet-report | mọi bảng | Telegram | cron 18:00 | 0 |
+| sublet-report | mọi bảng | sublet_inbox | cron 18:00 | 0 |
 
 ### C1. sublet-groups
 - **Logic:** discover = FB search 3 query × 1 load, parse tên/url/member/private, upsert `sublet_groups` (tier=null). rank = đếm `offering_7d` từ `sublet_listings`, áp rule tier 1 (≥10) / 2 (2–9) / 3 (<2 hoặc allows_sublet=no), ghi ngược `data/groups.yaml`.
@@ -68,7 +68,7 @@ Bảng tổng: skill → đọc → ghi → trigger → page load
 ### C2. sublet-scan (capture-only)
 - **Logic:** kiểm giờ + tổng page_loads 24h (≥350 → dừng) + skip ngẫu nhiên 1/12 → mở `groups/feed` → đọc từ trên xuống → dừng khi gặp `cursor` run trước hoặc 3 URL đã biết → `/notifications` → insert thô mỗi post mới → ghi cursor = permalink đầu tiên → gọi `/intent-analyze`.
 - **Dữ liệu ghi:** `sublet_listings(source, source_url [unique], group_key, poster_name, posted_at, seen_at, raw_text, kind=null)`; `sublet_scan_runs(mode, page_loads, posts_seen, new_listings, cursor, stopped_reason)`; `sublet_events(event='captured')`.
-- **Xử lý:** login/checkpoint/captcha → `stopped_reason`, Telegram, không chạy 24h (ghi `sublet_ops_state('scan_paused_until')`). Không map được group → tạo group key mới tier=null. Post không có permalink → `source_url='feed:'||hash(text)||date`.
+- **Xử lý:** login/checkpoint/captcha → `stopped_reason`, `sublet_inbox(level='stop')`, không chạy 24h (ghi `sublet_ops_state('scan_paused_until')`). Không map được group → tạo group key mới tier=null. Post không có permalink → `source_url='feed:'||hash(text)||date`.
 - **Cập nhật logic:** cadence/ngưỡng trong `config.scan`; điều kiện dừng trong SKILL.md bước 3.
 
 ### C3. sublet-email
@@ -109,11 +109,11 @@ Bảng tổng: skill → đọc → ghi → trigger → page load
 - **Cập nhật:** fee trigger trong config; số người shortlist trong SKILL.md.
 
 ### C10. sublet-followup
-- **Logic:** 8 truy vấn (draft cũ >2h, DM 3–4 ngày không reply, maybe-later 5 ngày, viewing hôm nay, viewing hôm qua chưa kết quả, fee draft/sent>5 ngày, seeker hết hạn, accepted <3 YES) → ≤10 việc, draft sẵn → Telegram bản rút gọn.
+- **Logic:** 8 truy vấn (draft cũ >2h, DM 3–4 ngày không reply, maybe-later 5 ngày, viewing hôm nay, viewing hôm qua chưa kết quả, fee draft/sent>5 ngày, seeker hết hạn, accepted <3 YES) → gộp với `sublet_inbox` chưa done → ≤10 việc, draft sẵn.
 - **Cập nhật:** ngưỡng ngày trong SKILL.md; template trong `templates/followup.md`.
 
 ### C11. sublet-report
-- **Logic:** 7 query → JSON → `scripts/report.py` → 3 nhận xét agent → Telegram.
+- **Logic:** 7 query → JSON → `scripts/report.py` → 3 nhận xét agent → `sublet_inbox`.
 - **Cập nhật:** metrics trong `scripts/report.py`; mốc Phase 0 trong SKILL.md.
 
 ### C12. sublet-diagnose, onboarding — xem SKILL.md tương ứng.
@@ -146,7 +146,7 @@ Chạy `/onboarding`, nó dắt từng bước. Tóm tắt việc **chỉ bạn 
 
 | Ngày | Việc | Thời gian |
 |---|---|---|
-| 0 | Điền `config.yaml` (chat_id, imap_user, your_first_name). Login Facebook trong Chrome. Gmail App Password → `~/.zshrc`. | 20' |
+| 0 | Điền `config.yaml` (imap_user, your_first_name). Login Facebook trong Chrome. Gmail App Password → `~/.zshrc`. | 20' |
 | 0 | `zsh ops/install_cron.sh` | 1' |
 | 0–7 | Join group tier 1–2, **≤5/ngày**. Mỗi group joined: bật Notifications → All posts | 5'/ngày |
 | 1 | Tạo Tally form seeker (12 cột trong README), link vào config. Điền 3 người quen. | 30' |
@@ -161,14 +161,14 @@ Mọi thứ dưới đây **tự chạy** (launchd). Bạn chỉ làm cột ph�
 
 | Giờ | Tự động | Bạn (tổng ~25'/ngày) |
 |---|---|---|
-| 08:30 | `sublet-followup` → Telegram ≤8 dòng | Đọc, gửi các draft (5–10 tap) |
-| 08:00–23:00 mỗi 12' | `sublet-scan` → `intent-analyze` → `sublet-match` → `sublet-draft` | Khi Telegram báo "sublet mới, draft sẵn": mở post, gửi DM. ≤10/ngày |
+| 08:30 | `sublet-followup` → đọc `sublet_inbox` + 8 truy vấn | Mở Claude Code, đọc, gửi các draft (5–10 tap) |
+| 08:00–23:00 mỗi 12' | `sublet-scan` → `intent-analyze` → `sublet-match` → `sublet-draft` | Mỗi lần mở Claude Code: `/sublet-followup` → mở post, gửi DM. ≤10/ngày |
 | mỗi 10' (24/7 khi lên Hetzner) | `sublet-email` → cùng pipeline | — |
 | mỗi 20' | `inbox-triage` → cập nhật trạng thái, draft trả lời | Tap gửi FAQ/trả lời; quyết các case negotiating |
 | khi subletter "ok" | `viewing-coordinate` → draft shortlist | Gửi shortlist; khi có slot → gửi confirm + contact |
 | sau viewing | — | Gõ `/viewing-coordinate showed|no_show <id>`; seeker báo move-in → `signed` |
 | move-in | fee draft + Tikkie text | Gửi Tikkie |
-| 18:00 | `sublet-report` → Telegram | Đọc 1 phút |
+| 18:00 | `sublet-report` → sublet_inbox | Đọc lúc followup hôm sau |
 | CN 10:00 | `sublet-groups rank` | Join/rời group theo đề xuất |
 | CN | — | `/sublet-groups discover` (tay, 6 loads), `/intent-analyze` QA 10 post |
 

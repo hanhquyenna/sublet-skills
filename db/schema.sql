@@ -163,3 +163,18 @@ create table if not exists sublet_ops_state (
   updated_at timestamptz not null default now()
 );
 alter table sublet_ops_state enable row level security;
+
+-- v4: hàng đợi việc cho người vận hành (thay Telegram)
+create table if not exists sublet_inbox (
+  id bigserial primary key,
+  level text not null default 'info' check (level in ('info','action','warning','stop')),
+  title text not null,
+  body text,
+  entity_type text,
+  entity_id uuid,
+  message_id uuid,
+  created_at timestamptz not null default now(),
+  read_at timestamptz,
+  done_at timestamptz
+);
+alter table sublet_inbox enable row level security;

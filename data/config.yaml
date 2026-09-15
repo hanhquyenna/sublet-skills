@@ -19,9 +19,6 @@ offer:
   attribution_days: 30
   your_first_name: ""
 
-telegram:
-  chat_id: ""             # điền chat id của bạn (Telegram MCP)
-
 email:
   imap_host: imap.gmail.com
   imap_user: ""           # Gmail nhận notification Facebook

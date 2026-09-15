@@ -10,7 +10,6 @@ Bộ skill Claude Code để vận hành dịch vụ ghép sublet Amsterdam: age
 Claude Code (Mac)                         Supabase (project Lamy, bảng sublet_*)
  ├─ Claude in Chrome → đọc groups/feed      listings · seekers · matches · viewings
  ├─ scripts/match.py → chấm điểm            fees · messages · events · scan_runs
- ├─ Telegram MCP     → báo cáo cho BẠN
  └─ /loop 12m /sublet-scan                 Hetzner (sau): cron /sublet-email, không cần browser
 ```
 
@@ -18,7 +17,7 @@ Claude Code (Mac)                         Supabase (project Lamy, bảng sublet_
 
 1. **Supabase**: chạy `db/schema.sql` (đã apply nếu bạn dùng project Lamy qua MCP). RLS bật, không policy → chỉ MCP/service role đọc ghi.
 2. **Chrome**: đăng nhập Facebook trong Chrome thật. Join các group trong `data/groups.yaml` bằng tay (2–5 group/ngày, đừng vội). Trong mỗi group tier 1–2: Notifications → **All posts**.
-3. **config**: `data/config.yaml` — điền `telegram.chat_id`, `email.imap_user`. Giá/offer đã đặt €49.
+3. **config**: `data/config.yaml` — điền `email.imap_user`, `offer.your_first_name`. Giá/offer đã đặt €49.
 4. **Email (tuỳ chọn, cho 24/7)**: Gmail App Password → `export SUBLET_IMAP_USER=... SUBLET_IMAP_PASS=...` trong `~/.zshrc`. Không commit.
 5. **Seeker form**: tạo Tally form với các cột: name, contact, consent (checkbox), move_in, move_out, budget, areas, people, registration_need, pets, occupation, viewing_availability. Export CSV → `data/seekers_export.csv`.
 6. Mở Claude Code trong thư mục này: `cd ~/sublet-skills && claude` rồi gõ `/onboarding` — nó dắt qua các bước còn lại và cài cron (`zsh ops/install_cron.sh`).
@@ -28,7 +27,7 @@ Claude Code (Mac)                         Supabase (project Lamy, bảng sublet_
 | Giờ | Lệnh | Bạn làm |
 |---|---|---|
 | 08:30 | `/sublet-followup` | Đọc ≤10 việc, gửi các draft |
-| 08:30–23:00 | `/loop 12m /sublet-scan` | Để chạy nền. Telegram báo khi có sublet mới |
+| 08:30–23:00 | `/loop 12m /sublet-scan` | Để chạy nền. Việc mới rơi vào `sublet_inbox` |
 | khi có listing tốt | (tự động) `/intent-analyze` → `/sublet-match` → `/sublet-draft` | Copy DM, mở post, gửi tay. Gõ `/sublet-draft sent <id>` |
 | subletter "ok" | `/viewing-coordinate <listing>` | Gửi shortlist, chốt slot, gửi contact |
 | sau viewing | `/viewing-coordinate showed\|no_show <viewing_id>` | Gửi Tikkie khi đủ 3 viewing |
@@ -54,7 +53,7 @@ Có seeker mới: dán tin nhắn của họ vào chat và gõ `/seeker-intake`.
 | `viewing-coordinate` | Shortlist 3, slot, reminder, fee trigger | **Bạn gửi** |
 | `sublet-followup` | Việc hôm nay + draft follow-up | **Bạn gửi** |
 | `sublet-diagnose` | Vì sao post 0 view | Không |
-| `sublet-report` | Metrics Phase 0 → Telegram | Chỉ cho bạn |
+| `sublet-report` | Metrics Phase 0 → sublet_inbox | Không |
 
 ## Giới hạn an toàn (đã code vào skill)
 - ≤4 page load Facebook/chu kỳ, ≤~400/ngày, chỉ 08–23h, dừng ngay khi thấy checkpoint.

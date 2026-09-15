@@ -16,7 +16,7 @@ description: Báo cáo cuối ngày và metrics Phase 0 (posts/ngày theo group,
    - `select id,status,entity_type,created_at from sublet_messages where created_at > now() - interval '7 days'`
 2. Ghi thành 1 JSON `{listings, seekers, matches, viewings, fees, scan_runs, messages}` trong scratchpad → `python3 scripts/report.py < data.json`.
 3. Thêm 3 dòng nhận xét của agent: group nào đáng lên tier 1 / xuống tier 3; yes-rate so với mốc 30%; có dấu hiệu volume Facebook cao không.
-4. Gửi Telegram (chat_id trong config) bản ≤12 dòng. In bản đầy đủ ra terminal.
+4. Insert `sublet_inbox(level='info', title='Report {date}', body=<markdown>)`. In bản đầy đủ ra terminal.
 
 ## Mốc Phase 0 (30 ngày) — để tự đánh giá
 - ≥200 offering thật/tháng trong tier 1–2

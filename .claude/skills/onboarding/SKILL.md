@@ -14,8 +14,8 @@ Mục tiêu: sau khi chạy xong, hệ thống chạy tự động mà bạn ch�
 
 ### Ngày 0 — nền
 1. `supabase_ok` — `select count(*) from sublet_groups` chạy được qua MCP.
-2. `config_filled` — `data/config.yaml` có `telegram.chat_id`, `email.imap_user`, `offer.your_first_name`. Agent đọc file kiểm tra.
-3. `telegram_ok` — gửi thử 1 tin "sublet-skills online" qua Telegram MCP tới chat_id. Bạn xác nhận nhận được.
+2. `config_filled` — `data/config.yaml` có `email.imap_user`, `offer.your_first_name`. Agent đọc file kiểm tra.
+3. `inbox_ok` — `insert into sublet_inbox(level,title) values ('info','onboarding started')` chạy được.
 4. `chrome_fb_login` — Chrome thật đã login Facebook. Agent `navigate` `facebook.com/groups/feed` (1 load) và xác nhận thấy feed, không thấy login. (Codex: profile riêng đã login.)
 5. `env_imap` — `echo $SUBLET_IMAP_USER` không rỗng. Nếu rỗng: hướng dẫn tạo Gmail App Password, thêm vào `~/.zshrc`.
 

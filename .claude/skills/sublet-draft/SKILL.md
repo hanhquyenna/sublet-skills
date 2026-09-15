@@ -28,4 +28,4 @@ In từng draft trong code block, kèm: người nhận, kênh, link post (để
 
 ## Không
 - Không nhắc "AI/agent/automation" trong tin.
-- Không gửi qua bất kỳ MCP nào (Telegram MCP chỉ dùng để báo cho **bạn**, không gửi cho khách).
+- Không gửi qua bất kỳ MCP nào.

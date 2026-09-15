@@ -21,4 +21,4 @@ Chạy 1 lần/ngày, buổi sáng. Không gửi gì. Đưa ra ≤10 việc, ưu
 
 ## Output
 Bảng: # · việc · ai · draft có sẵn (id) · deadline. Sau bảng: "Gõ `/sublet-draft sent <ids>` khi gửi xong."
-Gửi bản rút gọn (≤8 dòng) lên Telegram nếu `config.telegram.chat_id` có.
+Đầu tiên đọc `sublet_inbox where done_at is null` — đó là hàng đợi; gộp với 8 truy vấn dưới, không lặp. Cuối cùng đánh `read_at=now()` cho các mục đã hiển thị. Không gửi đi đâu cả.
