@@ -15,16 +15,19 @@ Skill này là bản đồ context, không thay thế luật cứng hay logic ch
 
 ## Snapshot hiện tại
 
-Snapshot này được ghi ngày **2026-09-15**, sau lượt discovery Facebook và web research:
+Snapshot này được ghi ngày **2026-09-15**, sau commit `e6e4b65`, rank metrics và cập nhật backlog:
 
 - Repo chính: `/Users/ad/sublet-skills` (thường gọi bằng `~/sublet-skills`).
 - Mục tiêu: dịch vụ broker sublet nhỏ ở Amsterdam, Phase 0 trong 30 ngày.
 - Người vận hành: **Kien**. Agent là mắt + trí nhớ + người soạn; Kien là người bấm/gửi.
 - Offer hiện tại: người có phòng nhận 3 viewing phù hợp trong 72h; €49 khi người được giới thiệu move-in; seeker dùng miễn phí.
-- Database hiện có: `sublet_groups=92`, `sublet_listings=0`, `sublet_seekers=0`, `sublet_ops_state=0`.
-- 20 group đã được mở trực tiếp để kiểm tra trong panel; current DB ghi nhận 16 `joined=true` và 76 `joined=false` (do Kien thao tác, agent không join). 72 group còn lại chưa được verify trực tiếp.
-- Discovery Facebook dùng các batch query English/Dutch về Amsterdam, student housing, kamers, onderhuur và Nederland; lưu các kết quả search + 5 link seed do Kien cung cấp. Web research bổ sung 24 URL có nguồn public; các batch Facebook panel sau đó bổ sung thêm 39 URL mới. Tổng cộng 92 group; 20 đã verify trực tiếp và 72 còn unverified. Tier mới để `NULL` cho tới khi có dữ liệu offering 7 ngày.
-- `data/config.yaml`: city Amsterdam, timezone `Europe/Amsterdam`, agent nói tiếng Việt, template gửi ra ngoài English, tên Kien. Còn trống `email.imap_user` và `seeker_form.url`; không tự bịa.
+- Database lần kiểm tra gần nhất: `sublet_groups=93`, `sublet_group_metrics=75`, `sublet_listings=0`, `sublet_seekers=0`, `sublet_ops_state=7`.
+- DB hiện có 66 group mang cờ `joined=true`; metric mới nhất xác nhận 39 `joined`, 27 `pending`, 6 `blocked`. Khi hai nguồn lệch nhau, chỉ metric mới nhất có `join_status='joined'` được coi là đủ điều kiện tier 1/2.
+- `sublet-groups rank` đã chạy từ `posts_per_day`: 3 group đủ ngưỡng tier 1 (13, 5, 4 post/ngày), 57 group joined tạm tier 3, 6 group chưa joined vẫn để tier `NULL`. `offering_7d` chưa đủ dữ liệu để ghi đè tier tạm.
+- Tier 1 hiện cần Kien bật Notifications → All posts thủ công cho 3 group; không mở rộng lên 8 khi metrics thực tế chỉ đủ 3 group đã joined và đạt ngưỡng.
+- Discovery Facebook dùng các batch query English/Dutch về Amsterdam, student housing, kamers, onderhuur và Nederland; tổng DB hiện có 93 group. `data/groups.yaml` đã được đồng bộ từ DB, giữ trường `keywords` và notes.
+- `data/config.yaml`: city Amsterdam, timezone `Europe/Amsterdam`, agent nói tiếng Việt, template gửi ra ngoài English, tên Kien. Còn trống `email.imap_user` và `seeker_form.url`; đã thêm advisory model routing: `gpt-5.6-luna` cho intent/backfill, `gpt-6-astra` cho draft/inbox/partner voice.
+- `sublet_v_today` tồn tại và lần kiểm tra trả về rỗng; chưa có pipeline DM/viewing/fee.
 - Chưa có seeker/listing thực tế, chưa chạy pipeline DM/viewing/fee.
 - Ba quyết định để dữ liệu sau 30 ngày: `fee_trigger` (move-in hay 3 viewings/72h), promise 72h hay 24h, và có thêm `outreach-prep` hay không.
 
@@ -43,7 +46,7 @@ Snapshot này được ghi ngày **2026-09-15**, sau lượt discovery Facebook 
 | Database schema | `db/schema.sql` | 11 bảng `sublet_*`, RLS bật |
 | Script | `scripts/` | `db.py`, `match.py`, `gmail_pull.py`, `report.py` |
 | Template | `templates/` | DM offer, seeker push, viewing confirm, follow-up, FAQ EN/NL |
-| Ops | `ops/` | cron Mac, Hetzner crontab, `run_skill.sh`, log |
+| Ops | `ops/` | cron Mac, Hetzner crontab, `run_skill.sh`, backup, log |
 | Config/data | `data/config.yaml`, `data/groups.yaml` | city/giờ/offer và seed group/keyword |
 
 ## Supabase hiện tại

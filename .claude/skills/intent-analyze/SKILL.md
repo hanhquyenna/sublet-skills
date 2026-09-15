@@ -9,6 +9,10 @@ Tầng phân tích tách khỏi tầng capture: chạy lại được bất cứ
 
 **Nguồn sự thật cho mọi rule là `docs/intent-logic.md`.** Đọc nó trước khi phân loại. SKILL.md này chỉ là quy trình; nếu hai nơi khác nhau, docs thắng.
 
+## Model routing
+
+Đọc `models.intent_analyze` từ `data/config.yaml`. Nếu runtime cho phép chọn model, dùng model đó (mặc định hiện tại là model nhỏ/rẻ cho phân tích); nếu không cho phép, giữ model runtime hiện tại và không tìm cách bypass giới hạn. Không áp dụng routing tiết kiệm này cho draft, inbox-triage hoặc partner-voice.
+
 ## Input
 `select * from sublet_v_analyze_queue` (40 post kind is null, cũ nhất trước). Thêm tham số `--all` để phân tích lại toàn bộ (khi đổi rule).
 

@@ -1,51 +1,1123 @@
-# tier 1: đọc bằng Chrome thật qua groups/feed (không mở từng group)
-# tier 2: chỉ qua email notification ("All posts" bật trong group)
-# key = định danh ngắn dùng trong DB. Điền URL thật sau khi bạn đã là member.
+# Synced from sublet_groups after sublet-groups rank.
+# tier 1: đọc bằng feed; tier 2: notification/email; tier 3: giữ để tham khảo.
+# Facebook actions (join/notification/post/message) remain manual by Kien.
 groups:
-  - key: ams_housing_sublet
-    name: "Amsterdam Housing Group: Studio, Room, House, Sublet"
-    url: https://www.facebook.com/groups/706725492790937/
+  - key: "find-room-roommate-amsterdam-roommateinamsterdam"
+    name: "🏠 Find Room & Roommate in Amsterdam"
+    url: "https://www.facebook.com/groups/roommateinamsterdam/"
+    city: "Amsterdam"
     tier: 1
+    joined: true
+    notif_all_posts: false
+    member_count: 34800
+    offering_7d: 0
     allows_sublet: true
     allows_agencies: unknown
-    notes: ""
-  - key: ams_housing_rooms_sublets
-    name: "Amsterdam Housing, Rooms, Apartments, Sublets"
-    url: https://www.facebook.com/groups/251441185632701/
-    tier: 1
-    allows_sublet: true
-    allows_agencies: unknown
-  - key: ams_housing_apts_rooms_sublets
-    name: "AMSTERDAM - Housing, Apartments, Rooms, Sublets"
-    url: https://www.facebook.com/groups/3396846493712419/
-    tier: 1
-    allows_sublet: true
-    allows_agencies: unknown
-  - key: ams_housing_roommates
-    name: "Amsterdam - housing and roommates"
-    url: https://www.facebook.com/groups/amsterdam.housing.and.roommates/
-    tier: 2
-    allows_sublet: unknown
-    allows_agencies: unknown
-  - key: ams_no_agencies
-    name: "Amsterdam Apartment and Rooms for Rent No AGENCIES"
-    url: https://www.facebook.com/groups/231203323708543/
-    tier: 2
-    allows_sublet: unknown
-    allows_agencies: false
-    notes: "Cấm agency. Chỉ đọc. Không bao giờ post link dịch vụ ở đây."
-  - key: ams_housing_no_sublets
-    name: "AMSTERDAM - HOUSING (sublets and illegal rentals NOT allowed)"
-    url: https://www.facebook.com/groups/396367587188451/
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam sublet housing rooms] | tier tạm từ posts_per_day"
+  - key: "accommodation-amsterdam-rooms-apartments-studios-accommodation-amsterdam"
+    name: "Accommodation Amsterdam (rooms, apartments & studios)"
+    url: "https://www.facebook.com/groups/accommodation.amsterdam/"
+    city: "Amsterdam"
     tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 36700
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam sublet short-term housing] | status_checked=2026-09-15; facebook_label=Tham gia nhóm | tier tạm từ posts_per_day"
+  - key: "amstelveen-amsterdam-rentals-1731499307113897"
+    name: "Amstelveen/Amsterdam rentals"
+    url: "https://www.facebook.com/groups/1731499307113897/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 30900
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam sublet housing rooms]; activity_note=rooms studios apartments posted daily | tier tạm từ posts_per_day"
+  - key: "amsterdam-housing-sublets-and-illegal-rentals-not-allowed-396367587188451"
+    name: "AMSTERDAM - HOUSING (sublets and illegal rentals NOT allowed)"
+    url: "https://www.facebook.com/groups/396367587188451/"
+    city: "Amsterdam"
+    tier: 3
+    joined: false
+    notif_all_posts: false
+    member_count: null
+    offering_7d: 0
     allows_sublet: false
-    notes: "Bỏ qua cho sublet. Giữ để tham khảo."
-  - key: housingrocket_ams
-    name: "Amsterdam Apartments and Housing (NO SPAM) — Housing Rocket"
-    url: https://housingrocket.com/group/amsterdam-apartments-and-housing
-    tier: 2
+    allows_agencies: unknown
+    notes: "configured seed; explicit no-sublet signal; unverified; facebook_content_unavailable_or_access_restricted"
+  - key: "amsterdam-housing-and-roommates-amsterdam-housing-and-roommates"
+    name: "Amsterdam - housing and roommates"
+    url: "https://www.facebook.com/groups/amsterdam.housing.and.roommates/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 85500
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam sublet short-term housing] | status_checked=2026-09-15; facebook_label=Tham gia nhóm; membership_form_submitted; pending_admin_approval | tier tạm từ posts_per_day"
+  - key: "amsterdam-housing-apartments-rooms-sublets-3396846493712419"
+    name: "AMSTERDAM - Housing, Apartments, Rooms, Sublets"
+    url: "https://www.facebook.com/groups/3396846493712419/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 179200
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [operator-provided seed] | tier tạm từ posts_per_day"
+  - key: "amsterdam-huur-verhuur-amsterdamhuur"
+    name: "Amsterdam - Huur/Verhuur"
+    url: "https://www.facebook.com/groups/amsterdamhuur/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 1500
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren] | already_joined; panel_verified | tier tạm từ posts_per_day"
+  - key: "amsterdam-huur-verhuur-particuliere-huurwoningen-304854824367615"
+    name: "Amsterdam - Huur/Verhuur Particuliere Huurwoningen"
+    url: "https://www.facebook.com/groups/304854824367615/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 35500
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam huurwoning kamer tijdelijk huren] | status_checked=2026-09-15; facebook_label=Tham gia nhóm | tier tạm từ posts_per_day"
+  - key: "amsterdam-kamers-appartementen-en-huurwoningen-331015198645000"
+    name: "Amsterdam - kamers, appartementen en huurwoningen"
+    url: "https://www.facebook.com/groups/331015198645000/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 20400
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam huurwoning kamer tijdelijk huren] | status_checked=2026-09-15; facebook_label=Tham gia nhóm | tier tạm từ posts_per_day"
+  - key: "amsterdam-te-huur-228551550129964"
+    name: "Amsterdam - Te Huur"
+    url: "https://www.facebook.com/groups/228551550129964/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 7200
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren] | joined_from_facebook_panel | tier tạm từ posts_per_day"
+  - key: "amsterdam-apartment-room-house-appartement-kamer-huis-2126250794312231"
+    name: "Amsterdam | Apartment, Room, House | Appartement, Kamer, Huis"
+    url: "https://www.facebook.com/groups/2126250794312231/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 23000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam sublet short-term housing] | status_checked=2026-09-15; facebook_label=Tham gia nhóm | tier tạm từ posts_per_day"
+  - key: "amsterdam-te-huur-woningen-kamers-1118217269583332"
+    name: "Amsterdam | Te huur | Woningen | Kamers"
+    url: "https://www.facebook.com/groups/1118217269583332/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 17700
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam huurwoning kamer tijdelijk huren] | status_checked=2026-09-15; facebook_label=Tham gia nhóm | tier tạm từ posts_per_day"
+  - key: "amsterdam-apartment-and-rooms-for-rent-no-agencies-please-231203323708543"
+    name: "Amsterdam Apartment and Rooms for Rent No AGENCIES PLEASE.."
+    url: "https://www.facebook.com/groups/231203323708543/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 108100
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: false
+    notes: "discovered 2026-09-15 via Facebook group search [operator-provided seed] | tier tạm từ posts_per_day"
+  - key: "amsterdam-apartment-rentals-amsterdamapartmentrentals"
+    name: "Amsterdam Apartment Rentals"
+    url: "https://www.facebook.com/groups/Amsterdamapartmentrentals/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 42400
+    offering_7d: 0
     allows_sublet: unknown
-    notes: "Group do Housing Rocket sở hữu, 23k members. Post approval trả phí."
+    allows_agencies: unknown
+    notes: "web: Rassvet housing list; unverified | join_request_pending; membership_questions_answered_and_request_pending | tier tạm từ posts_per_day"
+  - key: "amsterdam-apartments-4-rent-amsterdam-apartments"
+    name: "Amsterdam Apartments 4 Rent"
+    url: "https://www.facebook.com/groups/amsterdam.apartments/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 130800
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "web: Casa Migrante/Rassvet housing list; unverified | join_request_pending; membership_form_submitted | tier tạm từ posts_per_day"
+  - key: "amsterdam-apartments-4-rent-group-amsterdamroom"
+    name: "Amsterdam Apartments 4 Rent Group"
+    url: "https://www.facebook.com/groups/AmsterdamRoom/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 38600
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam sublet short-term housing] | status_checked=2026-09-15; facebook_label=Tham gia nhóm | joined_from_facebook_panel | tier tạm từ posts_per_day"
+  - key: "amsterdam-apartments-and-housing-no-spam-apartment-amsterdam"
+    name: "Amsterdam Apartments and Housing (NO SPAM)"
+    url: "https://www.facebook.com/groups/apartment.amsterdam/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 27000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam sublet short-term housing] | status_checked=2026-09-15; facebook_label=Tham gia nhóm | join_request_pending; membership_form_submitted; instagram_follow_not_claimed | tier tạm từ posts_per_day"
+  - key: "housingrocket_ams"
+    name: "Amsterdam Apartments and Housing (NO SPAM) — Housing Rocket"
+    url: "https://housingrocket.com/group/amsterdam-apartments-and-housing"
+    city: "Amsterdam"
+    tier: 2
+    joined: false
+    notif_all_posts: false
+    member_count: null
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "Housing Rocket sở hữu, 23k members"
+  - key: "amsterdam-apartments-rooms-hotels-short-term-long-term-stay-2040879369371511"
+    name: "Amsterdam Apartments rooms Hotels short term long term stay"
+    url: "https://www.facebook.com/groups/2040879369371511/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 51000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [operator-provided seed] | already_joined; panel_verified | tier tạm từ posts_per_day"
+  - key: "amsterdam-appartement-kamers-huis-204957953393841"
+    name: "Amsterdam Appartement, Kamer(s), Huis"
+    url: "https://www.facebook.com/groups/204957953393841/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 6000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren] | join_request_pending; membership_form_submitted | tier tạm từ posts_per_day"
+  - key: "amsterdam-flat-hunting-find-a-team-instead-of-fighting-for-rooms-437146056338664"
+    name: "Amsterdam Flat-hunting - find a team instead of fighting for rooms!"
+    url: "https://www.facebook.com/groups/437146056338664/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 22600
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "web: Rassvet housing list; unverified | join_request_pending; membership_form_submitted | tier tạm từ posts_per_day"
+  - key: "amsterdam-housing-1667385836765427"
+    name: "Amsterdam Housing"
+    url: "https://www.facebook.com/groups/1667385836765427/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 14000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam sublet housing rooms] | join_request_pending; scammy_payment_and_third_party_registration_requirements_declined | tier tạm từ posts_per_day"
+  - key: "amsterdam-housing-amsterdamhousingroomsapartments"
+    name: "Amsterdam Housing"
+    url: "https://www.facebook.com/groups/amsterdamhousingroomsapartments/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 38600
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam sublet housing rooms] | join_request_pending; scammy_payment_and_third_party_registration_requirements_declined | tier tạm từ posts_per_day"
+  - key: "amsterdam-housing-group-studio-room-house-sublet-706725492790937"
+    name: "Amsterdam Housing Group: Studio, Room, House, Sublet"
+    url: "https://www.facebook.com/groups/706725492790937/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 41700
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam sublet short-term housing] | status_checked=2026-09-15; facebook_label=Tham gia nhóm | joined_from_facebook_panel | tier tạm từ posts_per_day"
+  - key: "amsterdam-housing-apartments-rooms-287563233830552"
+    name: "Amsterdam Housing, Apartments & Rooms"
+    url: "https://www.facebook.com/groups/287563233830552/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 62300
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam sublet short-term housing] | status_checked=2026-09-15; facebook_label=Tham gia nhóm | joined_from_facebook_panel | tier tạm từ posts_per_day"
+  - key: "amsterdam-housing-rooms-apartments-expats-students-972810972169994"
+    name: "Amsterdam Housing, Rooms & Apartments | Expats & Students"
+    url: "https://www.facebook.com/groups/972810972169994/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 2400
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam sublet short-term housing] | joined_from_facebook_panel | tier tạm từ posts_per_day"
+  - key: "amsterdam-housing-rooms-apartments-sublets-251441185632701"
+    name: "Amsterdam Housing, Rooms, Apartments, Sublets"
+    url: "https://www.facebook.com/groups/251441185632701/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 121200
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "configured seed; unverified | already_joined; panel_verified | tier tạm từ posts_per_day"
+  - key: "amsterdam-huis-kamer-woning-huren-en-verhuren-huishurenamsterdam"
+    name: "Amsterdam Huis/Kamer/Woning huren en verhuren"
+    url: "https://www.facebook.com/groups/huishurenamsterdam/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 4400
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam huurwoning kamer tijdelijk huren] | already_joined_from_panel | tier tạm từ posts_per_day"
+  - key: "amsterdam-internationals-housing-and-everything-else-amsterdaminternationals"
+    name: "Amsterdam Internationals Housing and Everything Else"
+    url: "https://www.facebook.com/groups/amsterdaminternationals/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 9100
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "web: Casa September 2026 list; unverified | already_joined_from_panel | tier tạm từ posts_per_day"
+  - key: "amsterdam-kamer-amsterdamkamer"
+    name: "Amsterdam Kamer"
+    url: "https://www.facebook.com/groups/amsterdamkamer/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 3300
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren] | join_request_pending; donate_skipped; registration_not_completed | tier tạm từ posts_per_day"
+  - key: "amsterdam-rent-amsterdamrent"
+    name: "Amsterdam Rent"
+    url: "https://www.facebook.com/groups/amsterdamrent/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 9200
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "web: Amsterdam Renting group list; unverified | join_request_pending; facebook_title_mismatch:Haarlem Rental House & Apartment & Studio & Room 2021 | tier tạm từ posts_per_day"
+  - key: "amsterdam-rent-a-room-apartment-or-studio-484600675031215"
+    name: "Amsterdam rent a room, apartment or studio"
+    url: "https://www.facebook.com/groups/484600675031215/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 89000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam sublet short-term housing] | status_checked=2026-09-15; facebook_label=Tham gia nhóm | join_request_pending; membership_form_submitted | tier tạm từ posts_per_day"
+  - key: "amsterdam-rent-a-room-apartment-or-studio-1628503947171907"
+    name: "Amsterdam rent a room, apartment or studio"
+    url: "https://www.facebook.com/groups/1628503947171907/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 90200
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [operator-provided seed] | already_joined; one_pending_post | tier tạm từ posts_per_day"
+  - key: "amsterdam-rent-house-323647851171113"
+    name: "Amsterdam Rent house"
+    url: "https://www.facebook.com/groups/323647851171113/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 41700
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; activity_visible; last_post_time_not_exposed_in_panel | tier tạm từ posts_per_day"
+  - key: "amsterdam-rental-rooms-1794282680842551"
+    name: "Amsterdam Rental Rooms"
+    url: "https://www.facebook.com/groups/1794282680842551/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 41400
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; last_active=13_minutes_ago | tier tạm từ posts_per_day"
+  - key: "amsterdam-rooms-303940726659024"
+    name: "Amsterdam Rooms"
+    url: "https://www.facebook.com/groups/303940726659024/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 85700
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; activity_visible; latest_post_time_not_exposed_in_panel | tier tạm từ posts_per_day"
+  - key: "amsterdam-rooms-and-apartments-amsterdamroomsandapartments"
+    name: "Amsterdam Rooms and Apartments"
+    url: "https://www.facebook.com/groups/amsterdamroomsandapartments/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 172400
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "joined_confirmed; activity_visible; latest_post_time_not_exposed_in_panel | tier tạm từ posts_per_day"
+  - key: "amsterdam-rooms-and-apartments-roomamsterdam"
+    name: "Amsterdam Rooms and Apartments"
+    url: "https://www.facebook.com/groups/roomamsterdam/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 10200
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; activity_visible; latest_post_time_not_exposed_in_panel | tier tạm từ posts_per_day"
+  - key: "amsterdam-rooms-apartments-amsterdamroomsapartments"
+    name: "Amsterdam Rooms Apartments"
+    url: "https://www.facebook.com/groups/amsterdamroomsapartments/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 10700
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "join_request_pending; no_membership_form_exposed; activity_today=1; activity_last_month=1 | tier tạm từ posts_per_day"
+  - key: "amsterdam-the-netherlands-for-rent-apartments-rooms-flats-amsterdamapartmentsandhouses"
+    name: "Amsterdam The Netherlands For Rent Apartments / Rooms / Flats"
+    url: "https://www.facebook.com/groups/amsterdamapartmentsandhouses/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 23900
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "join_request_pending; no_membership_form_exposed; activity_today=1; activity_last_month=35 | tier tạm từ posts_per_day"
+  - key: "apartment-rentals-amsterdam-apartmentrentalsamsterdam"
+    name: "Apartment Rentals Amsterdam"
+    url: "https://www.facebook.com/groups/apartmentrentalsamsterdam/"
+    city: "Amsterdam"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: null
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "blocked_or_unavailable_in_facebook_panel; content_not_available"
+  - key: "apartment-rooms-studio-wanted-amsterdam-4031145570247553"
+    name: "Apartment, rooms, studio wanted Amsterdam"
+    url: "https://www.facebook.com/groups/4031145570247553/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 20800
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "joined_confirmed; activity_visible; latest_post_time_not_exposed_in_panel | tier tạm từ posts_per_day"
+  - key: "apartments-and-rooms-rental-in-amsterdam-verified-listings-woneninamsterdam"
+    name: "Apartments and Rooms Rental in Amsterdam - Verified Listings!"
+    url: "https://www.facebook.com/groups/woneninamsterdam/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 53000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "join_request_pending; membership_form_submitted; admin_rule_follow_instagram_unconfirmed | tier tạm từ posts_per_day"
+  - key: "appartement-huren-in-amsterdam-groep-1586061762744234"
+    name: "Appartement huren in Amsterdam - groep"
+    url: "https://www.facebook.com/groups/1586061762744234/"
+    city: "Amsterdam"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 136
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren]"
+  - key: "appartement-huren-of-verhuren-in-amsterdam-564613720382847"
+    name: "Appartement huren of verhuren in Amsterdam"
+    url: "https://www.facebook.com/groups/564613720382847/"
+    city: "Amsterdam"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 2900
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren]"
+  - key: "expat-rent-apartment-studio-kamer-amsterdam-883672756855377"
+    name: "Expat Rent Apartment,Studio, Kamer in Amsterdam"
+    url: "https://www.facebook.com/groups/883672756855377/"
+    city: "Amsterdam"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 10000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren]"
+  - key: "expats-in-amsterdam-1704370749858391"
+    name: "Expats In Amsterdam"
+    url: "https://www.facebook.com/groups/1704370749858391/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 30600
+    offering_7d: 23
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "join_request_pending; activity_visible; private_group | tier tạm từ posts_per_day"
+  - key: "expats-netherlands-housing-work-amsterdam-utrecht-den-haag-1157446251688203"
+    name: "Expats Netherlands | housing | work | Amsterdam | Utrecht | Den Haag |"
+    url: "https://www.facebook.com/groups/1157446251688203/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 103700
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "join_request_pending; membership_form_submitted; housing_looking; job_status_no; rules_accepted; activity_visible | tier tạm từ posts_per_day"
+  - key: "find-houses-for-rent-in-amsterdam-housesinamsterdam"
+    name: "Find houses for rent in Amsterdam"
+    url: "https://www.facebook.com/groups/housesinamsterdam/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 38200
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; activity_visible; confirmation_toast; latest_post_time_not_exposed_in_panel | tier tạm từ posts_per_day"
+  - key: "homes-for-queers-amsterdam-1009958892397311"
+    name: "Homes for Queers Amsterdam"
+    url: "https://www.facebook.com/groups/1009958892397311/"
+    city: "Amsterdam"
+    tier: null
+    joined: true
+    notif_all_posts: false
+    member_count: 7500
+    offering_7d: 5
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "join_request_pending; membership_form_submitted; activity_visible; identity_question_left_unanswered_to_avoid_inventing_personal_attribute"
+  - key: "housing-for-rent-in-amsterdam-1480904505525292"
+    name: "Housing for Rent in Amsterdam"
+    url: "https://www.facebook.com/groups/1480904505525292/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 20000
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "join_request_pending; membership_form_submitted; external_website_post_not_done; activity_today=2; activity_last_month=19 | tier tạm từ posts_per_day"
+  - key: "housing-in-amsterdam-international-students-uva-1324913841878950"
+    name: "Housing in Amsterdam – International students University of Amsterdam"
+    url: "https://www.facebook.com/groups/1324913841878950/"
+    city: "Amsterdam"
+    tier: null
+    joined: true
+    notif_all_posts: false
+    member_count: 3000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; activity_visible; latest_post_about_2h_ago"
+  - key: "housing-in-the-netherlands-without-intermediaries-492251737772615"
+    name: "Housing in the Netherlands without intermediaries"
+    url: "https://www.facebook.com/groups/492251737772615/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 26500
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "join_request_pending; no_membership_form_exposed; activity_today=0; activity_last_month=10 | tier tạm từ posts_per_day"
+  - key: "i-need-a-room-rooms-roommates-in-amsterdam-123961611034584"
+    name: "I Need a Room! Rooms/Roommates in Amsterdam"
+    url: "https://www.facebook.com/groups/123961611034584/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 31300
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "join_request_pending; no_membership_form_exposed; activity_today=2; activity_last_month=39 | tier tạm từ posts_per_day"
+  - key: "kamer-amsterdam-kameramsterdam"
+    name: "Kamer Amsterdam"
+    url: "https://www.facebook.com/groups/kameramsterdam/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 6200
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "join_request_pending; membership_form_submitted; donation_skipped; renthunter_registration_not_done; activity_visible | tier tạm từ posts_per_day"
+  - key: "kamer-gezocht-aangeboden-in-amsterdam-383612732494569"
+    name: "Kamer Gezocht/Aangeboden in Amsterdam"
+    url: "https://www.facebook.com/groups/383612732494569/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 16400
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; activity_visible; latest_post_time_not_exposed_in_panel | tier tạm từ posts_per_day"
+  - key: "kamer-in-amsterdam-354815221391556"
+    name: "Kamer in Amsterdam"
+    url: "https://www.facebook.com/groups/354815221391556/"
+    city: "Amsterdam"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 28000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren]"
+  - key: "kamer-in-amsterdam-536001029862237"
+    name: "Kamer in Amsterdam"
+    url: "https://www.facebook.com/groups/536001029862237/"
+    city: "Amsterdam"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 2800
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren]"
+  - key: "kamers-en-appartementen-amsterdam-rooms-and-apartments-amsterdam-kamersappartementenamsterdam"
+    name: "Kamers en Appartementen Amsterdam / Rooms and Apartments Amsterdam"
+    url: "https://www.facebook.com/groups/kamersappartementenamsterdam/"
+    city: "Amsterdam"
+    tier: 1
+    joined: true
+    notif_all_posts: false
+    member_count: 39800
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; approval_notification_seen_in_panel; activity_today=5; activity_last_month=79 | tier tạm từ posts_per_day"
+  - key: "kamers-gezocht-aangeboden-amsterdam-1450295053537793"
+    name: "Kamers Gezocht & Aangeboden Amsterdam"
+    url: "https://www.facebook.com/groups/1450295053537793/"
+    city: "Amsterdam"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 13
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren]"
+  - key: "kamers-huren-in-amsterdam-1611822665774050"
+    name: "Kamers huren in Amsterdam"
+    url: "https://www.facebook.com/groups/1611822665774050/"
+    city: "Amsterdam"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 174
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren]"
+  - key: "long-term-rentals-amsterdam-475997376564057"
+    name: "Long Term Rentals Amsterdam"
+    url: "https://www.facebook.com/groups/475997376564057/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 42600
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; last_active=22_minutes_ago | tier tạm từ posts_per_day"
+  - key: "rent-room-amsterdam-rentroomamsterdam"
+    name: "Rent room Amsterdam"
+    url: "https://www.facebook.com/groups/rentroomamsterdam/"
+    city: "Amsterdam"
+    tier: null
+    joined: true
+    notif_all_posts: false
+    member_count: 5900
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "join_request_pending; membership_form_submitted; donation_skipped; renthunter_registration_not_done; activity_visible"
+  - key: "room-available-in-amsterdam-182547965445"
+    name: "ROOM AVAILABLE IN AMSTERDAM"
+    url: "https://www.facebook.com/groups/182547965445/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 88100
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "join_request_pending; membership_form_submitted; tenant_not_landlord; activity_today=7; activity_last_month=67 | tier tạm từ posts_per_day"
+  - key: "room-studio-apartment-in-amsterdam-2893293274248384"
+    name: "Room, Studio, Apartment in Amsterdam"
+    url: "https://www.facebook.com/groups/2893293274248384/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 4500
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; activity_visible; confirmation_toast; latest_post_time_not_exposed_in_panel | tier tạm từ posts_per_day"
+  - key: "rooms-available-in-amsterdam-1677500985908764"
+    name: "Rooms Available In Amsterdam"
+    url: "https://www.facebook.com/groups/1677500985908764/"
+    city: "Amsterdam"
+    tier: null
+    joined: true
+    notif_all_posts: false
+    member_count: 11400
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; activity_visible; welcome_notification_received"
+  - key: "short-long-term-stays-in-amsterdam-accommodation-tips-and-events-mixtree"
+    name: "SHORT/LONG TERM STAYS IN AMSTERDAM - accommodation, tips and events"
+    url: "https://www.facebook.com/groups/mixtree/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 34100
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "join_request_pending; membership_form_submitted; activity_today=0; activity_last_month=15 | tier tạm từ posts_per_day"
+  - key: "student-housing-amsterdam-studenthousingamsterdam"
+    name: "Student Housing Amsterdam"
+    url: "https://www.facebook.com/groups/studenthousingamsterdam/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 45300
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "join_request_pending; membership_form_submitted; donation_skipped; renthunter_registration_not_done; activity_visible | tier tạm từ posts_per_day"
+  - key: "student-housing-amsterdam-577890138899102"
+    name: "Student Housing Amsterdam"
+    url: "https://www.facebook.com/groups/577890138899102/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 14700
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "join_request_pending; no_membership_form_exposed; activity_today=0; activity_last_month=2 | tier tạm từ posts_per_day"
+  - key: "studenten-amsterdam-539059746154597"
+    name: "Studenten Amsterdam"
+    url: "https://www.facebook.com/groups/539059746154597/"
+    city: "Amsterdam"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 11000
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren]"
+  - key: "te-huur-amsterdam-1515679019014476"
+    name: "Te huur Amsterdam"
+    url: "https://www.facebook.com/groups/1515679019014476/"
+    city: "Amsterdam"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 870
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren]"
+  - key: "wonen-en-huren-in-amsterdam-700898510045934"
+    name: "Wonen en huren in Amsterdam"
+    url: "https://www.facebook.com/groups/700898510045934/"
+    city: "Amsterdam"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: null
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "blocked_or_unavailable_in_facebook_panel; content_not_available"
+  - key: "woning-huren-in-amsterdam-vraag-aanbod-woninghureninamsterdam"
+    name: "Woning huren in Amsterdam (vraag/aanbod)"
+    url: "https://www.facebook.com/groups/woninghureninamsterdam/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 92300
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; welcome_rules_acknowledged; activity_visible; latest_post_time_not_exposed_in_panel | tier tạm từ posts_per_day"
+  - key: "woningen-te-huur-in-amsterdam-huurwoningamsterdam"
+    name: "Woningen te huur in Amsterdam"
+    url: "https://www.facebook.com/groups/huurwoningamsterdam/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 21900
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; confirmation_toast; activity_visible; latest_post_time_not_exposed_in_panel | tier tạm từ posts_per_day"
+  - key: "woningruil-naar-uit-amsterdam-379735269179039"
+    name: "Woningruil - Naar/Uit Amsterdam"
+    url: "https://www.facebook.com/groups/379735269179039/"
+    city: "Amsterdam"
+    tier: null
+    joined: true
+    notif_all_posts: false
+    member_count: 14900
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "joined_confirmed; activity_visible; latest_visible_activity_today"
+  - key: "woonruimte-aangeboden-gezocht-amsterdam-woonruimtegezocht"
+    name: "Woonruimte Aangeboden / Gezocht (Amsterdam)"
+    url: "https://www.facebook.com/groups/woonruimtegezocht/"
+    city: "Amsterdam"
+    tier: 1
+    joined: true
+    notif_all_posts: false
+    member_count: 65600
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; activity_today=13; activity_last_month=151; latest_post_time_not_exposed_in_panel | tier tạm từ posts_per_day"
+  - key: "woonruimte-amsterdam-953810231378327"
+    name: "Woonruimte Amsterdam"
+    url: "https://www.facebook.com/groups/953810231378327/"
+    city: "Amsterdam"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 16000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren]"
+  - key: "woonruimte-gezocht-aangeboden-in-amsterdam-1682710148608055"
+    name: "Woonruimte Gezocht/Aangeboden in Amsterdam."
+    url: "https://www.facebook.com/groups/1682710148608055/"
+    city: "Amsterdam"
+    tier: null
+    joined: true
+    notif_all_posts: false
+    member_count: 20500
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "joined_confirmed; activity_visible; latest_visible_comment_under_1h"
+  - key: "woonruimtes-in-amsterdam-aanbieden-zoeken-woonruimtesinamsterdam"
+    name: "Woonruimtes in Amsterdam Aanbieden & Zoeken"
+    url: "https://www.facebook.com/groups/woonruimtesinamsterdam/"
+    city: "Amsterdam"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 15200
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "join_request_pending; no_membership_form_exposed; activity_today=1; activity_last_month=5 | tier tạm từ posts_per_day"
+  - key: "zoekt-kamer-in-amsterdam-community-zoektkamerinamsterdam"
+    name: "Zoekt kamer in Amsterdam Community"
+    url: "https://www.facebook.com/groups/zoektkamerinamsterdam/"
+    city: "Amsterdam"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: null
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "blocked_or_unavailable_in_facebook_panel; content_not_available"
+  - key: "expats-in-the-netherlands-expatsinthenetherlands"
+    name: "Expats in the Netherlands"
+    url: "https://www.facebook.com/groups/expatsinthenetherlands/"
+    city: "Netherlands"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: null
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "blocked_or_unavailable_in_facebook_panel; content_not_available"
+  - key: "find-housing-for-rent-in-the-netherlands-1466040180386708"
+    name: "Find housing for rent in the Netherlands"
+    url: "https://www.facebook.com/groups/1466040180386708/"
+    city: "Netherlands"
+    tier: 3
+    joined: true
+    notif_all_posts: false
+    member_count: 58400
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "joined_confirmed; external_housingtarget_registration_not_performed; activity_visible | tier tạm từ posts_per_day"
+  - key: "huis-huren-met-spoed-141378214420723"
+    name: "huis huren met spoed"
+    url: "https://www.facebook.com/groups/141378214420723/"
+    city: "Netherlands"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 37000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [studentenkamer Nederland huren]"
+  - key: "internationals-in-the-netherlands-internationalsinthenetherlands"
+    name: "Internationals in the Netherlands"
+    url: "https://www.facebook.com/groups/internationalsinthenetherlands/"
+    city: "Netherlands"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: null
+    offering_7d: 0
+    allows_sublet: unknown
+    allows_agencies: unknown
+    notes: "blocked_or_unavailable_in_facebook_panel; content_not_available"
+  - key: "kamers-gezocht-aangeboden-405276586256037"
+    name: "Kamers Gezocht/Aangeboden"
+    url: "https://www.facebook.com/groups/405276586256037/"
+    city: "Netherlands"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 91000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [kamer gezocht aangeboden Nederland studenten]"
+  - key: "kamers-appartementen-huurwoningen-nl-230495416106820"
+    name: "Kamers, appartementen en huurwoningen NL"
+    url: "https://www.facebook.com/groups/230495416106820/"
+    city: "Netherlands"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 7100
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [Amsterdam studentenkamers kamers huren]"
+  - key: "met-spoed-woning-gezocht-1863269890852154"
+    name: "Met spoed woning gezocht!"
+    url: "https://www.facebook.com/groups/1863269890852154/"
+    city: "Netherlands"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 16000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [onderhuur sublet Nederland kamer]"
+  - key: "woning-huren-in-nederland-vraag-aanbod-woninghureninnederland"
+    name: "Woning huren in Nederland (vraag/aanbod)"
+    url: "https://www.facebook.com/groups/woninghureninnederland/"
+    city: "Netherlands"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 50000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [studentenkamer Nederland huren]"
+  - key: "woning-te-huur-te-koop-nederland-1013383935771000"
+    name: "woning te huur/te koop gevraagd en aangeboden in Nederland"
+    url: "https://www.facebook.com/groups/1013383935771000/"
+    city: "Netherlands"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 11000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [studentenkamer Nederland huren]"
+  - key: "woonruimte-gezocht-aangeboden-1208974135800086"
+    name: "Woonruimte Gezocht/Aangeboden"
+    url: "https://www.facebook.com/groups/1208974135800086/"
+    city: "Netherlands"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 47000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [kamer gezocht aangeboden Nederland studenten]"
+  - key: "kamers-gezocht-aangeboden-utrecht-244190669097392"
+    name: "Kamers Gezocht/Aangeboden Utrecht"
+    url: "https://www.facebook.com/groups/244190669097392/"
+    city: "Utrecht"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 32000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [kamer gezocht aangeboden Nederland studenten]"
+  - key: "utrecht-housing-rooms-apartments-expats-students-1652857865996905"
+    name: "Utrecht Housing, Rooms & Apartments | Expats & Students"
+    url: "https://www.facebook.com/groups/1652857865996905/"
+    city: "Utrecht"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 1700
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [student housing Netherlands Amsterdam]"
+  - key: "woning-huren-in-utrecht-vraag-aanbod-woninghureninutrecht"
+    name: "Woning huren in Utrecht (vraag/aanbod)"
+    url: "https://www.facebook.com/groups/woninghureninutrecht/"
+    city: "Utrecht"
+    tier: null
+    joined: false
+    notif_all_posts: false
+    member_count: 85000
+    offering_7d: 0
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: "discovered 2026-09-15 via Facebook group search [studentenkamer Nederland huren]"
 
 keywords:
   offering: [sublet, subletting, "sub-let", onderhuur, onderverhuur, "available from", "my room", "taking over", "lease takeover", "tijdelijk", "temporary"]

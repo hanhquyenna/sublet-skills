@@ -3,6 +3,14 @@ timezone: Europe/Amsterdam
 language_out: en          # en | nl — ngôn ngữ template gửi ra ngoài
 language_agent: vi        # ngôn ngữ agent nói với bạn
 
+models:
+  # Advisory routing: chỉ áp dụng nếu runtime cho phép chọn model.
+  intent_analyze: gpt-5.6-luna
+  sublet_backfill: gpt-5.6-luna
+  draft: gpt-6-astra
+  inbox_triage: gpt-6-astra
+  partner_voice: gpt-6-astra
+
 hours:
   start: "08:00"
   end: "23:00"

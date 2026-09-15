@@ -1,11 +1,15 @@
 ---
 name: sublet-backfill
-description: Đọc lịch sử 60–90 ngày của MỘT group (1 lần duy nhất, chậm, human pace, ≤25 page load/ngày) để có corpus vài trăm post trước khi phân tích edge case. Không phải scan định kỳ. Dùng với /sublet-backfill <group_key> [days].
+description: Đọc lịch sử 60–90 ngày của MỘT group (1 lần duy nhất, chậm, human pace, ≤25 page load/ngày) để có corpus vài trăm post trước khi phân tích edge case. Không phải scan định kỳ. Dùng với /sublet-backfill [group_key] [days].
 ---
 
 # sublet-backfill
 
 Mục đích: có dữ liệu thật để `intent-analyze` chạy trên vài trăm post và bạn thấy edge case **trước** khi gửi DM đầu tiên. Chạy 1 lần/group, không lặp.
+
+## Model routing
+
+Đọc `models.sublet_backfill` từ `data/config.yaml`. Nếu runtime cho phép chọn model, dùng model nhỏ/rẻ nhất được cấu hình cho capture lịch sử và phần phân tích; nếu không, giữ model runtime hiện tại. Không dùng routing này cho draft hoặc giao tiếp đối tác.
 
 ## Điều kiện
 - `sublet_ops_state.chrome_fb_login = yes`; bạn đã là member của group.
