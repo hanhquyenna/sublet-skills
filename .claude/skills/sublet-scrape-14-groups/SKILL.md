@@ -26,8 +26,10 @@ khác.
 
 ## Quyền và browser hard rule
 
-- Chỉ đọc Facebook qua ChatGPT/Codex in-app browser panel trong session người
-  dùng đã login thủ công.
+- Chỉ đọc Facebook qua browser integration có UI của agent trong session người
+  dùng đã login thủ công. Claude Code dùng Claude in Chrome; Codex dùng
+  in-app browser panel; agent khác dùng browser adapter tương đương được host
+  cung cấp.
 - Không dùng script scraper, HTTP/API, Selenium, headless browser, cookie,
   browser session khác hoặc raw page dump để đọc Facebook.
 - Không join, submit membership form, bật notification, post, comment, like,
@@ -76,10 +78,22 @@ Trước khi mở browser cho `current_group`, kiểm tra DB:
    cấu trúc DOM/a11y đang hiển thị trong panel để tách từng card và lấy poster,
    timestamp, text, permalink trước khi chuyển text sang bất kỳ bước xử lý
    nào; không dùng LLM để phát hiện ranh giới card và không đọc raw page dump.
-3. Mỗi post chỉ được insert khi group và permalink đã xác minh. Chuẩn hóa URL
-   bằng cách bỏ query/hash; kiểm tra `source_url` và raw text hash trước insert.
-   URL đã có thì không tạo listing mới. Lưu `post_id` chỉ khi parse được từ
-   permalink đã verify; không suy ra ID từ media URL hay tracking parameter.
+3. Mỗi post chỉ được insert khi group và link evidence của Facebook đã xác
+   minh (direct permalink, comment-parent permalink, hoặc share URL lấy bằng
+   “Chia sẻ → Sao chép liên kết”). Chuẩn hóa URL bằng cách bỏ query/hash; kiểm
+   tra `source_url` và raw text hash trước insert. URL đã có thì không tạo
+   listing mới. Lưu `post_id` chỉ khi parse được từ permalink đã verify; không
+   suy ra ID từ media URL hay tracking parameter.
+   Nếu card không expose permalink trực tiếp, dùng đúng post card's **Chia sẻ
+   → Sao chép liên kết** trong panel. URL Facebook trả về là evidence hợp lệ
+   cho card đó: ưu tiên mở/resolve thành `/groups/<group>/permalink/<id>/`;
+   nếu page-load budget không cho phép resolve, lưu nguyên
+   `https://www.facebook.com/share/p/<token>/` làm `source_url`, ghi
+   `link_resolution_method='facebook_copy_link'`, và để `post_id=null` nếu
+   token không chứa ID. Một comment permalink của Facebook có path chứa rõ
+   `/posts/<id>/` cũng được chuẩn hóa về parent post URL và ghi
+   `link_resolution_method='comment_permalink'`; không tự tạo URL từ profile
+   commenter hoặc media/photo ID.
 4. Lưu `sublet_listings`:
    `source='fb_feed'`, `group_key`, `source_url`, `poster_name`, full
    `raw_text`, `posted_at` chỉ khi absolute timestamp hiển thị rõ, `seen_at`,
@@ -96,6 +110,32 @@ Trước khi mở browser cho `current_group`, kiểm tra DB:
 6. Sau **từng batch**, ghi listing/event + run cursor/progress + metric group.
    Không chờ hết 14 group mới update DB.
 
+### Default feed-first hybrid capture
+
+Đây là cách chạy mặc định để giữ cùng raw contract nhưng giảm page navigation:
+
+1. **Feed pass:** sau mỗi chunk scroll, dùng DOM/a11y trong panel để enumerate
+   từng card và lấy core fields (`post_id`/permalink nếu có, poster, timestamp,
+   text, media metadata và counters). Dedupe theo permalink/text hash ngay tại
+   batch; không mở detail cho mọi post.
+2. **Detail gate:** chỉ mở permalink riêng cho card thiếu permalink cần verify,
+   text còn collapsed, comment/reply cần đọc, hoặc metadata quan trọng chỉ
+   hiện ở detail. Giữ nguyên các giá trị feed đã có và merge các field detail
+   bổ sung; `null` từ detail không được xoá evidence feed.
+3. **Source precedence:** khi cùng field có hai giá trị, ưu tiên
+   `detail_dom_a11y` > `feed_dom_a11y` > `screenshot_fallback`. Ghi các nguồn
+   đã dùng vào `capture_methods`; không claim output giống detail-first nếu
+   detail gate chưa được thoả.
+4. **Screenshot fallback:** chỉ chụp viewport hiện tại khi AX không đọc được
+   visual text. Long screenshot/extension không phải nguồn chính: Facebook có
+   thể virtualize card ngoài viewport, OCR có thể sai text/URL/timestamp. Ảnh
+   không bao giờ đủ để verify group hoặc permalink; nếu chỉ có screenshot thì
+   giữ card partial/unresolved.
+5. **Acceptance:** output được coi là cùng contract khi field union sau merge
+   có đủ schema v2, mọi field không thấy có `missing_fields`, và comment có
+   parent-post URL hợp lệ. Chỉ detail audit từng post mới cho coverage tương
+   đương detail-first; hybrid không được quảng cáo là byte-identical.
+
 ### Raw context contract v2
 
 Mỗi `context_captured` payload phải có đủ key, kể cả khi không thấy giá trị:
@@ -106,14 +146,16 @@ Mỗi `context_captured` payload phải có đủ key, kể cả khi không th�
   "capture_quality": "complete",
   "scan_run_id": 7,
   "page_load": 1,
-  "source_surface": "codex_in_app_browser",
+  "source_surface": "user_browser_panel",
   "capture_now": "2026-09-15T23:00:00+02:00",
+  "capture_methods": ["feed_dom_a11y"],
   "group": {
     "key": "amsterdam-housing-apartments-rooms-287563233830552",
     "name": "Amsterdam Housing, Apartments & Rooms",
     "url": "https://www.facebook.com/groups/287563233830552/"
   },
   "post_id": "1126264226627111",
+  "link_resolution_method": "direct_permalink",
   "post_title": null,
   "post_text": "...",
   "language_label": null,
@@ -137,6 +179,7 @@ Mỗi `context_captured` payload phải có đủ key, kể cả khi không th�
   "share_count": null,
   "media": [],
   "comments": [],
+  "comments_captured_count": 0,
   "comment_capture_status": "not_loaded",
   "poster_public_activity": [],
   "commenter_public_activity": [],
@@ -159,6 +202,10 @@ value is different from a value of zero or an empty list:
 
 - identity: group key/name/URL, post ID, canonical post permalink, poster
   display name and public profile URL;
+- link evidence: direct permalink nếu Facebook expose; comment permalink có
+  parent path `/posts/<id>/`; hoặc Facebook share URL được tạo bởi thao tác
+  **Sao chép liên kết** và method `facebook_copy_link`; không suy luận post ID
+  từ share token.
 - content: post title, full expanded text, language as shown (do not infer a
   language), visibility/public label, edited/shared/repost label;
 - time: `capture_now`, original absolute timestamp if exposed, original
@@ -179,6 +226,13 @@ read-only panel action, up to 100 comments per post. Set
 exhausted; use `not_loaded`, `partially_loaded`, or `capped_100` otherwise.
 Never use `comments=[]` to mean “there are no comments” when the thread was not
 loaded. Do not capture the comment composer, private replies, or hidden data.
+
+Integrity invariant: for every comment, strip query/hash from `comment_url` and
+verify that its parent `/posts/<post_id>` matches the captured `post_url`.
+Also verify `comment_id` is present when Facebook exposes it. If the parent
+does not match, do not attach the comment to that listing: keep it in a
+quarantine/mapping-review record until the parent post is verified. A comment
+text or commenter name alone is never enough to assign it to a post.
 
 `capture_quality='complete'` means the post text was fully expanded and the
 visible metadata/thread were exhausted or explicitly recorded as unavailable;
@@ -205,8 +259,12 @@ does not claim a new browser capture.
 
 ## Completion và chống báo sai
 
-- Card không có permalink xác minh là `unresolved_cards`; không insert listing,
-  không đoán URL và không tính vào verified total.
+- Card không có permalink trực tiếp nhưng đã lấy được Facebook share URL bằng
+  **Chia sẻ → Sao chép liên kết**, hoặc có comment permalink với parent path
+  `/posts/<id>/`, là đã có link evidence và được tính vào verified total; vẫn
+  ghi `post_id=null` nếu share token chưa resolve được. Chỉ card không có
+  direct/comment permalink **và** không có share URL evidence mới là
+  `unresolved_cards`; không đoán URL từ media/photo ID.
 - Nhãn “2 tuần”, `posts_seen`, hoặc việc hết time-box **không** chứng minh đã
   capture đủ 14 ngày.
 - Chỉ set `sublet_group_metrics.posts_14d_count`,

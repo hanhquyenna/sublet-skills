@@ -5,7 +5,7 @@ description: "Khôi phục và duy trì context vận hành của dự án suble
 
 # information — context vận hành sublet-skills
 
-Skill này là bản đồ context, không thay thế luật cứng hay logic chi tiết. Khi có mâu thuẫn, đọc theo thứ tự: `CLAUDE.md` → `AGENTS.md` → `PLAN.md` → tài liệu/skill chuyên môn liên quan. Không ghi secret vào repo.
+Skill này là bản đồ context, không thay thế luật cứng hay logic chi tiết. Khi có mâu thuẫn, đọc theo thứ tự: `CLAUDE.md` → hướng dẫn host-specific (ví dụ `AGENTS.md` cho Codex) → `PLAN.md` → tài liệu/skill chuyên môn liên quan. Không ghi secret vào repo.
 
 ## Khi dùng
 
@@ -39,13 +39,13 @@ Snapshot này được ghi ngày **2026-09-16**, sau commit `c0c1a2a` và lần 
 | Mục | Vị trí | Vai trò |
 |---|---|---|
 | Luật cứng | `CLAUDE.md` | Cấm agent post/comment/like/DM/join; giới hạn Facebook và dừng khi checkpoint |
-| Luật Codex | `AGENTS.md` | Browser panel duy nhất, DB và runner cho Codex |
+| Luật host-specific | `CLAUDE.md`, `AGENTS.md` | Luật cứng chung và hướng dẫn adapter/runner theo agent |
 | Nguồn sự thật | `PLAN.md` | Pipeline, schema logic, state machine, cron và quy trình sửa rule |
 | Bàn giao | `HANDOFF.md` | Prompt tiếp quản và checklist cho agent mới |
 | Hướng dẫn | `README.md` | Setup, daily loop, Phase 0 |
 | Intent | `docs/intent-logic.md` | `kind`, `subtype`, `poster_type`, constraints, scam, confidence, deal score và test cases |
-| Skill dùng chung | `.claude/skills/<name>/SKILL.md` | Skill gốc cho Claude/Codex |
-| Symlink Codex | `.agents/skills` | Symlink tới `.claude/skills`; không tạo bản copy thứ hai |
+| Skill dùng chung | `.claude/skills/<name>/SKILL.md` | Skill gốc dùng được cho Claude Code, Codex và agent tương thích |
+| Symlink Codex | `.agents/skills` | Symlink tới `.claude/skills`; host khác dùng source skill chung |
 | Database schema | `db/schema.sql` | 11 bảng `sublet_*`, RLS bật |
 | Script | `scripts/` | `db.py`, `match.py`, `gmail_pull.py`, `report.py` |
 | Template | `templates/` | DM offer, seeker push, viewing confirm, follow-up, FAQ EN/NL |
@@ -55,18 +55,19 @@ Snapshot này được ghi ngày **2026-09-16**, sau commit `c0c1a2a` và lần 
 ## Onboarding contract cho agent
 
 `information` là context map, không phải giấy phép vượt luật. Agent mới phải
-đọc theo thứ tự: `information` → `CLAUDE.md` → `AGENTS.md` → `PLAN.md` → skill
-chuyên môn cần chạy. Nếu snapshot mâu thuẫn runtime thì kiểm tra trực tiếp DB,
-filesystem và browser rồi cập nhật snapshot; nếu mâu thuẫn `CLAUDE.md` thì
-`CLAUDE.md` thắng.
+đọc theo thứ tự: `information` → `CLAUDE.md` → hướng dẫn host-specific (ví dụ
+`AGENTS.md` cho Codex) → `PLAN.md` → skill chuyên môn cần chạy. Nếu snapshot
+mâu thuẫn runtime thì kiểm tra trực tiếp DB, filesystem và browser rồi cập nhật
+snapshot; nếu mâu thuẫn `CLAUDE.md` thì `CLAUDE.md` thắng.
 
 ### Quyền và giới hạn
 
 - Agent được đọc/sửa file trong repo, chạy validator, đọc/ghi Supabase qua
   `scripts/db.py`, và commit/push khi người vận hành yêu cầu.
 - Quyền filesystem/repo không có nghĩa là được thao tác Facebook. Facebook chỉ
-  được đọc qua ChatGPT/Codex in-app browser panel trong session người dùng đã
-  login thủ công.
+  được đọc qua browser integration có UI của agent trong session người dùng đã
+  login thủ công; Claude Code dùng Claude in Chrome, Codex dùng in-app panel,
+  agent khác dùng adapter tương đương của host.
 - Không join group, submit form, bật notification, post, comment, like, DM,
   send, donate, đọc DM/private content, friend list hoặc album riêng tư.
 - Khi gặp login/checkpoint/captcha/“unusual activity”, dừng ngay, ghi stop theo
@@ -86,7 +87,8 @@ Không coi các skill sublet cũ đã xóa là dependency. Nếu cần phân tí
 đó là quyết định mở rộng mới, không tự khôi phục skill cũ.
 
 Skill source duy nhất là `/Users/ad/sublet-skills/.claude/skills/<name>/SKILL.md`.
-`.agents/skills` chỉ là symlink dùng cho Codex; không tạo bản copy thứ hai.
+`.agents/skills` chỉ là symlink cho Codex; không tạo bản copy thứ hai ở host
+khác.
 Kiểm tra bằng:
 
 ```sh
@@ -152,7 +154,7 @@ Project canonical hiện tại là **Lamy**, ref `cteunhuxrghpozwbnehh`, URL `ht
 
 - Secret nằm ngoài repo trong `~/.sublet-skills.env`, mode `600`, gồm `SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY` (có thể có biến legacy khác). Không in giá trị, không commit, không yêu cầu Kien paste lại vào chat.
 - `scripts/db.py` tự đọc file env này và ưu tiên REST RPC `sublet_exec`; workflow hiện tại **không cần** `SUPABASE_DB_URL`, psycopg2 hay source file.
-- Mọi SQL từ skill Codex chạy bằng:
+- Mọi SQL từ skill chạy bằng:
 
   ```sh
   python3 scripts/db.py "select count(*) from sublet_groups"
@@ -160,18 +162,28 @@ Project canonical hiện tại là **Lamy**, ref `cteunhuxrghpozwbnehh`, URL `ht
 
   SQL dài có thể truyền qua stdin: `echo "..." | python3 scripts/db.py -`.
 - RPC `public.sublet_exec(q text)` đã tồn tại trên project, chạy security definer với `search_path=public`, chỉ cấp execute cho `service_role`. RPC này là runtime setup từ trước và không nằm trong `db/schema.sql`; nếu DB mới thiếu RPC, dừng và xử lý setup rõ ràng, không tự đổi project.
-- Supabase MCP đã được cấu hình trong `/Users/ad/.codex/config.toml` với database feature và project ref trên. MCP là kênh phụ để inspect/SQL khi khả dụng; `scripts/db.py` là đường chạy chuẩn, dễ kiểm tra và được các skill nhắc tới.
+- Codex có thể có Supabase MCP trong `/Users/ad/.codex/config.toml`; agent
+  khác có thể dùng connector/MCP riêng nếu host cung cấp. Đây chỉ là kênh phụ
+  để inspect/SQL khi khả dụng; `scripts/db.py` đọc `~/.sublet-skills.env` và là
+  đường chạy chuẩn, không phụ thuộc agent.
 - Schema có các bảng chính: `sublet_groups`, `sublet_listings`, `sublet_seekers`, `sublet_matches`, `sublet_viewings`, `sublet_fees`, `sublet_messages`, `sublet_events`, `sublet_scan_runs`, `sublet_ops_state`, `sublet_inbox`.
 - Không sửa schema chỉ để thêm status Facebook. `sublet_groups` dùng `joined` boolean, `tier`, `is_private`, `member_count`, `notif_all_posts`, `offering_7d` và notes; trạng thái pending cần ghi rõ theo schema/skill trước khi mở rộng.
 
 ## Browser và quyền thao tác
 
-Mọi thao tác Facebook (search, đọc, verify) **chỉ dùng ChatGPT browser panel / Codex In-app Browser session đang mở cho người dùng**. Đây là hard rule và supersede mọi hướng dẫn Chrome DevTools/port `9222` cũ trong tài liệu khác.
+Mọi thao tác Facebook (search, đọc, verify) **chỉ dùng browser integration có UI
+của agent, trong session browser thật đã được người dùng login thủ công**. Claude
+Code dùng Claude in Chrome; Codex dùng in-app browser panel; agent khác dùng
+adapter tương đương được host cung cấp. Không dùng CLI/script/web-fetch/API,
+headless browser, cookie ở nơi khác, hay browser session khác. Rule này
+supersede mọi hướng dẫn Chrome DevTools/port `9222` cũ trong tài liệu khác.
 
 
 DB/SQL là luồng riêng: `scripts/db.py` vẫn là kênh chuẩn để đọc/ghi Supabase, nhưng không được dùng để điều khiển Facebook.
 
-Login Facebook là việc Kien làm tay trong ChatGPT browser panel. Agent chỉ đọc feed/search/notifications; không bấm Join, không bật notification, không post/comment/like/DM.
+Login Facebook là việc Kien làm tay trong browser UI tương ứng. Agent chỉ đọc
+feed/search/notifications; không bấm Join, không bật notification,
+không post/comment/like/DM.
 
 Nếu thấy login, checkpoint, captcha hoặc “unusual activity”: dừng, ghi stop nếu workflow yêu cầu, không retry 24h.
 
