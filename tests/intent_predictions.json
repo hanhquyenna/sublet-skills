@@ -1,0 +1,1802 @@
+[
+ {
+  "id": "c001",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "roommate",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "high",
+   "confidence": "medium",
+   "rent_eur": 500,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§0 object=roommate → offering; §4 no end date → roommate"
+ },
+ {
+  "id": "c002",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "takeover",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1050,
+   "available_from": "2026-12-01",
+   "available_to": null,
+   "area": "Nieuw-West",
+   "registration_allowed": "yes",
+   "create_seeker": false
+  },
+  "rule": "§4 rule 4 'overname huurcontract' → takeover"
+ },
+ {
+  "id": "c003",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 general question about price → other"
+ },
+ {
+  "id": "c004",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 agency service ad (company, link, phone), no listing → other"
+ },
+ {
+  "id": "c005",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 registration/gemeente question → other"
+ },
+ {
+  "id": "c006",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 cleaning service → other"
+ },
+ {
+  "id": "c007",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_whole",
+   "poster_type": "individual",
+   "dead": true,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1400,
+   "available_from": "2026-11-01",
+   "available_to": "2027-02-15",
+   "area": "Oost",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 rule1/3 apartment with end date → whole; §6 EDIT dead"
+ },
+ {
+  "id": "c008",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 storage service → other"
+ },
+ {
+  "id": "c009",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 admin/rules → other"
+ },
+ {
+  "id": "c010",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 900,
+   "available_from": "2026-10-15",
+   "available_to": "2027-01-28",
+   "area": "De Pijp",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 rule1/3 mijn kamer + end date, huisgenoten → room"
+ },
+ {
+  "id": "c011",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_whole",
+   "poster_type": "proxy",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1100,
+   "available_from": "2026-12-01",
+   "available_to": "2027-04-01",
+   "area": "Noord",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§6 'my friend is subletting' → proxy; §4 entire studio+dates → whole"
+ },
+ {
+  "id": "c012",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 850,
+   "available_from": "2026-10-01",
+   "available_to": "2027-01-15",
+   "area": "Oost",
+   "registration_allowed": "no",
+   "create_seeker": false
+  },
+  "rule": "§12 example 1: my room + end date → sublet_room"
+ },
+ {
+  "id": "c013",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 900,
+   "available_from": "2026-11-01",
+   "available_to": null,
+   "area": "Oost",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 only move_in, 'no end date' → seek_room"
+ },
+ {
+  "id": "c014",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_group",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 2200,
+   "available_from": "2027-01-15",
+   "available_to": null,
+   "area": "Amstelveen",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 family → seek_group"
+ },
+ {
+  "id": "c015",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "takeover",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1200,
+   "available_from": "2026-11-01",
+   "available_to": null,
+   "area": "De Pijp",
+   "registration_allowed": "yes",
+   "create_seeker": false
+  },
+  "rule": "§12 example 2: take over + contract → takeover"
+ },
+ {
+  "id": "c016",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": 800,
+   "available_from": "2026-10-01",
+   "available_to": "2027-01-31",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 move_in+move_out → seek_sublet; §10 <15 words → low"
+ },
+ {
+  "id": "c017",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "takeover",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1300,
+   "available_from": "2027-01-01",
+   "available_to": null,
+   "area": "Amstelveen",
+   "registration_allowed": "yes",
+   "create_seeker": false
+  },
+  "rule": "§4 rule 4 'taking over my lease', huurcontract → takeover"
+ },
+ {
+  "id": "c018",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "long_term",
+   "poster_type": "agency",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1700,
+   "available_from": null,
+   "available_to": null,
+   "area": "Diemen",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§12 example 4 agency several listings → long_term agency (conflicts §3)"
+ },
+ {
+  "id": "c019",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_group",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1400,
+   "available_from": "2026-10-15",
+   "available_to": null,
+   "area": "Noord",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 couple → seek_group"
+ },
+ {
+  "id": "c020",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": true,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 'found a place, thanks everyone' → other; §6 found → dead"
+ },
+ {
+  "id": "c021",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1400,
+   "available_from": "2026-10-15",
+   "available_to": "2027-01-28",
+   "area": "Oost",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 move_in+move_out → seek_sublet"
+ },
+ {
+  "id": "c022",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 780,
+   "available_from": "2027-02-01",
+   "available_to": "2027-06-30",
+   "area": "Westerpark",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§0 'someone to take my room' → offering; §4 rule1 room"
+ },
+ {
+  "id": "c023",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "proxy",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 850,
+   "available_from": "2027-02-01",
+   "available_to": "2027-06-30",
+   "area": "Zuid",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§0 sister needs room → seeking; §6 on behalf → proxy"
+ },
+ {
+  "id": "c024",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "short_stay",
+   "poster_type": "proxy",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": null,
+   "available_from": "2026-09-19",
+   "available_to": "2026-09-20",
+   "area": "Oost",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 rule2 per-night → short_stay; §6 'asked me to post' proxy"
+ },
+ {
+  "id": "c025",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_whole",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1500,
+   "available_from": "2026-10-10",
+   "available_to": "2026-12-20",
+   "area": "Westerpark",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§12 example 5: whole apartment while away → sublet_whole"
+ },
+ {
+  "id": "c026",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 950,
+   "available_from": "2026-12-01",
+   "available_to": "2027-03-01",
+   "area": "Oud-West",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 move_in+move_out → seek_sublet"
+ },
+ {
+  "id": "c027",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": "2026-10-01",
+   "available_to": "2026-12-31",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 rule1 room + end date → sublet_room; §10 <15 words"
+ },
+ {
+  "id": "c028",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "roommate",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "mid",
+   "confidence": "low",
+   "rent_eur": 450,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 'roommate wanted', no end date → roommate; §10 <15 words"
+ },
+ {
+  "id": "c029",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_whole",
+   "poster_type": "agency",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1950,
+   "available_from": "2026-10-01",
+   "available_to": "2026-12-31",
+   "area": "De Pijp",
+   "registration_allowed": "yes",
+   "create_seeker": false
+  },
+  "rule": "§4 rule1 has end date → sublet_whole; §6 agency (site, phone, listings)"
+ },
+ {
+  "id": "c030",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 selling goods → other"
+ },
+ {
+  "id": "c031",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_room",
+   "poster_type": "individual",
+   "dead": true,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 800,
+   "available_from": "2026-09-15",
+   "available_to": null,
+   "area": "Oost",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§5 only move_in (ASAP) → seek_room; §6 FOUND → dead"
+ },
+ {
+  "id": "c032",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1000,
+   "available_from": "2027-01-28",
+   "available_to": null,
+   "area": "Zuid",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 only move_in → seek_room; §11 Rivierenbuurt → Zuid"
+ },
+ {
+  "id": "c033",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "long_term",
+   "poster_type": "agency",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1850,
+   "available_from": null,
+   "available_to": null,
+   "area": "Zuid",
+   "registration_allowed": "yes",
+   "create_seeker": false
+  },
+  "rule": "§12 example 4: 'we have several' + company → long_term agency"
+ },
+ {
+  "id": "c034",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "high",
+   "confidence": "medium",
+   "rent_eur": null,
+   "available_from": "2026-10-01",
+   "available_to": "2026-12-20",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§5 both dates → seek_sublet; §8 WU+upfront+email ≥60 → no seeker"
+ },
+ {
+  "id": "c035",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 event → other"
+ },
+ {
+  "id": "c036",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "high",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 spam/paid list service → other; §8 fee+WhatsApp only"
+ },
+ {
+  "id": "c037",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 900,
+   "available_from": "2026-12-01",
+   "available_to": null,
+   "area": "Oud-West",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 move_in, indefinite → seek_room"
+ },
+ {
+  "id": "c038",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": 900,
+   "available_from": "2026-10-01",
+   "available_to": null,
+   "area": "Centrum",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "'Message me for more' reads offering; subtype unclear, default room; §10 low"
+ },
+ {
+  "id": "c039",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": null,
+   "available_from": "2026-11-01",
+   "available_to": "2027-01-31",
+   "area": "De Pijp",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 move_in+move_out → seek_sublet"
+ },
+ {
+  "id": "c040",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "takeover",
+   "poster_type": "individual",
+   "dead": true,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1150,
+   "available_from": "2026-10-15",
+   "available_to": null,
+   "area": "Oost",
+   "registration_allowed": "yes",
+   "create_seeker": false
+  },
+  "rule": "§4 rule 4 contract takeover; §6 EDIT TAKEN → dead"
+ },
+ {
+  "id": "c041",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_whole",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "mid",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": "2026-11-01",
+   "available_to": "2027-01-31",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 whole flat + end date → sublet_whole; §8 upfront; §10 low"
+ },
+ {
+  "id": "c042",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "high",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 spam (crypto scheme) → other"
+ },
+ {
+  "id": "c043",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "roommate",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 890,
+   "available_from": "2026-12-01",
+   "available_to": null,
+   "area": "De Pijp",
+   "registration_allowed": "no",
+   "create_seeker": false
+  },
+  "rule": "§4 'looking for a flatmate', indefinite → roommate"
+ },
+ {
+  "id": "c044",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 750,
+   "available_from": "2026-12-01",
+   "available_to": "2027-03-01",
+   "area": "Noord",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 move_in+move_out → seek_sublet"
+ },
+ {
+  "id": "c045",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "roommate",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 650,
+   "available_from": "2026-11-01",
+   "available_to": null,
+   "area": "Bos en Lommer",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 'huisgenoot gezocht' no end date → roommate"
+ },
+ {
+  "id": "c046",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "individual",
+   "dead": true,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 800,
+   "available_from": "2026-10-01",
+   "available_to": "2027-02-01",
+   "area": "Oost",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 kamer + end date → sublet_room; §6 VERHUURD → dead"
+ },
+ {
+  "id": "c047",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": null,
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§5 'không rõ' no dates no budget → kind=seeking only, no seeker"
+ },
+ {
+  "id": "c048",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 750,
+   "available_from": "2026-11-01",
+   "available_to": "2027-03-01",
+   "area": "Oud-West",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 kamer + end date + roommate → sublet_room"
+ },
+ {
+  "id": "c049",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1200,
+   "available_from": "2027-01-15",
+   "available_to": "2027-04-15",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 move_in+move_out → seek_sublet"
+ },
+ {
+  "id": "c050",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 deposit law question → other"
+ },
+ {
+  "id": "c051",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 900,
+   "available_from": "2026-10-01",
+   "available_to": "2026-12-31",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§12 example 3 → seek_sublet"
+ },
+ {
+  "id": "c052",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 850,
+   "available_from": "2026-10-01",
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 move_in, onbepaalde tijd → seek_room"
+ },
+ {
+  "id": "c053",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": "2026-09-15",
+   "available_to": "2026-12-31",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 ASAP + till Dec → seek_sublet; §10 <15 words → low"
+ },
+ {
+  "id": "c054",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_whole",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "mid",
+   "confidence": "high",
+   "rent_eur": 1250,
+   "available_from": "2026-09-15",
+   "available_to": "2027-03-31",
+   "area": "West",
+   "registration_allowed": "yes",
+   "create_seeker": false
+  },
+  "rule": "§4 apartment + end date → sublet_whole; §8 deposit+abroad −reg = 55"
+ },
+ {
+  "id": "c055",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 general question about subletting rules → other"
+ },
+ {
+  "id": "c056",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "short_stay",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "high",
+   "confidence": "high",
+   "rent_eur": null,
+   "available_from": "2026-10-01",
+   "available_to": "2026-10-14",
+   "area": "Centrum",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 rule2 per-night, 14 nights → short_stay; §8 pay-to-hold"
+ },
+ {
+  "id": "c057",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "swap",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 750,
+   "available_from": null,
+   "available_to": null,
+   "area": "Zuidoost",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 'woningruil' → swap"
+ },
+ {
+  "id": "c058",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 950,
+   "available_from": "2026-10-15",
+   "available_to": null,
+   "area": "Westerpark",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§0 'anyone have a room' → seeking; §5 move_in, long-term → seek_room"
+ },
+ {
+  "id": "c059",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_group",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1800,
+   "available_from": "2027-01-01",
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 stel (couple) → seek_group"
+ },
+ {
+  "id": "c060",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "mid",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 moving service → other; §8 WhatsApp only + short link"
+ },
+ {
+  "id": "c061",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "long_term",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1450,
+   "available_from": "2026-11-01",
+   "available_to": null,
+   "area": "Nieuw-West",
+   "registration_allowed": "yes",
+   "create_seeker": false
+  },
+  "rule": "§4 minimum 12 months, no end date → long_term; private landlord=individual"
+ },
+ {
+  "id": "c062",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1083,
+   "available_from": "2026-10-20",
+   "available_to": "2026-12-01",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 both dates → seek_sublet; §11 weekly ×4.33"
+ },
+ {
+  "id": "c063",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "swap",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1100,
+   "available_from": null,
+   "available_to": null,
+   "area": "Noord",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 'SWAP/exchange' → swap"
+ },
+ {
+  "id": "c064",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "short_stay",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": null,
+   "available_from": "2026-12-20",
+   "available_to": "2026-12-28",
+   "area": "Westerpark",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 rule 2 per nacht, 9 days → short_stay"
+ },
+ {
+  "id": "c065",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_group",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1700,
+   "available_from": "2026-12-01",
+   "available_to": "2027-03-01",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 2 vrienden → seek_group"
+ },
+ {
+  "id": "c066",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_whole",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "high",
+   "confidence": "high",
+   "rent_eur": 1100,
+   "available_from": null,
+   "available_to": null,
+   "area": "Zuid",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§12 example 9 pattern: entire apartment abroad → sublet_whole; §8 crypto"
+ },
+ {
+  "id": "c067",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 unrelated (stolen bike lights) → other"
+ },
+ {
+  "id": "c068",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "swap",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": "Diemen",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 'ruilen' → swap; §10 <15 words → low"
+ },
+ {
+  "id": "c069",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_whole",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "high",
+   "confidence": "high",
+   "rent_eur": 700,
+   "available_from": null,
+   "available_to": null,
+   "area": "Centrum",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§12 example 9: studio abroad keys after deposit → sublet_whole, scam"
+ },
+ {
+  "id": "c070",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "individual",
+   "dead": true,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 950,
+   "available_from": "2026-10-01",
+   "available_to": "2026-12-31",
+   "area": "Zuid",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 room + end date, flatmates → sublet_room; §6 RENTED dead"
+ },
+ {
+  "id": "c071",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 general question (makelaar tips) → other"
+ },
+ {
+  "id": "c072",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 registration question → other"
+ },
+ {
+  "id": "c073",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 unrelated (huisarts) → other"
+ },
+ {
+  "id": "c074",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_group",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1516,
+   "available_from": "2026-10-01",
+   "available_to": "2026-12-31",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 two colleagues → seek_group; §11 weekly ×4.33"
+ },
+ {
+  "id": "c075",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "takeover",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "high",
+   "confidence": "medium",
+   "rent_eur": 900,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 rule 4 'take over my apartment contract' → takeover; §8 agent+WhatsApp+new"
+ },
+ {
+  "id": "c076",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_whole",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1650,
+   "available_from": "2026-11-01",
+   "available_to": "2027-03-01",
+   "area": "Centrum",
+   "registration_allowed": "yes",
+   "create_seeker": false
+  },
+  "rule": "§4 hele appartement + end date → sublet_whole; §11 Jordaan → Centrum"
+ },
+ {
+  "id": "c077",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_group",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1600,
+   "available_from": "2026-10-01",
+   "available_to": null,
+   "area": "Centrum",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 2 friends → seek_group"
+ },
+ {
+  "id": "c078",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 looking for friends, not housing → other"
+ },
+ {
+  "id": "c079",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 800,
+   "available_from": "2026-10-01",
+   "available_to": "2026-12-31",
+   "area": "Oost",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 move_in+move_out → seek_sublet"
+ },
+ {
+  "id": "c080",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_group",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1500,
+   "available_from": "2026-11-01",
+   "available_to": "2027-03-31",
+   "area": "Oost",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 couple (girlfriend and I) → seek_group"
+ },
+ {
+  "id": "c081",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 agency recruiting landlords, no housing offered → other"
+ },
+ {
+  "id": "c082",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "roommate",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 720,
+   "available_from": "2026-10-01",
+   "available_to": null,
+   "area": "Oost",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 'new flatmate', 'no end date' → roommate"
+ },
+ {
+  "id": "c083",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "mid",
+   "confidence": "high",
+   "rent_eur": 550,
+   "available_from": "2026-11-01",
+   "available_to": "2027-02-28",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 room + end date → sublet_room; §8 <600+generic+WhatsApp"
+ },
+ {
+  "id": "c084",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1000,
+   "available_from": "2026-11-15",
+   "available_to": "2027-02-15",
+   "area": "Noord",
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§0 'anyone renting out their room' → seeking; §5 seek_sublet"
+ },
+ {
+  "id": "c085",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 900,
+   "available_from": "2027-01-01",
+   "available_to": "2027-05-31",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 Jan–May 2027 both dates → seek_sublet"
+ },
+ {
+  "id": "c086",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "high",
+   "confidence": "high",
+   "rent_eur": 400,
+   "available_from": "2027-01-28",
+   "available_to": "2027-05-28",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 'sublet my room' + end date → sublet_room; §8 deposit+abroad+<600"
+ },
+ {
+  "id": "c087",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 953,
+   "available_from": "2026-09-20",
+   "available_to": "2026-12-15",
+   "area": "Indische Buurt",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 my room + end date, shared → sublet_room; §11 weekly ×4.33"
+ },
+ {
+  "id": "c088",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "takeover",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "mid",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 rule4 'take over my room' → takeover; §10 <15 words"
+ },
+ {
+  "id": "c089",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "medium",
+   "rent_eur": 1000,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 long term, budget but no move_in → seek_room (gap in table)"
+ },
+ {
+  "id": "c090",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "high",
+   "confidence": "high",
+   "rent_eur": 450,
+   "available_from": null,
+   "available_to": null,
+   "area": "Centrum",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 room, no dates; §12 example 9 scam pattern → sublet_room"
+ },
+ {
+  "id": "c091",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_group",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§5 couple → seek_group; no dates/budget → no seeker; §10 low"
+ },
+ {
+  "id": "c092",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1000,
+   "available_from": "2026-11-01",
+   "available_to": "2027-02-28",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 move_in+move_out → seek_sublet"
+ },
+ {
+  "id": "c093",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "mid",
+   "confidence": "high",
+   "rent_eur": 550,
+   "available_from": "2026-10-15",
+   "available_to": "2026-12-15",
+   "area": "Zuidoost",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 sublet room + end date → sublet_room; §8 <600 + WhatsApp"
+ },
+ {
+  "id": "c094",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_room",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": 700,
+   "available_from": "2026-10-01",
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": true
+  },
+  "rule": "§5 move_in only → seek_room; §10 <15 words → low"
+ },
+ {
+  "id": "c095",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "proxy",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 680,
+   "available_from": "2026-12-01",
+   "available_to": "2027-02-28",
+   "area": "Noord",
+   "registration_allowed": "no",
+   "create_seeker": false
+  },
+  "rule": "§6 'voor een vriendin' → proxy; §4 kamer+end date → sublet_room"
+ },
+ {
+  "id": "c096",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_room",
+   "poster_type": "proxy",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 700,
+   "available_from": "2026-10-01",
+   "available_to": "2027-01-31",
+   "area": "Bos en Lommer",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§12 example 8: posting for a friend, her room → sublet_room proxy"
+ },
+ {
+  "id": "c097",
+  "predicted": {
+   "kind": "other",
+   "subtype": null,
+   "poster_type": null,
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§3 selling goods → other"
+ },
+ {
+  "id": "c098",
+  "predicted": {
+   "kind": "seeking",
+   "subtype": "seek_sublet",
+   "poster_type": "individual",
+   "dead": true,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1100,
+   "available_from": "2026-10-01",
+   "available_to": "2026-12-31",
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§5 both dates → seek_sublet; §6 EDIT found → dead, no seeker"
+ },
+ {
+  "id": "c099",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "sublet_whole",
+   "poster_type": "proxy",
+   "dead": false,
+   "scam_bucket": "low",
+   "confidence": "high",
+   "rent_eur": 1299,
+   "available_from": "2026-10-15",
+   "available_to": "2026-12-01",
+   "area": "Oud-West",
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§6 posting for colleague → proxy; §4 studio+end date → sublet_whole"
+ },
+ {
+  "id": "c100",
+  "predicted": {
+   "kind": "offering",
+   "subtype": "short_stay",
+   "poster_type": "individual",
+   "dead": false,
+   "scam_bucket": "mid",
+   "confidence": "low",
+   "rent_eur": null,
+   "available_from": null,
+   "available_to": null,
+   "area": null,
+   "registration_allowed": "unknown",
+   "create_seeker": false
+  },
+  "rule": "§4 rule2 per-night → short_stay; §8 upfront+short link; §10 low"
+ }
+]

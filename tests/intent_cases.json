@@ -2069,14 +2069,14 @@
       "dead": false,
       "scam_bucket": "low",
       "confidence": "high",
-      "rent_eur": 1300,
+      "rent_eur": 1299,
       "available_from": "2026-10-15",
       "available_to": "2026-12-01",
       "area": "Oud-West",
       "registration_allowed": "unknown",
       "create_seeker": false
     },
-    "why": "'Posting for my colleague' → proxy (§6); studio, no flatmates, end date → sublet_whole; §11 €300/week → 1300/month and 'mid-October' → 15/10; street/floor details → −20 scam."
+    "why": "'Posting for my colleague' → proxy (§6); studio, no flatmates, end date → sublet_whole; §11 €300/week → 1300/month and 'mid-October' → 15/10; street/floor details → −20 scam. (rent: ×4.33 rounded to euro per §11)"
   },
   {
     "id": "c100",

@@ -29,7 +29,11 @@ Mọi thay đổi về cách hiểu một post đều sửa ở đây trước, 
 
 ## 3. OTHER
 
-Agency ad (nhiều listing, "we have", số cố định, tên công ty, link website), dịch vụ (cleaning, moving, storage), câu hỏi chung (registration, gemeente, deposit law), "found a place, thanks everyone", admin/rules, spam, bán đồ, sự kiện, tìm bạn bè không liên quan chỗ ở.
+**Agency**: nếu post là *một chỗ ở cụ thể có thể thuê* (có giá/khu/ngày) → vẫn `offering` (thường `long_term`) với `poster_type='agency'` — để biết thị trường, không DM. Nếu là quảng cáo dịch vụ / "landlords wanted" / "sign up on our site" / danh sách bán → `other`, `poster_type='agency'`.
+
+**Không xác định được có-hay-cần** (fragment: "Amsterdam. October. 900. Centrum. DM me") → `other`, `confidence='low'`, `notes='needs_full_read'`.
+
+Còn lại: dịch vụ (cleaning, moving, storage), câu hỏi chung (registration, gemeente, deposit law), "found a place, thanks everyone", admin/rules, spam, bán đồ, sự kiện, tìm bạn bè không liên quan chỗ ở.
 
 ## 4. OFFERING → `subtype`
 
@@ -56,7 +60,9 @@ Quy tắc quyết:
 | `seek_sublet` | có cả move_in và move_out | có |
 | `seek_room` | chỉ move_in, vô thời hạn | có, move_out=null, flex_days=14 |
 | `seek_group` | couple / 2 friends / family | có, people ≥ 2 |
-| (không rõ) | không có ngày lẫn ngân sách | **không** — chỉ kind=seeking |
+| (không rõ) | không có ngày lẫn ngân sách | **không** tạo seeker — nhưng vẫn gán subtype (`seek_room` mặc định, `seek_group` nếu couple/group) |
+| budget nhưng không có ngày | "budget 900, flexible on dates" | có, move_in=null, flex_days=30 |
+| dead ("EDIT: found") | bất kỳ | **không** tạo seeker |
 
 Không lưu contact từ post. contact_consent=false.
 
@@ -88,12 +94,18 @@ Tăng khi:
 - **Giá quá đẹp so với khu**: room Amsterdam <€600, studio Centrum <€900 (+25)
 - **Chỉ mô tả chung chung**: "beautiful cozy fully furnished modern" mà không có tầng, đường, ga tàu, tên khu (+10)
 - **Dồn sang kênh khác ngay**: "email me at…", "WhatsApp only", "DM for details" mà không có thông tin gì (+15)
-- **Không có ngày** (+10) · **link lạ / rút gọn** (+15) · **wire / crypto / Western Union / gift card** (+40) · post tự nói "new here / new account" (+10)
+- **Không có ngày** (+10) · **link lạ / rút gọn** (+20) · **wire / crypto / Western Union / gift card** (+40) · post tự nói "new here / new account" (+10)
 
 Giảm khi:
 - Chi tiết vụn vặt thật: tên đường, "3rd floor no lift", "tram 3 stop", tên flatmate, "bike storage" (−20)
 - Nhắc thẳng registration / landlord permission / contract (−10)
 - Poster trả lời comment (−10, chỉ khi thấy trong feed)
+
+**Quy tắc gộp:**
+- Chỉ áp dụng đầy đủ cho `offering`. Với `seeking`: chỉ ghi flag (tiền/WU/link), score tối đa 59, **không** chặn tạo seeker. Với `other`: score tối đa 59 (chỉ để bạn biết).
+- Một cơ chế thanh toán chỉ tính một lần: "pay upfront via PayPal/WU/crypto" = tiền-trước-khi-gặp (+40), không cộng thêm +40 cho wire.
+- Có bất kỳ tín hiệu **tiền trước khi gặp** → các điểm giảm (chi tiết thật, nhắc registration) **không áp dụng** (scammer cố tình nhắc registration) và score **tối thiểu 60**.
+- Link lạ / rút gọn: +20 (không phải +15).
 
 ≥60 → nghi ngờ, không match, không DM. 30–59 → DM được nhưng ghi flag cho bạn. <30 → sạch.
 
@@ -108,11 +120,12 @@ Poster hay ghi: female only, no couples, students only, no pets, working profess
 - `high`: có ≥2 trong (rent, available_from, area) + intent rõ.
 - `medium`: 1 trong 3, intent rõ.
 - `low`: 0 trong 3, hoặc post <15 từ, hoặc intent mâu thuẫn → `notes='needs_full_read'` để scan mở permalink (≤2/chu kỳ). Không DM low.
+- **`kind=other`**: đếm 3 trường **không áp dụng**. `high` khi rõ ràng không phải listing (câu hỏi, dịch vụ, cảm ơn, admin); `low` chỉ khi <15 từ hoặc fragment không xác định được. `poster_type=null` cho other (trừ agency).
 
 ## 11. Chuẩn hoá trường
 
-- Ngày: ISO. Thiếu năm → năm gần nhất trong tương lai còn hợp lý (post 15/9 nói "from 1 Oct" → 1/10 năm nay; "from 1 March" → 1/3 năm sau). "mid-October" → 15/10, flex 7. "end of Jan" → 28/1. "ASAP" → hôm nay, flex 14.
-- Giá: số nguyên EUR/tháng. "€250/week" → 1083. "incl." / "all-in" / "inclusief" → bills_included='all'. "excl." → 'none'. "+ €50 bills" → rent ghi số gốc, bills_included='+50'.
+- Ngày: ISO. Thiếu năm → năm gần nhất trong tương lai còn hợp lý, **tính từ ngày post** (post 15/9 nói "from 1 Oct" → 1/10 năm nay; "from 1 March" → 1/3 năm sau). "mid-X" → 15/X, flex 7. "end of X" → **ngày cuối tháng** X. "early X" → 5/X, flex 7. Chỉ tên tháng ("Oct–Jan", "Feb–June") → ngày 1 tháng đầu → ngày cuối tháng cuối. "ASAP / available now / immediately" → ngày post, flex 14. "this weekend" → thứ Bảy gần nhất sau ngày post; "ADE weekend" (tháng 10) → tra lịch, nếu không rõ → null.
+- Giá: số nguyên EUR/tháng = tuần × 4.33, làm tròn đến euro ("€250/week" → 1083; "€300/week" → 1299). Theo đêm → `rent_eur=null` (short_stay). Với `seeking`: `rent_eur` = ngân sách tối đa ("800–950" → 950; "up to 900" → 900). "incl." / "all-in" / "inclusief" → bills_included='all'. "excl." → 'none'. "+ €50 bills" → rent ghi số gốc, bills_included='+50'.
 - Khu: map về danh sách chuẩn (Centrum, West, Oud-West, Zuid, De Pijp, Oost, Noord, Nieuw-West, Zuidoost, Westerpark, Bos en Lommer, Indische Buurt, Amstelveen, Diemen). "near Sloterdijk" → West; "Jordaan" → Centrum; "Rivierenbuurt" → Zuid; "Watergraafsmeer" → Oost. Không map được → null.
 - `room_type`: room / studio / apartment / other. "studio" và "apartment" chỉ khi poster nói vậy.
 - `registration_allowed`: yes chỉ khi nói "registration possible/inschrijving mogelijk"; no khi "no registration"; còn lại unknown.
