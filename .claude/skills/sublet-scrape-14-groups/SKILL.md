@@ -72,14 +72,24 @@ Trước khi mở browser cho `current_group`, kiểm tra DB:
 
 1. Tạo hoặc tiếp tục `sublet_scan_runs(mode='group_page', group_key=<key>)`.
 2. Mở URL group với sort chronological trong panel. Đọc từng card từ mới tới
-   cũ, expand visible collapse khi có thể, scroll theo chunk time-box.
+   cũ, expand visible collapse khi có thể, scroll theo chunk time-box. Dùng
+   cấu trúc DOM/a11y đang hiển thị trong panel để tách từng card và lấy poster,
+   timestamp, text, permalink trước khi chuyển text sang bất kỳ bước xử lý
+   nào; không dùng LLM để phát hiện ranh giới card và không đọc raw page dump.
 3. Mỗi post chỉ được insert khi group và permalink đã xác minh. Chuẩn hóa URL
    bằng cách bỏ query/hash; kiểm tra `source_url` và raw text hash trước insert.
-   URL đã có thì không tạo listing mới.
+   URL đã có thì không tạo listing mới. Lưu `post_id` chỉ khi parse được từ
+   permalink đã verify; không suy ra ID từ media URL hay tracking parameter.
 4. Lưu `sublet_listings`:
    `source='fb_feed'`, `group_key`, `source_url`, `poster_name`, full
    `raw_text`, `posted_at` chỉ khi absolute timestamp hiển thị rõ, `seen_at`,
    `kind=null`. `text_hash` là generated column, không insert thủ công.
+   Nếu Facebook chỉ expose relative label, được phép tính thời điểm ước lượng
+   từ `capture_now` (giờ `Europe/Amsterdam`) nhưng **không** ghi đè vào
+   `posted_at`. Ghi estimate trong `notes` của listing và các key
+   `posted_at_estimated`, `posted_at_estimate_basis`,
+   `posted_at_estimate_uncertainty_hours` trong context payload. Luôn giữ
+   nguyên `timestamp_label` làm evidence gốc.
 5. Lưu một `sublet_events` event `context_captured` với raw context contract
    bên dưới. Nếu listing đã có context event contract v2 hoàn chỉnh, không tạo
    event trùng; chỉ bổ sung khi capture mới có evidence rõ ràng hơn.
@@ -97,7 +107,19 @@ Mỗi `context_captured` payload phải có đủ key, kể cả khi không th�
   "scan_run_id": 7,
   "page_load": 1,
   "source_surface": "codex_in_app_browser",
+  "capture_now": "2026-09-15T23:00:00+02:00",
+  "group": {
+    "key": "amsterdam-housing-apartments-rooms-287563233830552",
+    "name": "Amsterdam Housing, Apartments & Rooms",
+    "url": "https://www.facebook.com/groups/287563233830552/"
+  },
+  "post_id": "1126264226627111",
+  "post_title": null,
   "post_text": "...",
+  "language_label": null,
+  "visibility": "public",
+  "edited_label": null,
+  "shared_post": null,
   "timestamp_label": "2 weeks ago",
   "posted_at_observed": null,
   "poster": {
@@ -106,12 +128,19 @@ Mỗi `context_captured` payload phải có đủ key, kể cả khi không th�
     "visibility": "public"
   },
   "post_url": "https://www.facebook.com/groups/.../posts/.../",
+  "posted_at_estimated": null,
+  "posted_at_estimate_basis": null,
+  "posted_at_estimate_uncertainty_hours": null,
   "reaction_count": null,
+  "reaction_breakdown": null,
   "comment_count": null,
+  "share_count": null,
   "media": [],
   "comments": [],
+  "comment_capture_status": "not_loaded",
   "poster_public_activity": [],
   "commenter_public_activity": [],
+  "missing_fields": [],
   "truncated": false
 }
 ```
@@ -122,6 +151,57 @@ hoặc 30 ngày mỗi poster/commenter. Lưu raw text, verified URL, absolute da
 nếu có, relative label nếu có và `visibility`. Không đọc DM/private content,
 friend list, album/ảnh riêng tư, không tách phone/email thành contact profile,
 không suy luận thuộc tính nhạy cảm.
+
+### Raw capture checklist
+
+Per verified post, capture every field that is visibly available; a missing
+value is different from a value of zero or an empty list:
+
+- identity: group key/name/URL, post ID, canonical post permalink, poster
+  display name and public profile URL;
+- content: post title, full expanded text, language as shown (do not infer a
+  language), visibility/public label, edited/shared/repost label;
+- time: `capture_now`, original absolute timestamp if exposed, original
+  relative label, and estimate fields only under the estimate rule below;
+- engagement: total reactions, reaction breakdown, comment count, and share
+  count when shown; keep each as `null` when Facebook does not expose it;
+- attachments: every visible image/video/link attachment with type, verified
+  URL, alt text/caption, and position/count when shown;
+- discussion: visible public comments and nested replies with raw text,
+  commenter/profile URL, comment/reply permalink, timestamp label or absolute
+  date, and `visibility`;
+- provenance: page load, source surface, capture quality, truncation, and a
+  `missing_fields` list explaining what was not exposed.
+
+For comments, expand “view more comments” and visible replies when this is a
+read-only panel action, up to 100 comments per post. Set
+`comment_capture_status='complete'` only after the visible comment thread is
+exhausted; use `not_loaded`, `partially_loaded`, or `capped_100` otherwise.
+Never use `comments=[]` to mean “there are no comments” when the thread was not
+loaded. Do not capture the comment composer, private replies, or hidden data.
+
+`capture_quality='complete'` means the post text was fully expanded and the
+visible metadata/thread were exhausted or explicitly recorded as unavailable;
+`partial` means collapse, virtualization, or an unexpanded thread prevented
+that. `legacy_normalized` is only for DB-only normalization of older events and
+does not claim a new browser capture.
+
+### Relative timestamp estimate
+
+- Tính estimate ngay lúc capture, từ `capture_now`, không lấy thời điểm chạy
+  analyzer hay thời điểm insert DB. Parse các label rõ như phút/giờ/ngày/tuần
+  (kể cả nhãn Việt/Anh/Hà Lan); không đoán từ comment timestamp để suy ra thời
+  điểm post.
+- Độ bất định tối thiểu: phút/giờ `±1h`, ngày `±24h`, tuần `±72h`, tháng
+  `±168h`. Nếu label mơ hồ như “recently”, “1 month” không đủ chi tiết hoặc
+  không parse được thì để cả ba key estimate là `null` và ghi
+  `posted_at_estimate_unavailable` vào notes.
+- Notes phải ghi theo dạng dễ lọc, ví dụ
+  `posted_at_estimated=2026-09-15T22:20:00+02:00; basis="2 hours"; uncertainty_hours=1`.
+- Estimate chỉ phục vụ sort/triage tham khảo. Không dùng estimate để chốt
+  `posts_14d_complete`, vượt boundary 14 ngày, tính `posts_14d_count`, hay
+  thay thế `posted_at` trong logic dedupe/resume. Khi cần chứng minh đủ 14
+  ngày, vẫn phải có absolute timestamp hoặc boundary Facebook xác minh được.
 
 ## Completion và chống báo sai
 

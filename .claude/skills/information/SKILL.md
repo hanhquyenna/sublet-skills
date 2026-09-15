@@ -15,16 +15,16 @@ Skill này là bản đồ context, không thay thế luật cứng hay logic ch
 
 ## Snapshot hiện tại
 
-Snapshot này được ghi ngày **2026-09-15**, sau commit `a95fe61`, rank metrics và cập nhật backlog:
+Snapshot này được ghi ngày **2026-09-16**, sau commit `c0c1a2a` và lần resume raw-capture gần nhất:
 
 - Repo chính: `/Users/ad/sublet-skills` (thường gọi bằng `~/sublet-skills`).
 - Mục tiêu: dịch vụ broker sublet nhỏ ở Amsterdam, Phase 0 trong 30 ngày.
 - Người vận hành: **Kien**. Agent là mắt + trí nhớ + người soạn; Kien là người bấm/gửi.
 - Offer hiện tại: người có phòng nhận 3 viewing phù hợp trong 72h; €49 khi người được giới thiệu move-in; seeker dùng miễn phí.
-- Database lần kiểm tra gần nhất (2026-09-16): `sublet_groups=103`, `sublet_group_metrics=152`, `sublet_listings=25`, `sublet_events=37`, `sublet_scan_runs=6`, `sublet_ops_state=10`.
-- Đã audit detail page bằng ChatGPT in-app browser cho 10/10 listings hiện có. Mỗi listing có một `sublet_events.event='detail_audit'`; các bài bị feed collapse đã được lưu lại full text nhìn thấy. Tất cả vẫn `kind=null` và `posted_at=null` vì detail page không expose thời điểm tạo post đáng tin cậy.
-- Đợt backfill group activity cao nhất đang là run resumable `sublet_scan_runs.id=7`; đã đi chronological qua các card ngày 1/9 nhưng feed còn virtualized/card thiếu permalink nên chưa chứng minh capture đủ mọi card. Hiện group có 25 listing URL đã xác minh, 17 context contract v2 mới; `posts_14d_count` vẫn chưa được chốt và `posts_14d_complete=false`.
-- Raw capture QA: 10 `context_captured` events lịch sử hiện chưa có payload đồng nhất cho `reaction_count`, `comment_count`, `timestamp_label`, `media[]`, `truncated` và provenance; không được coi đó là “không có dữ liệu”. Contract v2 đã được ghi vào skill cho các lần capture sau; 10 event cũ vẫn `legacy_unknown` cho đến khi có DB-only normalization/re-audit.
+- Database lần kiểm tra gần nhất (2026-09-16): `sublet_groups=103`, `sublet_group_metrics=152`, `sublet_listings=27`, `sublet_events=39`, `sublet_scan_runs=6`, `sublet_ops_state=10`.
+- Raw QA của group đang chạy có 27/27 listing URL duy nhất, raw capture không phân tích (`kind=null`), và 29 `context_captured` events contract v2. Có 33 public comments được lưu; 15/27 listing chưa có absolute `posted_at` vì panel không expose timestamp tuyệt đối; key contract v2 và estimate fields không thiếu; không suy luận dữ liệu không hiển thị.
+- Đợt backfill group activity cao nhất đang là run resumable `sublet_scan_runs.id=7`; chronological đã vượt boundary tại card **31/08 lúc 23:40**. DB ghi `posts_seen=35`, `new_listings=23`, `posts_verified=27`, `unresolved_cards=15`, `page_loads=2/4`, `boundary_reached=true`; `posts_14d_count` vẫn `null` và `posts_14d_complete=false` vì 15 card chưa có permalink bài viết xác minh được hoặc là embedded/non-housing content. Không chuyển group khi run này chưa hoàn tất.
+- Raw capture quality hiện phân bố 19 `complete`, 8 `legacy_normalized`, 2 `legacy_unknown` trong 29 events của group; duplicate URL và comment-shape audit đều sạch. `legacy_*` là trạng thái provenance của dữ liệu cũ, không phải giấy phép suy đoán nội dung còn thiếu.
 - DB hiện có 75 group mang cờ `joined=true`; metric mới nhất vẫn được bổ sung từ panel trong lúc kiểm tra. Batch notification vừa đối chiếu có 44 group unique đã báo approved và đều được ghi `joined=true`. Khi hai nguồn lệch nhau, chỉ metric mới nhất có `join_status='joined'` được coi là đủ điều kiện tier 1/2.
 - Group selection hiện chỉ dùng `joined=true`, loại group `allows_sublet='no'`, rồi sort theo metric `posts_per_day` mới nhất giảm dần; không tự rank lại tier trong capture.
 - Tier 1 hiện cần Kien bật Notifications → All posts thủ công cho 8 group; các group có số cao nhưng đang pending không được đưa vào danh sách.
@@ -105,8 +105,9 @@ find .claude/skills -mindepth 2 -maxdepth 2 -name SKILL.md -print | sort
 - `sublet_groups`/`sublet_group_metrics`: group identity, joined/status,
   member/activity, tier và checkpoint 14 ngày.
 - `sublet_listings`: raw post với `source_url`, `group_key`, poster, absolute
-  `posted_at` nếu thấy, `seen_at`, full `raw_text`, `kind=null`; `text_hash` do
-  DB generate.
+  `posted_at` nếu thấy, `seen_at`, full `raw_text`, `kind=null`; relative-time
+  estimate (nếu parse được) chỉ nằm trong `notes`/context payload và luôn có
+  uncertainty; `text_hash` do DB generate.
 - `sublet_events`: provenance/context. Event raw chuẩn là
   `context_captured`, contract v2; `detail_audit` là QA riêng, không analyzer.
 - `sublet_scan_runs`: run, group, page loads, counts, cursor và stop reason.
