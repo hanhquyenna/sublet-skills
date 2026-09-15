@@ -5,6 +5,17 @@ description: Đọc reply đến (Messenger trong Chrome thật — chỉ đọc
 
 # inbox-triage
 
+## Spec
+| | |
+|---|---|
+| **Lịch** | cron mỗi 20' 08–23 (com.sublet.inbox); tay khi dán reply |
+| **Trigger** | `/inbox-triage` |
+| **Đọc** | Messenger (≤6 loads, đọc-only), text bạn dán, sublet_listings/seekers/matches, templates/faq.md, partner-voice |
+| **Ghi** | sublet_messages (in + draft), sublet_listings.status (accepted/declined/filled), sublet_matches.status/replied_at, sublet_viewings.attendance, sublet_seekers.contact_consent (E51), sublet_inbox(action/warning) |
+| **Metrics** | inbox.replies_24h, triage_unclear_rate; outreach.dm_yes_rate_7d |
+| **Edge cases** | E51 E80–E87 → `docs/edge-cases.md` |
+| **Rules** | R01 R02 R08 R12 R13 R23 → `docs/rules.md` |
+
 Đây là "tai" của hệ thống. Đọc `partner-voice` trước. **Skill này không gửi gì.** Nó đọc, phân loại, cập nhật trạng thái, và xếp sẵn câu trả lời.
 
 ## Nguồn reply
@@ -26,6 +37,10 @@ description: Đọc reply đến (Messenger trong Chrome thật — chỉ đọc
 | seeker: "YES + availability" | muốn xem | match → `replied`, ghi availability | gọi viewing-coordinate khi đủ 3 |
 | seeker: "NO" | không hợp | match → `rejected` | không gửi listing này nữa |
 | seeker: "DONE / TAKING / moved in today" | kết quả | viewing attendance; match → `signed` nếu taking; listing → `filled` | trigger fee (viewing-coordinate) → draft tin Tikkie |
+| seeker: YES nhưng `contact_consent=false` (E51) | reply = consent | `contact_consent=true`, event `consent_by_reply` | tiếp tục như YES |
+| subletter: "found someone" khi đã có viewing (E84) | filled ngoài bạn | listing → `filled`, notes='filled_externally', **không** fee; viewings → `cancelled` | draft báo seeker + đề xuất listing khác |
+| seeker YES nhưng listing đã filled (E85) | trễ | match → `rejected` | draft "đã có người, mình gửi cái khác" |
+| subletter muốn thu phí seeker (E83, R23) | không hợp lệ | notes, `sublet_inbox(warning)` | draft từ chối lịch sự: seeker luôn free |
 | không rõ | — | — | hỏi bạn |
 
 ## Output

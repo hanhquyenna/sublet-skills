@@ -5,6 +5,17 @@ description: Ghép một listing sublet với pool seekers bằng scripts/match.
 
 # sublet-match
 
+## Spec
+| | |
+|---|---|
+| **Lịch** | tự động sau intent-analyze (offering deal_score≥60); tay: /sublet-match <id> |
+| **Trigger** | `/sublet-match` |
+| **Đọc** | 1 listing, sublet_v_seekers_active, scripts/match.py |
+| **Ghi** | sublet_matches (score, reasons, risk_flags), sublet_listings.status=matched |
+| **Metrics** | match.listings_with_3plus, avg_top_score |
+| **Edge cases** | E60 E61 E62 E63 E64 → `docs/edge-cases.md` |
+| **Rules** | R09 R11 R18 → `docs/rules.md` |
+
 Score do script tính. Agent chỉ viết `reasons` cho dễ đọc và kiểm tra cờ.
 
 ## Các bước

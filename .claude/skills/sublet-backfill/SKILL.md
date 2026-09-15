@@ -5,6 +5,17 @@ description: Đọc lịch sử 60–90 ngày của MỘT group (1 lần duy nh�
 
 # sublet-backfill
 
+## Spec
+| | |
+|---|---|
+| **Lịch** | tay: 1 group/ngày, 1 lần/group, ngày yên |
+| **Trigger** | `/sublet-backfill <group_key> [days]` |
+| **Đọc** | 1 group page (chronological) + scroll, sublet_ops_state |
+| **Ghi** | sublet_listings (raw), sublet_scan_runs(mode=backfill), sublet_ops_state backfill_<key>, sublet_groups.last_scanned_at |
+| **Metrics** | capture.posts_captured_24h; analyze.qa_kind_acc (QA sau backfill) |
+| **Edge cases** | E10 E13 E14 E20 E23 E24 → `docs/edge-cases.md` |
+| **Rules** | R02 R03 R05 R06 R19 → `docs/rules.md` |
+
 Mục đích: có dữ liệu thật để `intent-analyze` chạy trên vài trăm post và bạn thấy edge case **trước** khi gửi DM đầu tiên. Chạy 1 lần/group, không lặp.
 
 ## Model routing

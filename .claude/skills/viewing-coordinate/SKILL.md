@@ -5,6 +5,17 @@ description: Khi subletter đồng ý, chọn top 3 seeker đã trả lời YES,
 
 # viewing-coordinate
 
+## Spec
+| | |
+|---|---|
+| **Lịch** | tay khi listing accepted; sau viewing: /viewing-coordinate showed|no_show|signed <id> |
+| **Trigger** | `/viewing-coordinate` |
+| **Đọc** | sublet_matches (replied), sublet_viewings, config.offer.fee_trigger, partner-voice, templates/viewing_confirm.md |
+| **Ghi** | sublet_viewings, sublet_fees (trigger theo config), sublet_matches.status, sublet_listings.status/filled_at, sublet_seekers.status, sublet_messages (draft), sublet_events (payload.source cho signed/filled) |
+| **Metrics** | viewing.accepted_to_3v_72h, showup_rate, time_to_first_viewing_h; fee.fees_sent |
+| **Edge cases** | E84 E90–E95 → `docs/edge-cases.md` |
+| **Rules** | R01 R08 R12 R13 R15 → `docs/rules.md` |
+
 > **Đọc `partner-voice` trước khi soạn bất kỳ tin nào.** Định vị, giọng, giới hạn 90/40 từ, minh bạch ai trả phí — đều ở đó.
 
 ## Khi subletter trả lời "ok"

@@ -358,3 +358,17 @@ create table if not exists sublet_group_metrics (
 );
 create index if not exists sublet_group_metrics_group_idx on sublet_group_metrics(group_key, checked_at desc);
 alter table sublet_group_metrics enable row level security;
+
+-- ---------- metrics (1 dòng/ngày/metric; sublet-report ghi 18:00) ----------
+create table if not exists sublet_metrics (
+  id bigserial primary key,
+  day date not null default current_date,
+  workflow text not null check (workflow in ('know','capture','analyze','demand','match','outreach','inbox','viewing','fee','ops')),
+  metric text not null,
+  value numeric,
+  target numeric,
+  meta jsonb,
+  computed_at timestamptz not null default now(),
+  unique (day, workflow, metric)
+);
+alter table sublet_metrics enable row level security;

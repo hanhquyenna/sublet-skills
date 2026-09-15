@@ -236,6 +236,12 @@ Quy trình sửa: sửa file → commit với message "rule: <gì> vì <lý do>"
 
 ---
 
+## K. Registry (sau audit 2026-09-15)
+- `docs/rules.md` — R01–R24, enforce ở đâu, kiểm bằng gì
+- `docs/edge-cases.md` — E01–E105 theo stage, skill xử lý, test coverage
+- `docs/metrics.md` — 35 metric, công thức, target, lưu `sublet_metrics`, 5 quyết định tự động
+- Mỗi skill có khối **Spec**. Thêm hành vi mới = Spec + 3 registry.
+
 ## J. Chi phí và cải tiến — xếp theo ROI (cập nhật 2026-09-15)
 
 ### J1. Chi phí thật của hệ thống này

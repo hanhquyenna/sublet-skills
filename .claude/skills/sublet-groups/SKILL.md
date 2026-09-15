@@ -5,6 +5,17 @@ description: Tìm và xếp hạng group Facebook housing/sublet cho một thàn
 
 # sublet-groups
 
+## Spec
+| | |
+|---|---|
+| **Lịch** | discover: tay 1×/tuần · rank: cron CN 10:00 · status: tay |
+| **Trigger** | `/sublet-groups discover|rank|status` |
+| **Đọc** | FB search (≤6 loads/tuần), sublet_group_metrics, sublet_listings (đếm) |
+| **Ghi** | sublet_groups (tier, offering_7d), data/groups.yaml |
+| **Metrics** | know.groups_tier1 |
+| **Edge cases** | E01 E02 E04 E05 → `docs/edge-cases.md` |
+| **Rules** | R02 R22 → `docs/rules.md` |
+
 Quản lý "biết group nào". Chỉ đọc. Không join (bạn join tay), không post.
 
 ## /sublet-groups discover  (chạy 1 lần/tuần, ≤6 page load)

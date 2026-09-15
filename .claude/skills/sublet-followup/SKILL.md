@@ -5,6 +5,17 @@ description: Danh sách việc cần bạn hôm nay — thread im lặng, viewin
 
 # sublet-followup
 
+## Spec
+| | |
+|---|---|
+| **Lịch** | cron 08:30 (com.sublet.followup); tay bất kỳ lúc nào |
+| **Trigger** | `/sublet-followup` |
+| **Đọc** | sublet_v_today, sublet_inbox, sublet_messages, sublet_listings, sublet_viewings, sublet_fees, sublet_seekers, ops/backup |
+| **Ghi** | sublet_messages (draft follow-up), sublet_listings.status=dead, sublet_fees.invoice_status=disputed, sublet_inbox.read_at, sublet_seekers.status=inactive (sau khi bạn OK) |
+| **Metrics** | outreach.draft_backlog; fee.collection_rate; ops.backup_ok |
+| **Edge cases** | E53 E93 E104 → `docs/edge-cases.md` |
+| **Rules** | R12 R13 R14 R16 → `docs/rules.md` |
+
 > **Đọc `partner-voice` trước khi soạn bất kỳ tin nào.** Định vị, giọng, giới hạn 90/40 từ, minh bạch ai trả phí — đều ở đó.
 
 Chạy 1 lần/ngày, buổi sáng. Không gửi gì. Đưa ra ≤10 việc, ưu tiên theo tiền và thời gian.
@@ -19,6 +30,8 @@ Chạy 1 lần/ngày, buổi sáng. Không gửi gì. Đưa ra ≤10 việc, ưu
 6. **Fee**: `sublet_fees invoice_status='draft'` → nhắc gửi; `'sent'` >5 ngày chưa paid → draft nhắc nhẹ 1 lần rồi thôi.
 7. **Seekers hết hạn**: `move_in` < hôm nay − 14 ngày và status='active' → đề xuất set 'inactive' (hỏi bạn).
 8. **Listing accepted nhưng <3 YES sau 24h** → đề xuất push thêm.
+9. **Fee sent >7 ngày chưa paid** (E93) → `invoice_status='disputed'`, không nhắc nữa, ghi vào report.
+10. **Backup hôm qua thiếu** (`ops/backup/<hôm qua>/` không có) (E104) → 1 dòng cảnh báo.
 
 ## Output
 Bảng: # · việc · ai · draft có sẵn (id) · deadline. Sau bảng: "Gõ `/sublet-draft sent <ids>` khi gửi xong."

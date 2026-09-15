@@ -5,6 +5,17 @@ description: Báo cáo cuối ngày và metrics Phase 0 (posts/ngày theo group,
 
 # sublet-report
 
+## Spec
+| | |
+|---|---|
+| **Lịch** | cron 18:00 (com.sublet.report); tay: /sublet-report [7d|30d] |
+| **Trigger** | `/sublet-report` |
+| **Đọc** | mọi bảng sublet_* (7–30 ngày), scripts/report.py --metrics-json |
+| **Ghi** | sublet_metrics (1 dòng/ngày/metric), sublet_inbox(info) |
+| **Metrics** | tất cả — xem docs/metrics.md |
+| **Edge cases** | E104 → `docs/edge-cases.md` |
+| **Rules** | R16 → `docs/rules.md` |
+
 ## Các bước
 1. Kéo qua `execute_sql` (7 ngày, hoặc 30 ngày nếu tham số `30d`):
    - `select * from sublet_listings where seen_at > now() - interval '7 days'`
@@ -14,7 +25,9 @@ description: Báo cáo cuối ngày và metrics Phase 0 (posts/ngày theo group,
    - `select * from sublet_fees`
    - `select * from sublet_scan_runs where started_at > now() - interval '7 days'`
    - `select id,status,entity_type,created_at from sublet_messages where created_at > now() - interval '7 days'`
-2. Ghi thành 1 JSON `{listings, seekers, matches, viewings, fees, scan_runs, messages}` trong scratchpad → `python3 scripts/report.py < data.json`.
+2. Ghi thành 1 JSON `{listings, seekers, matches, viewings, fees, scan_runs, messages}` trong scratchpad → `python3 scripts/report.py --metrics-json < data.json`.
+2b. Phần sau `<!-- metrics-json -->` là mảng `{workflow, metric, value, target}` → `insert into sublet_metrics(day, workflow, metric, value, target) values (...) on conflict (day, workflow, metric) do update set value=excluded.value, target=excluded.target, computed_at=now()`. Thêm tay các metric chưa có trong script (`know.*`, `analyze.low_conf_rate`, `viewing.accepted_to_3v_72h`, `ops.*`) bằng SQL trực tiếp theo công thức trong `docs/metrics.md`.
+2c. Kiểm ngưỡng tự động (docs/metrics.md mục 'Quyết định tự động'): vi phạm → `sublet_inbox(level='action', title='Metric: <tên> = <giá trị> (target <t>) → <đề xuất>')`.
 3. Thêm 3 dòng nhận xét của agent: group nào đáng lên tier 1 / xuống tier 3; yes-rate so với mốc 30%; có dấu hiệu volume Facebook cao không.
 4. Insert `sublet_inbox(level='info', title='Report {date}', body=<markdown>)`. In bản đầy đủ ra terminal.
 

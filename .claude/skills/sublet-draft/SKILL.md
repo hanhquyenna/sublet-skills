@@ -5,6 +5,17 @@ description: Soạn (không gửi) DM offer €49/72h cho subletter và tin push
 
 # sublet-draft
 
+## Spec
+| | |
+|---|---|
+| **Lịch** | tự động sau match; tay: /sublet-draft [id] · /sublet-draft sent <ids> |
+| **Trigger** | `/sublet-draft` |
+| **Đọc** | sublet_v_deal_queue, sublet_matches, templates/, partner-voice, config.offer |
+| **Ghi** | sublet_messages (draft; sent khi bạn báo), sublet_listings.status=contacted/contacted_at, sublet_matches.status=pushed/pushed_at, sublet_seekers.push_count/last_pushed_at, sublet_inbox(action) |
+| **Metrics** | outreach.dm_sent_24h, dm_yes_rate_7d, yes_rate_by_template, draft_backlog, sent_by_agent=0 |
+| **Edge cases** | E64 E70 E71 E72 E73 E74 E75 → `docs/edge-cases.md` |
+| **Rules** | R01 R12 R13 R14 → `docs/rules.md` |
+
 > **Đọc `partner-voice` trước khi soạn bất kỳ tin nào.** Định vị, giọng, giới hạn 90/40 từ, minh bạch ai trả phí — đều ở đó.
 
 Agent soạn. **Người dùng gửi.** Không có ngoại lệ.

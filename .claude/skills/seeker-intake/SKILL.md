@@ -5,6 +5,17 @@ description: Nhập seeker (người tìm sublet) từ Tally CSV export, tin nh�
 
 # seeker-intake
 
+## Spec
+| | |
+|---|---|
+| **Lịch** | tay khi có form/tin nhắn; sau này webhook Tally |
+| **Trigger** | `/seeker-intake [csv|text]` |
+| **Đọc** | data/seekers_export.csv hoặc text dán |
+| **Ghi** | sublet_seekers (upsert theo contact), sublet_events(intake) |
+| **Metrics** | demand.seekers_active, seekers_new_7d, consent_rate |
+| **Edge cases** | E50 E52 E55 → `docs/edge-cases.md` |
+| **Rules** | R06 R09 → `docs/rules.md` |
+
 ## Nguồn
 - `data/seekers_export.csv` (Tally export; cột tự do — đọc header rồi map).
 - Text dán trực tiếp: "Hi, tôi cần phòng 1/10–15/1, budget 900, Oost/West, 1 người, cần registration".

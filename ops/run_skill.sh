@@ -7,7 +7,10 @@ cd "$(dirname "$0")/.."
 source ~/.zshrc 2>/dev/null || true
 [ -f ~/.sublet-skills.env ] && source ~/.sublet-skills.env
 
+export TZ=Europe/Amsterdam
 SKILL="$1"; shift || true
+# R20: 1 skill 1 instance
+mkdir -p ops/locks; exec 9>"ops/locks/$SKILL.lock"; if ! flock -n 9; then echo "$(date +%T) skip $SKILL (locked)" >> "ops/logs/$(date +%Y-%m-%d).log"; exit 0; fi
 ARGS="$*"
 RUNNER="${SUBLET_RUNNER:-claude}"
 LOG="ops/logs/$(date +%Y-%m-%d).log"

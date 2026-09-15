@@ -5,6 +5,17 @@ description: Đọc email notification Facebook (facebookmail.com) qua IMAP bằ
 
 # sublet-email
 
+## Spec
+| | |
+|---|---|
+| **Lịch** | cron mỗi 10' (Mac: com.sublet.email; Hetzner 24/7) |
+| **Trigger** | `/sublet-email` |
+| **Đọc** | Gmail IMAP (facebookmail.com) qua scripts/gmail_pull.py |
+| **Ghi** | sublet_listings (source=fb_email), sublet_scan_runs(mode=email), sublet_inbox(warning nếu parse lỗi) |
+| **Metrics** | capture.posts_captured_24h |
+| **Edge cases** | E17 E18 E19 E20 → `docs/edge-cases.md` |
+| **Rules** | R10 R21 → `docs/rules.md` |
+
 Cùng pipeline với `sublet-scan` nhưng nguồn là email. Không đụng Facebook.
 
 ## Chuẩn bị (1 lần)

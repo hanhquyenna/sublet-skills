@@ -38,6 +38,21 @@ def main():
     print(f"- Fees: sent {len(sent)}, paid {len(paid)} ({pct(paid, sent)}), €{sum(f.get('amount_eur',0) for f in paid)}")
     print(f"- FB page loads 24h: {loads24}  (ngưỡng an toàn ~400)")
     print(f"- Drafts chờ bạn gửi: **{len(drafts)}**")
+    if "--metrics-json" in sys.argv:
+        def r(a,b): return round(100*len(a)/len(b),1) if b else None
+        m = [
+          ("capture","posts_captured_24h",len(new24),10),("capture","page_loads_24h",loads24,350),
+          ("capture","dedupe_ratio", round(sum(1 for l in offering if l.get("canonical_id"))/len(offering),3) if offering else None, None),
+          ("capture","stops_24h", sum(1 for x in R if parse(x["started_at"])>day and (x.get("stopped_reason") or "") in ("checkpoint","volume")), 0),
+          ("analyze","offering_7d",len(offering),None),("analyze","scam_high_rate",r(scam,offering),None),
+          ("demand","seekers_active",sum(1 for s in S if s.get("status")=="active"),50),
+          ("outreach","dm_sent_24h", sum(1 for x in MS if x.get("status")=="sent" and (x.get("template") or "").startswith("offer_") and parse(x.get("sent_at") or x["created_at"])>day), 10),
+          ("outreach","dm_yes_rate_7d", r(accepted,contacted), 30),("outreach","draft_backlog",len(drafts),5),
+          ("viewing","showup_rate", r(showed, showed+noshow), 70),
+          ("fee","collection_rate", r(paid, sent), 70),("fee","revenue_eur_30d", sum(f.get("amount_eur",0) for f in paid), None),
+        ]
+        print("\n<!-- metrics-json -->")
+        print(json.dumps([{"workflow":w,"metric":k,"value":v,"target":t} for w,k,v,t in m]))
 
 if __name__ == "__main__":
     main()

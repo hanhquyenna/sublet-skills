@@ -5,6 +5,17 @@ description: Chẩn đoán vì sao post sublet của bạn (hoặc của sublett
 
 # sublet-diagnose
 
+## Spec
+| | |
+|---|---|
+| **Lịch** | tay: /sublet-diagnose <link> |
+| **Trigger** | `/sublet-diagnose` |
+| **Đọc** | 1 post + 1 group page (≤3 loads), data/groups.yaml |
+| **Ghi** | sublet_listings.notes, sublet_events(diagnosed) |
+| **Metrics** | — (đầu vào cho offer_diagnose) |
+| **Edge cases** | E10 → `docs/edge-cases.md` |
+| **Rules** | R02 R05 → `docs/rules.md` |
+
 Chỉ đọc. ≤3 page load.
 
 ## Các bước

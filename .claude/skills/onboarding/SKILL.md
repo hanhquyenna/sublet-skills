@@ -5,6 +5,17 @@ description: Checklist khởi động cho người vận hành (bạn) — kiể
 
 # onboarding
 
+## Spec
+| | |
+|---|---|
+| **Lịch** | tay: lần đầu và khi đổi máy / thiếu mục |
+| **Trigger** | `/onboarding` |
+| **Đọc** | config.yaml, sublet_ops_state, sublet_groups, env file, Chrome (1 load) |
+| **Ghi** | sublet_ops_state, sublet_inbox |
+| **Metrics** | know.groups_notif_on |
+| **Edge cases** | E03 E102 → `docs/edge-cases.md` |
+| **Rules** | R04 R07 R22 R24 → `docs/rules.md` |
+
 Mục tiêu: sau khi chạy xong, hệ thống chạy tự động mà bạn chỉ còn 2 việc: **tap gửi** và **báo kết quả**.
 
 ## Cách chạy

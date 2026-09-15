@@ -5,9 +5,21 @@ description: CAPTURE-ONLY — quét post mới trên Facebook qua groups/feed + 
 
 # sublet-scan
 
+## Spec
+| | |
+|---|---|
+| **Lịch** | cron mỗi 12' 08–23 (launchd com.sublet.scan); skip ngẫu nhiên 1/12 |
+| **Trigger** | `/sublet-scan` |
+| **Đọc** | groups/feed + /notifications (≤4 loads), sublet_scan_runs.cursor, sublet_listings.text_hash, sublet_ops_state |
+| **Ghi** | sublet_listings (raw, kind=null, canonical_id), sublet_scan_runs, sublet_groups.last_post_seen_at, sublet_events(captured), sublet_inbox(action/stop) |
+| **Metrics** | capture.posts_captured_24h, page_loads_24h, page_loads_per_run_max, stops_24h, dedupe_ratio |
+| **Edge cases** | E10 E11 E12 E13 E15 E20 E21 E22 E43 → `docs/edge-cases.md` |
+| **Rules** | R02 R03 R04 R05 R06 R10 R18 R20 → `docs/rules.md` |
+
 Đọc CLAUDE.md trước. Skill này **chỉ đọc**. Không click Like/Comment/Join/Send.
 
 ## Điều kiện chạy
+0. Run trước có `finished_at is null` và `started_at` > 30' → update `stopped_reason='abandoned'`, `finished_at=now()` (E20).
 1. Đọc `data/config.yaml`. Nếu giờ hiện tại (Europe/Amsterdam) ngoài `hours` → dừng, ghi 1 dòng "ngoài giờ".
 2. Đếm `sublet_scan_runs` 24h qua: nếu tổng `page_loads` ≥ 350 → dừng, báo "gần ngưỡng volume".
 3. Random: 1/12 chu kỳ bỏ qua (giả lập nghỉ). Ghi "skip ngẫu nhiên".

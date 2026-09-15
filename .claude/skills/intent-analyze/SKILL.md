@@ -5,6 +5,17 @@ description: Đọc các post thô mới trong sublet_listings (kind is null) v�
 
 # intent-analyze
 
+## Spec
+| | |
+|---|---|
+| **Lịch** | tự động sau scan/email/backfill; tay: /intent-analyze [--all] |
+| **Trigger** | `/intent-analyze` |
+| **Đọc** | sublet_v_analyze_queue (40), docs/intent-logic.md |
+| **Ghi** | sublet_listings (kind, subtype, poster_type, fields, scam, deal_score, confidence, canonical_id, analyzed_at), sublet_seekers (từ seeking), sublet_events(analyzed) |
+| **Metrics** | analyze.analyzed_24h, offering_7d, scam_high_rate, low_conf_rate, qa_kind_acc; capture.dedupe_ratio |
+| **Edge cases** | E13 E14 E30–E44 → `docs/edge-cases.md` |
+| **Rules** | R06 R09 R17 R18 → `docs/rules.md` |
+
 Tầng phân tích tách khỏi tầng capture: chạy lại được bất cứ lúc nào, không tốn page load.
 
 **Nguồn sự thật cho mọi rule là `docs/intent-logic.md`.** Đọc nó trước khi phân loại. SKILL.md này chỉ là quy trình; nếu hai nơi khác nhau, docs thắng.
