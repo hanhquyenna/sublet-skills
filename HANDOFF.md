@@ -31,7 +31,7 @@ MÔI TRƯỜNG CỦA BẠN (Codex):
 VIỆC ĐẦU TIÊN CỦA BẠN, THEO THỨ TỰ:
 1. Chạy `python3 scripts/db.py "select count(*) from sublet_groups"` → phải ra 7 (env đã có sẵn). Rồi chạy skill `onboarding`: đọc `sublet_ops_state` trước, chỉ hỏi mục chưa ✅, ghi kết quả.
 2. Chạy `sublet-groups status` → in group tier 1–2 chưa joined → nhắc tôi join ≤5/ngày và bật Notifications → All posts.
-3. Khi tôi báo đã join ≥1 group và Chrome đã login: chạy `sublet-scan` 1 lần (≤4 page load) → `intent-analyze` → in bảng captured / offering theo subtype / seeking / other / dead / scam. Đây là bằng chứng pipeline chạy.
+3. Khi tôi báo đã join ≥1 group và Chrome đã login: chạy `sublet-backfill <group_key>` cho group đó (1 lần, 60 ngày, human pace) → `intent-analyze` hết corpus → in thống kê kind × subtype × poster_type, top 10 deal_score, 10 low-confidence, 10 scam. Rồi QA 20 post cùng tôi, sửa docs/intent-logic.md §12, chạy `intent-analyze --all`. Chưa DM ai cho đến khi kind ≥95% và không có agency lọt vào deal_score ≥60.
 4. Khi có ≥3 seeker (`seeker-intake`): `sublet-match` cho offering deal_score cao nhất → `sublet-draft` → in draft DM để tôi gửi.
 5. Từ đó, mỗi session: `sublet-followup` trước — in hàng đợi sublet_inbox + draft; chờ tôi gửi; tôi gõ `sublet-draft sent <id>`.
 

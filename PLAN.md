@@ -10,6 +10,8 @@ Tài liệu này là nguồn sự thật. Agent đọc phần A–D. Bạn đọ
 
 **Agent = mắt + trí nhớ + người soạn. Bạn = tay + tên.** Agent không gửi gì lên Facebook. Bạn tap.
 
+**Thứ tự Phase 0:** join group → backfill 1 group/ngày → intent-analyze trên corpus → QA edge case cùng bạn (kind ≥95%, subtype ≥85%, 0 agency lọt) → mới DM.
+
 **Phase 0 (30 ngày) trả lời 5 câu:** offering thật/ngày theo group · DM→ok % · accepted→3 viewing/72h % · show-up % · fee thu %.
 
 ---
@@ -47,6 +49,7 @@ Bảng tổng: skill → đọc → ghi → trigger → page load
 |---|---|---|---|---|
 | onboarding | config, sublet_groups, ops_state | sublet_ops_state | tay, lần đầu | 1 |
 | sublet-groups | FB search, sublet_listings (đếm) | sublet_groups, data/groups.yaml | tuần (discover tay, rank cron CN) | ≤6/tuần |
+| sublet-backfill | 1 group, chronological, 60–90 ngày | sublet_listings raw, scan_runs, ops_state backfill_<key> | tay, 1 lần/group | ≤2 loads + scroll |
 | sublet-scan | FB groups/feed, /notifications, scan_runs.cursor | sublet_listings (kind=null), sublet_scan_runs, sublet_groups.last_post_seen_at, sublet_events | cron 12' | ≤4 |
 | sublet-email | Gmail IMAP | như scan (source=fb_email) | cron 10' (Hetzner 24/7) | 0 |
 | intent-analyze | sublet_listings kind is null | sublet_listings (kind, fields, scam), sublet_seekers (từ seeking), sublet_events | sau scan/email | 0 |
