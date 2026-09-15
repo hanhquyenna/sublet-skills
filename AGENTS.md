@@ -7,15 +7,19 @@
 
 ## Skills
 Active sublet scope gồm `.agents/skills/information/SKILL.md`,
-`.agents/skills/sublet-scrape-14-groups/SKILL.md` và
-`.agents/skills/validate-permalink/SKILL.md` (symlink → `.claude/skills`).
+`.agents/skills/sublet-scrape-14-groups/SKILL.md`,
+`.agents/skills/validate-permalink/SKILL.md` và
+`.agents/skills/analyze-insights/SKILL.md` (symlink → `.claude/skills`).
 Đọc `information` trước; capture bằng `sublet-scrape-14-groups`, rồi gọi
-`validate-permalink` để xử lý queue link theo thứ tự.
+`validate-permalink` để xử lý queue link theo thứ tự. `analyze-insights` là
+skill đọc-only trên DB (không mở Facebook), chạy bất kỳ lúc nào sau capture để
+tóm tắt insight — không thay thế `validate-permalink` và không phải pipeline
+`intent-analyze` chính thức.
 
 ## Browser
 Mọi thao tác Facebook (search, đọc, verify) **chỉ dùng ChatGPT browser panel / Codex In-app Browser session đang mở cho người dùng**. Không dùng CLI, script, web-fetch/API, headless browser, Chrome session khác, hoặc cookie ở nơi khác để thao tác/verify Facebook. Người dùng login thủ công; agent chỉ đọc và phải dừng khi thấy login/checkpoint/captcha/unusual activity.
 
-Trong skill, các bước navigate / get page text / scroll map sang thao tác đọc trong ChatGPT browser panel. DB/SQL là luồng riêng và vẫn dùng `scripts/db.py`; không dùng script đó để điều khiển Facebook.
+Trong skill, mọi bước navigate / get page text / scroll / click đọc map sang **Chrome-panel browser automation có UI**, ưu tiên DOM/accessibility tree của panel. DB/SQL là luồng riêng và vẫn dùng `scripts/db.py`; không dùng script đó để điều khiển Facebook.
 
 ## Database
 Supabase project Lamy hiện tại là ref `cteunhuxrghpozwbnehh`. Secret nằm trong `~/.sublet-skills.env` (chmod 600); không commit/in giá trị. `scripts/db.py` tự đọc `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` và chạy REST RPC `sublet_exec`, nên workflow hiện tại không cần `SUPABASE_DB_URL` hay psycopg2. Supabase MCP database cũng đã cấu hình trong `/Users/ad/.codex/config.toml`; khi skill viết "execute_sql", đường chạy chuẩn là `python3 scripts/db.py "<sql>"`.

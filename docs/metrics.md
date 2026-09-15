@@ -1,6 +1,10 @@
 # Metrics catalogue — success metric của từng workflow, lưu ở `sublet_metrics` (1 dòng/ngày/metric)
 
-> **Active scope:** hiện chỉ đo raw capture/run progress của `sublet-scrape-14-groups`; các metric analyzer, match, outreach và report bên dưới là historical/future reference.
+> **Active scope:** hiện đo raw capture/run progress của `sublet-scrape-14-groups`
+> và insight snapshot của `analyze-insights` (hàng `insight_*` dưới đây, workflow
+> `analyze`). Các metric `intent-analyze` chính thức (analyzed_24h, offering_7d,
+> scam_high_rate, …), match, outreach và report bên dưới vẫn là historical/future
+> reference — chưa có skill nào ghi chúng.
 
 `sublet-report` tính và **insert** mỗi 18:00 (`day`, `workflow`, `metric`, `value`, `target`). Không tính lại từ đầu mỗi lần; xu hướng đọc từ bảng.
 
@@ -22,6 +26,13 @@
 | analyze | scam_high_rate | scam≥60 / offering 7d | 10–30% (0% = rule quá lỏng) | intent-analyze |
 | analyze | low_conf_rate | confidence=low / all 7d | ≤25% | intent-analyze |
 | analyze | qa_kind_acc | đúng/10 trong QA tuần | ≥95% | intent-analyze QA |
+| analyze | insight_listings_total | listings có event `insight_reviewed` | tăng dần theo capture | analyze-insights |
+| analyze | insight_new_this_run | listings mới review trong 1 run | — | analyze-insights |
+| analyze | insight_offering_like / insight_seeking_like / insight_other_like | count theo `insight_kind_guess` (heuristic, không phải `kind` chính thức) | — (đo thị trường thô) | analyze-insights |
+| analyze | insight_duplicate_clusters / insight_duplicate_listings | số cụm trùng lặp / tổng listing bị trùng (text_hash + near-dup) | dedupe_ratio tham khảo trước khi bật canonical_id chính thức | analyze-insights |
+| analyze | insight_risk_flagged | listings có ≥1 `insight_risk_flags` | theo dõi xu hướng, không phải scam_score | analyze-insights |
+| analyze | insight_unique_posters | distinct poster_name đã review | — | analyze-insights |
+| analyze | insight_queue_remaining | listings chưa có `insight_reviewed` | 0 sau khi run xong (không tính listing mới capture sau đó) | analyze-insights |
 | demand | seekers_active | v_seekers_active | ≥50 trước khi hứa 72h; ≥100 → 24h | seeker-intake |
 | demand | seekers_new_7d | created_at >7d | ≥15 | seeker-intake |
 | demand | consent_rate | consent true / all form | ≥80% | seeker-intake |

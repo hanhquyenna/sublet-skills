@@ -64,10 +64,13 @@ snapshot; nếu mâu thuẫn `CLAUDE.md` thì `CLAUDE.md` thắng.
 
 - Agent được đọc/sửa file trong repo, chạy validator, đọc/ghi Supabase qua
   `scripts/db.py`, và commit/push khi người vận hành yêu cầu.
-- Quyền filesystem/repo không có nghĩa là được thao tác Facebook. Facebook chỉ
-  được đọc qua browser integration có UI của agent trong session người dùng đã
-  login thủ công; Claude Code dùng Claude in Chrome, Codex dùng in-app panel,
-  agent khác dùng adapter tương đương của host.
+- Quyền filesystem/repo không có nghĩa là được thao tác Facebook. **Mọi agent
+  phải dùng visible Chrome browser-panel automation của host và đọc DOM/
+  accessibility tree của panel trước.** Claude Code dùng Claude in Chrome,
+  Codex dùng ChatGPT in-app browser panel, agent khác dùng Chrome-panel adapter
+  tương đương được host cung cấp. Đây là kênh Facebook duy nhất; không dùng
+  CLI/script scraper, web-fetch/HTTP/API, Selenium, headless, Chrome session
+  khác hoặc cookie ở nơi khác.
 - Không join group, submit form, bật notification, post, comment, like, DM,
   send, donate, đọc DM/private content, friend list hoặc album riêng tư.
 - Khi gặp login/checkpoint/captcha/“unusual activity”, dừng ngay, ghi stop theo
@@ -77,7 +80,7 @@ snapshot; nếu mâu thuẫn `CLAUDE.md` thì `CLAUDE.md` thắng.
 
 ### Skill registry hiện tại
 
-Bộ sublet hiện có đúng **3 skills active**:
+Bộ sublet hiện có đúng **4 skills active**:
 
 - `information` — context map và onboarding chi tiết.
 - `sublet-scrape-14-groups` — toàn bộ raw scraping workflow cho batch 14 group,
@@ -85,9 +88,17 @@ Bộ sublet hiện có đúng **3 skills active**:
 - `validate-permalink` — xử lý tuần tự queue link đã capture trong browser panel;
   giữ share URL gốc, ghi canonical URL nếu xác minh được và phân biệt
   `validated`, `inaccessible`, `needs_review`.
+- `analyze-insights` — đọc-only trên DB, không mở Facebook; ước lượng thô
+  offering/seeking/other, phát hiện trùng lặp/repost và pattern rủi ro, tóm tắt
+  vào `sublet_inbox`/`sublet_metrics`. Không ghi `kind`/`subtype`/`scam_score`
+  chính thức (nhường cho `intent-analyze` khi được bật) và không re-đọc listing
+  đã có event `insight_reviewed` (Kien: 2026-09-16, "chỉ analyze để chỉ ra
+  insight thôi, đừng analyze lại data đã analyze rồi").
 
-Không coi các skill sublet cũ đã xóa là dependency. Nếu cần phân tích sau này,
-đó là quyết định mở rộng mới, không tự khôi phục skill cũ.
+Không coi các skill sublet cũ đã xóa là dependency (ví dụ `intent-analyze`,
+`sublet-groups`, `sublet-backfill` — thư mục còn rỗng, không có `SKILL.md`,
+chỉ là tàn dư lịch sử). Nếu cần khôi phục scope của chúng, đó là quyết định mở
+rộng mới của Kien, không tự khôi phục.
 
 Skill source duy nhất là `/Users/ad/sublet-skills/.claude/skills/<name>/SKILL.md`.
 `.agents/skills` chỉ là symlink cho Codex; không tạo bản copy thứ hai ở host
@@ -123,7 +134,8 @@ find .claude/skills -mindepth 2 -maxdepth 2 -name SKILL.md -print | sort
 
 ### Current scrape context
 
-Mục tiêu hiện tại là `/sublet-scrape-14-groups` rồi `/validate-permalink`: tối đa 14 group đã joined,
+Mục tiêu hiện tại là `/sublet-scrape-14-groups` rồi `/validate-permalink`, có
+thể xen `/analyze-insights` bất kỳ lúc nào sau capture để xem tình hình: tối đa 14 group đã joined,
 chọn theo `posts_per_day` mới nhất cao nhất, xử lý tuần tự từng group,
 chronological, đủ 14 ngày lịch, không duplicate, ghi DB sau từng batch. Skill
 này tự chứa backfill/chunk logic; sau capture gọi riêng `validate-permalink`,
@@ -153,8 +165,10 @@ public activity giới hạn. Event mới phải có `capture_contract_version=2
    `link_validation_status='unvalidated'`, xử lý tuần tự và resume từ DB.
 5. Sau mỗi batch xác nhận listing/context/run/metric đã ghi. DB outage thì retry
    một lần, dừng và giữ incomplete; không báo thành công giả.
-6. Sau khi raw batch hoàn tất, chưa có analyzer trong bộ skill hiện tại; chỉ
-   thêm analyzer khi Kien yêu cầu mở rộng scope.
+6. Muốn xem tình hình chung, chạy `/analyze-insights` (đọc-only, không mở
+   Facebook) — skill tự bỏ qua listing đã có event `insight_reviewed`, chỉ xử
+   lý phần mới. Đây vẫn không phải pipeline `intent-analyze` chính thức; chỉ
+   thêm pipeline đó khi Kien yêu cầu mở rộng scope.
 
 ## Supabase hiện tại
 
@@ -179,12 +193,13 @@ Project canonical hiện tại là **Lamy**, ref `cteunhuxrghpozwbnehh`, URL `ht
 
 ## Browser và quyền thao tác
 
-Mọi thao tác Facebook (search, đọc, verify) **chỉ dùng browser integration có UI
-của agent, trong session browser thật đã được người dùng login thủ công**. Claude
-Code dùng Claude in Chrome; Codex dùng in-app browser panel; agent khác dùng
-adapter tương đương được host cung cấp. Không dùng CLI/script/web-fetch/API,
-headless browser, cookie ở nơi khác, hay browser session khác. Rule này
-supersede mọi hướng dẫn Chrome DevTools/port `9222` cũ trong tài liệu khác.
+Mọi thao tác Facebook (search, đọc, verify) **chỉ dùng visible Chrome browser
+panel automation có UI trong session browser thật đã được người dùng login thủ
+công; ưu tiên DOM/accessibility tree của panel**. Claude Code dùng Claude in
+Chrome; Codex dùng ChatGPT in-app browser panel; agent khác dùng Chrome-panel
+adapter tương đương được host cung cấp. Không dùng CLI/script scraper,
+web-fetch/HTTP/API, Selenium, headless browser, cookie ở nơi khác, hay browser
+session khác. Rule này supersede mọi hướng dẫn Chrome DevTools/port `9222` cũ.
 
 
 DB/SQL là luồng riêng: `scripts/db.py` vẫn là kênh chuẩn để đọc/ghi Supabase, nhưng không được dùng để điều khiển Facebook.
@@ -200,8 +215,10 @@ Giới hạn quan trọng: scrape tối đa 4 Facebook page loads/run và tối 
 ## Pipeline và nơi ghi dữ liệu
 
 Active flow là `information` → `sublet-scrape-14-groups` →
-`validate-permalink`. Capture xong thì validator xử lý queue link; analyzer,
-matching, messaging và outreach chưa thuộc scope hiện tại.
+`validate-permalink`, cộng `analyze-insights` chạy độc lập bất kỳ lúc nào sau
+capture. Capture xong thì validator xử lý queue link; `analyze-insights` chỉ
+tóm tắt insight đọc-only. Pipeline `intent-analyze` chính thức, matching,
+messaging và outreach chưa thuộc scope hiện tại.
 
 - Capture chỉ lưu post thô với `source_url` + `seen_at`, chưa tự phân loại và
   chưa mở link để resolve. Share URL là evidence hợp lệ nhưng bắt đầu ở trạng
@@ -209,6 +226,9 @@ matching, messaging và outreach chưa thuộc scope hiện tại.
 - Validation chỉ mở từng link trong panel, xác nhận group/poster/content rồi
   ghi trạng thái và provenance event. Checkpoint/login/UI lỗi là
   `needs_review`, không phải `inaccessible`.
+- `analyze-insights` chỉ đọc `raw_text` đã có, ghi event `insight_reviewed` +
+  snapshot `sublet_inbox`/`sublet_metrics`; không đụng `kind`/`subtype`/
+  `scam_score` chính thức và không mở Facebook.
 - Draft luôn lưu `status='draft'`; chỉ Kien đổi thành `sent`.
 - `filled`, `signed`, `paid` chỉ ghi khi có xác nhận thật và kèm nguồn.
 - Mọi việc cần Kien biết đưa vào `sublet_inbox`; không tự gửi notification ngoài.
