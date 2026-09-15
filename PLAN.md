@@ -1,9 +1,12 @@
 # PLAN.md — sublet-skills: kế hoạch chi tiết cho agent (Codex/Claude Code) và cho người vận hành
 
-> **Active scope reset (2026-09-15):** Bộ skill hiện chỉ còn
-> `information`, `sublet-scrape-14-groups` và `validate-permalink`. Các workflow cũ bên dưới là
-> historical reference, không phải skill callable; không gọi hoặc khôi phục
-> chúng nếu người vận hành chưa yêu cầu mở rộng scope.
+> **Active scope reset (2026-09-15, +`analyze-insights` 2026-09-16):** Bộ
+> skill hiện có `information`, `sublet-scrape-14-groups`, `validate-permalink`
+> và `analyze-insights` (đọc-only, chạy độc lập sau capture để tóm tắt
+> insight thô — không phải pipeline `intent-analyze` chính thức ở mục C4 dưới
+> đây). Các workflow cũ khác bên dưới là historical reference, không phải
+> skill callable; không gọi hoặc khôi phục chúng nếu người vận hành chưa yêu
+> cầu mở rộng scope.
 
 Tài liệu này là nguồn sự thật. Agent đọc phần A–D. Bạn đọc phần E–G. Cả hai đọc phần H (cập nhật logic).
 
@@ -225,6 +228,7 @@ Runner: `SUBLET_RUNNER=claude` (mặc định, `claude -p "/<skill>"`) hoặc `c
 | FAQ | `templates/faq.md` | inbox-triage tự theo |
 | Phân loại reply | `inbox-triage/SKILL.md` bảng | không cần gì |
 | Regex email Facebook | `scripts/gmail_pull.py` | chạy lại `/sublet-email` |
+| Heuristic offering/seeking/risk-flag của insight (active) | `.claude/skills/analyze-insights/SKILL.md` | không rescan tự động; chỉ áp dụng cho listing xử lý sau khi sửa, trừ khi Kien yêu cầu rescan |
 | Metrics | `scripts/report.py` | `/sublet-report` |
 | Luật cứng | `CLAUDE.md` (+ `AGENTS.md` trỏ sang) | mọi skill |
 

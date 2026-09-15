@@ -8,7 +8,7 @@
 3. Không chạy scan ngoài giờ trong `data/config.yaml` (`hours`). Không chạy khi máy vừa thức dậy dưới 2 phút.
 4. **Dừng ngay** và ghi `sublet_inbox(level=stop)` nếu thấy: checkpoint, captcha, "unusual activity", yêu cầu xác minh, trang login. Không thử lại trong 24h.
 5. Được đọc **public profile**, lịch sử public giới hạn của poster/commenter, và comment/reply gắn với post housing đã capture để lưu raw context. Chỉ đọc nội dung đang công khai; không vào DM, nội dung private/ẩn, friend list, album/ảnh, không suy luận thuộc tính nhạy cảm, và không tách riêng số điện thoại/email thành hồ sơ liên hệ. Không thao tác trên profile/comment.
-6. Mọi thao tác Facebook chỉ qua **browser thật của người dùng, đã login tay** — Claude Code: Claude in Chrome; Codex: in-app browser panel. Không CLI/script/web-fetch/API, không headless, không Chrome session khác, không cookie ở nơi khác.
+6. Mọi agent phải thao tác Facebook bằng **visible Chrome browser-panel automation của host**, đọc DOM/accessibility tree trước (Codex: ChatGPT in-app browser panel; Claude Code: Claude in Chrome; agent khác: Chrome-panel adapter tương đương). Đây là kênh Facebook duy nhất. Không dùng CLI/script scraper, web-fetch/HTTP/API, Selenium, headless browser, Chrome session khác hoặc cookie ở nơi khác; script chỉ được dùng cho DB/provenance.
 7. Không ghi outcome (signed / moved-in) nếu không có xác nhận từ subletter hoặc seeker. Không đoán.
 8. Không xếp hạng seeker theo quốc tịch, giới tính, tuổi, tôn giáo, hay bất kỳ tiêu chí phân biệt nào. Chỉ: ngày, ngân sách, khu vực, số người, registration, pets.
 
@@ -28,8 +28,10 @@
 
 ## Thứ tự skill hiện tại
 `information` → `sublet-scrape-14-groups` → `validate-permalink` (raw capture
-trước, link validation sau). Các bước analyze, match, draft, viewing và
-outreach chưa nằm trong active skill scope.
+trước, link validation sau). `analyze-insights` là bước đọc-only độc lập, có
+thể chạy bất kỳ lúc nào sau capture (không cần chờ validate xong) để tóm tắt
+insight cho Kien; không phải pipeline `intent-analyze` chính thức. Các bước
+match, draft, viewing và outreach chưa nằm trong active skill scope.
 
 ## Active scope
 - **Context** (`information`): onboarding, quyền agent, DB, state và cách tiếp tục.
@@ -38,3 +40,8 @@ outreach chưa nằm trong active skill scope.
 - **Link validation** (`validate-permalink`): xử lý tuần tự queue link Facebook
   đã capture, giữ share URL gốc, ghi canonical URL nếu xác minh được và phân
   biệt `validated`, `inaccessible`, `needs_review`. Không scrape lại feed.
+- **Insight analysis** (`analyze-insights`): đọc-only trên dữ liệu đã capture,
+  ước lượng thô offering/seeking/other, phát hiện trùng lặp/repost và pattern
+  rủi ro, tóm tắt vào `sublet_inbox`/`sublet_metrics`. Không ghi cột phân loại
+  chính thức trên `sublet_listings`, không mở Facebook, không re-đọc listing
+  đã có event `insight_reviewed`.

@@ -24,11 +24,14 @@ hay không.
 
 ## Hard rules
 
-- Chỉ đọc Facebook bằng browser UI của agent trong session người dùng đã login:
-  Claude Code dùng Claude in Chrome, Codex dùng ChatGPT in-app browser panel,
-  agent khác dùng browser adapter tương đương của host.
-- Không dùng CLI, HTTP/API, Selenium, headless browser, cookie hoặc raw page
-  dump để đọc Facebook. DB/SQL vẫn chạy bằng `python3 scripts/db.py "<SQL>"`.
+- Chỉ đọc Facebook bằng **visible Chrome browser-panel automation có UI** trong
+  session người dùng đã login; ưu tiên DOM/accessibility tree của panel. Claude
+  Code dùng Claude in Chrome, Codex dùng ChatGPT in-app browser panel, agent
+  khác dùng Chrome-panel adapter tương đương của host.
+- Không dùng CLI/script scraper, HTTP/API, Selenium, headless browser, cookie
+  hoặc raw page dump để đọc Facebook. DB/SQL vẫn chạy bằng
+  `python3 scripts/db.py "<SQL>"`, nhưng không dùng script đó để điều khiển
+  Facebook.
 - Không like, comment, post, DM, join, submit, bật notification hay thao tác
   nào ngoài navigation/copy/đọc.
 - Tối đa 4 Facebook page loads trong một validation run. Dùng một tab panel,

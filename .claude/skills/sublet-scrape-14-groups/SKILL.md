@@ -28,12 +28,13 @@ khác.
 
 ## Quyền và browser hard rule
 
-- Chỉ đọc Facebook qua browser integration có UI của agent trong session người
-  dùng đã login thủ công. Claude Code dùng Claude in Chrome; Codex dùng
-  in-app browser panel; agent khác dùng browser adapter tương đương được host
-  cung cấp.
-- Không dùng script scraper, HTTP/API, Selenium, headless browser, cookie,
-  browser session khác hoặc raw page dump để đọc Facebook.
+- Chỉ đọc Facebook bằng **visible Chrome browser-panel automation có UI của
+  host**, trong session người dùng đã login thủ công; ưu tiên DOM/accessibility
+  tree của panel (Codex: ChatGPT in-app browser panel; Claude Code: Claude in
+  Chrome; agent khác: Chrome-panel adapter tương đương).
+- Không dùng script scraper, CLI, web-fetch/HTTP/API, Selenium, headless
+  browser, cookie, browser session khác hoặc raw page dump để đọc Facebook.
+  Script chỉ được dùng cho DB/provenance, không điều khiển Facebook.
 - Không join, submit membership form, bật notification, post, comment, like,
   DM, send, donate hoặc tương tác profile.
 - Khi thấy login/checkpoint/captcha/“unusual activity” hoặc Facebook yêu cầu

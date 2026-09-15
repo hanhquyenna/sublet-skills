@@ -1,6 +1,6 @@
 # Edge-case registry — mọi tình huống hệ thống phải xử lý, ở đâu, đã test chưa
 
-> **Active scope:** chỉ `information` và `sublet-scrape-14-groups` được gọi. Các skill name cũ trong bảng là historical reference.
+> **Active scope:** `information`, `sublet-scrape-14-groups`, `validate-permalink` và `analyze-insights` (mục J) được gọi. Các skill name cũ trong bảng A–I là historical reference.
 
 Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_cases.json` (c###) hoặc `manual` (kiểm tay trong QA sau backfill) hoặc `—` (chưa có, cần thêm).
 
@@ -121,7 +121,19 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | E108 | Hàng đợi nhiều việc, page-load budget hết | job browser → next_run_at = mai 08:00; job không browser vẫn chạy | sublet-worker | — |
 | E109 | 92 group cần verify | 5 group/step, xen kẽ, không bao giờ 1 prompt | sublet-groups verify | — |
 
+## J. ANALYZE-INSIGHTS (active, đọc-only trên DB)
+| # | Tình huống | Xử lý | Skill | Test |
+|---|---|---|---|---|
+| E110 | Listing đã có event `insight_reviewed` | bỏ qua, không đọc lại `raw_text`; chỉ tính lại aggregate (SQL, không tốn LLM) | analyze-insights | manual |
+| E111 | Agent bị ngắt giữa lúc xử lý 1 listing (chưa ghi event) | listing vẫn nằm trong `not exists insight_reviewed`, xử lý lại an toàn lần sau — idempotent | analyze-insights | manual |
+| E112 | 1 bài bị capture 2 lần qua 2 `source_url` khác nhau (permalink + share URL) | phát hiện qua `text_hash` hoặc near-dup cùng poster; đánh `repost_same_poster`/`duplicate_of`, không coi là 2 bài thật | analyze-insights | manual |
+| E113 | 2 poster khác nhau đăng y hệt cùng 1 đoạn text quảng cáo | `risk_flag='duplicate_across_posters'`, không gộp `duplicate_of` (2 identity khác nhau) | analyze-insights | manual |
+| E114 | `raw_text` rỗng hoặc chỉ có emoji/link ảnh | `insight_kind_guess='other_like'`, không đoán thêm | analyze-insights | manual |
+| E115 | Kien yêu cầu rescan (raw_text được cập nhật, hoặc muốn phân tích lại) | thêm event `insight_reviewed` mới, không xoá/sửa event cũ (append-only); chỉ xảy ra khi có yêu cầu rõ, không tự động | analyze-insights | manual |
+| E116 | Hàng đợi rỗng khi gọi skill | không ghi `sublet_inbox` mới (tránh spam); báo Kien số liệu cũ trong chat, không tự chạy lại phân tích | analyze-insights | manual |
+| E117 | Report tổng hợp lớn bất thường (corpus rất lớn) | giữ toàn bộ breakdown số đếm; chỉ liệt kê chi tiết top cụm trùng lặp/risk-flag lớn nhất, trỏ sang `sublet_events` cho phần còn lại thay vì dump hết vào `sublet_inbox.body` | analyze-insights | — |
+
 ## Coverage
 - Có test tự động: nhóm C (intent) — 100 case.
 - Kiểm tay trong QA sau backfill: A, B (E10–E13), C (E42–E43).
-- **Chưa có test**: D–I. Thêm dần: mỗi case gặp thật → ghi vào đây + `tests/ops_cases.md` (kịch bản + kết quả mong đợi).
+- **Chưa có test**: D–I, J (E110–E117, mới thêm 2026-09-16). Thêm dần: mỗi case gặp thật → ghi vào đây + `tests/ops_cases.md` (kịch bản + kết quả mong đợi).
