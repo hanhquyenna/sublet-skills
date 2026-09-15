@@ -1,0 +1,6 @@
+data/seekers_export.csv
+data/*.local.yaml
+.env
+*.json.tmp
+__pycache__/
+.DS_Store

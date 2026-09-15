@@ -1,0 +1,52 @@
+# tier 1: đọc bằng Chrome thật qua groups/feed (không mở từng group)
+# tier 2: chỉ qua email notification ("All posts" bật trong group)
+# key = định danh ngắn dùng trong DB. Điền URL thật sau khi bạn đã là member.
+groups:
+  - key: ams_housing_sublet
+    name: "Amsterdam Housing Group: Studio, Room, House, Sublet"
+    url: https://www.facebook.com/groups/706725492790937/
+    tier: 1
+    allows_sublet: true
+    allows_agencies: unknown
+    notes: ""
+  - key: ams_housing_rooms_sublets
+    name: "Amsterdam Housing, Rooms, Apartments, Sublets"
+    url: https://www.facebook.com/groups/251441185632701/
+    tier: 1
+    allows_sublet: true
+    allows_agencies: unknown
+  - key: ams_housing_apts_rooms_sublets
+    name: "AMSTERDAM - Housing, Apartments, Rooms, Sublets"
+    url: https://www.facebook.com/groups/3396846493712419/
+    tier: 1
+    allows_sublet: true
+    allows_agencies: unknown
+  - key: ams_housing_roommates
+    name: "Amsterdam - housing and roommates"
+    url: https://www.facebook.com/groups/amsterdam.housing.and.roommates/
+    tier: 2
+    allows_sublet: unknown
+    allows_agencies: unknown
+  - key: ams_no_agencies
+    name: "Amsterdam Apartment and Rooms for Rent No AGENCIES"
+    url: https://www.facebook.com/groups/231203323708543/
+    tier: 2
+    allows_sublet: unknown
+    allows_agencies: false
+    notes: "Cấm agency. Chỉ đọc. Không bao giờ post link dịch vụ ở đây."
+  - key: ams_housing_no_sublets
+    name: "AMSTERDAM - HOUSING (sublets and illegal rentals NOT allowed)"
+    url: https://www.facebook.com/groups/396367587188451/
+    tier: 3
+    allows_sublet: false
+    notes: "Bỏ qua cho sublet. Giữ để tham khảo."
+  - key: housingrocket_ams
+    name: "Amsterdam Apartments and Housing (NO SPAM) — Housing Rocket"
+    url: https://housingrocket.com/group/amsterdam-apartments-and-housing
+    tier: 2
+    allows_sublet: unknown
+    notes: "Group do Housing Rocket sở hữu, 23k members. Post approval trả phí."
+
+keywords:
+  offering: [sublet, subletting, "sub-let", onderhuur, onderverhuur, "available from", "my room", "taking over", "lease takeover", "tijdelijk", "temporary"]
+  seeking: ["looking for", "searching for", "zoek", "op zoek", "need a room", "anyone renting"]

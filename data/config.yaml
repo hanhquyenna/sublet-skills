@@ -1,0 +1,41 @@
+city: Amsterdam
+timezone: Europe/Amsterdam
+language_out: en          # en | nl — ngôn ngữ template gửi ra ngoài
+language_agent: vi        # ngôn ngữ agent nói với bạn
+
+hours:
+  start: "08:00"
+  end: "23:00"
+scan:
+  cadence_minutes: 12
+  max_page_loads_per_cycle: 4
+  max_group_page_opens_per_day: 20   # mở trang group riêng lẻ (đọc full post)
+  random_break_per_day: 3            # số lần nghỉ ngẫu nhiên 30–60'
+
+offer:
+  price_eur: 49
+  promise: "3 qualified viewings within 72h, or free"
+  attribution_days: 30
+
+telegram:
+  chat_id: ""             # điền chat id của bạn (Telegram MCP)
+
+email:
+  imap_host: imap.gmail.com
+  imap_user: ""           # Gmail nhận notification Facebook
+  imap_app_password_env: SUBLET_IMAP_PASS   # đặt trong shell, không commit
+  from_filter: facebookmail.com
+
+seeker_form:
+  provider: tally
+  csv_export_path: data/seekers_export.csv   # Tally → export CSV → seeker-intake đọc
+
+scam:
+  flags:
+    - deposit_before_viewing
+    - price_below_market_30pct
+    - stock_photo_language
+    - new_account_claim
+    - wire_or_crypto
+    - no_address_no_area
+    - overseas_owner_story
