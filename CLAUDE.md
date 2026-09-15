@@ -27,10 +27,14 @@
 - Cấu hình: `data/config.yaml`, danh sách group: `data/groups.yaml`.
 
 ## Thứ tự skill hiện tại
-`information` → `sublet-scrape-14-groups` (capture-only). Các bước analyze,
-match, draft, viewing và outreach chưa nằm trong active skill scope.
+`information` → `sublet-scrape-14-groups` → `validate-permalink` (raw capture
+trước, link validation sau). Các bước analyze, match, draft, viewing và
+outreach chưa nằm trong active skill scope.
 
 ## Active scope
 - **Context** (`information`): onboarding, quyền agent, DB, state và cách tiếp tục.
 - **Capture** (`sublet-scrape-14-groups`): chọn tối đa 14 group, scrape raw 14 ngày,
   dedupe, resume và checkpoint DB. Không phân loại và không outreach.
+- **Link validation** (`validate-permalink`): xử lý tuần tự queue link Facebook
+  đã capture, giữ share URL gốc, ghi canonical URL nếu xác minh được và phân
+  biệt `validated`, `inaccessible`, `needs_review`. Không scrape lại feed.

@@ -6,9 +6,11 @@
 - Mọi raw record có `source_url` + `seen_at`; resume từ DB cursor và dedupe trước khi ghi.
 
 ## Skills
-Active sublet scope chỉ có `.agents/skills/information/SKILL.md` và
-`.agents/skills/sublet-scrape-14-groups/SKILL.md` (symlink → `.claude/skills`).
-Đọc `information` trước; gọi `sublet-scrape-14-groups` để capture.
+Active sublet scope gồm `.agents/skills/information/SKILL.md`,
+`.agents/skills/sublet-scrape-14-groups/SKILL.md` và
+`.agents/skills/validate-permalink/SKILL.md` (symlink → `.claude/skills`).
+Đọc `information` trước; capture bằng `sublet-scrape-14-groups`, rồi gọi
+`validate-permalink` để xử lý queue link theo thứ tự.
 
 ## Browser
 Mọi thao tác Facebook (search, đọc, verify) **chỉ dùng ChatGPT browser panel / Codex In-app Browser session đang mở cho người dùng**. Không dùng CLI, script, web-fetch/API, headless browser, Chrome session khác, hoặc cookie ở nơi khác để thao tác/verify Facebook. Người dùng login thủ công; agent chỉ đọc và phải dừng khi thấy login/checkpoint/captcha/unusual activity.

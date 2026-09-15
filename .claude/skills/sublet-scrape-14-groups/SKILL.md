@@ -20,6 +20,8 @@ khác.
   theo timezone `Europe/Amsterdam`.
 - Capture-only: lưu raw, chưa phân loại offering/seeking/scam và chưa match hay
   outreach. Chỉ chạy phân tích khi người vận hành yêu cầu sau khi scrape xong.
+  Link được thu thập trước; khả năng truy cập/permalink được kiểm tra tuần tự
+  bởi `validate-permalink` sau capture.
 - Routine flow không cần hỏi lại; chỉ dừng khi gặp blocker an toàn, DB lỗi,
   Facebook login/checkpoint/captcha/unusual activity, hoặc dữ liệu không thể
   xác minh.
@@ -76,35 +78,31 @@ Trước khi mở browser cho `current_group`, kiểm tra DB:
 2. Mở URL group với sort chronological trong panel. Đọc từng card từ mới tới
    cũ, expand visible collapse khi có thể, scroll theo chunk time-box. Dùng
    cấu trúc DOM/a11y đang hiển thị trong panel để tách từng card và lấy poster,
-   timestamp, text, permalink trước khi chuyển text sang bất kỳ bước xử lý
-   nào; không dùng LLM để phát hiện ranh giới card và không đọc raw page dump.
-3. Mỗi post chỉ được insert khi group và link evidence của Facebook đã xác
-   minh (direct permalink, comment-parent permalink, hoặc share URL lấy bằng
-   “Chia sẻ → Sao chép liên kết”). Chuẩn hóa URL bằng cách bỏ query/hash; kiểm
-   tra `source_url` và raw text hash trước insert. URL đã có thì không tạo
-   listing mới. Lưu `post_id` chỉ khi parse được từ permalink đã verify; không
-   suy ra ID từ media URL hay tracking parameter.
-   Nếu card không expose permalink trực tiếp, dùng đúng post card's **Chia sẻ
-   → Sao chép liên kết** trong panel. URL Facebook trả về là evidence hợp lệ
-   cho card đó: ưu tiên mở/resolve thành `/groups/<group>/permalink/<id>/`;
-   nếu page-load budget không cho phép resolve, lưu nguyên
-   `https://www.facebook.com/share/p/<token>/` làm `source_url`, ghi
-   `link_resolution_method='facebook_copy_link'`, và để `post_id=null` nếu
-   token không chứa ID. Một comment permalink của Facebook có path chứa rõ
-   `/posts/<id>/` cũng được chuẩn hóa về parent post URL và ghi
-   `link_resolution_method='comment_permalink'`; không tự tạo URL từ profile
-   commenter hoặc media/photo ID.
-   Nếu cả direct permalink, comment-parent permalink và Facebook copy-link đều
-   không lấy được, **không bỏ card**: ghi một event
-   `sublet_events(event='capture_unresolved', entity_type='fb_card',
-   entity_id=null, source_url=<group_feed_url>)` với raw card text, poster,
-   timestamp label, media/counters đang thấy, `card_fingerprint`,
-   `missing_fields` và `unresolved_reason='no_link_evidence'`. Event này là
-   hàng chờ resolve, không phải listing và không được tính vào verified total.
+   timestamp, text, media, counters và link evidence trước khi chuyển text sang
+   bất kỳ bước xử lý nào; không dùng LLM để phát hiện ranh giới card và không
+   đọc raw page dump.
+3. Capture không mở link để resolve. Với mỗi card, lấy direct permalink nếu
+   DOM/a11y expose; nếu không thì dùng đúng post card's **Chia sẻ → Sao chép
+   liên kết** trong panel. Cả hai đều là link evidence đủ để lưu raw listing.
+   Giữ nguyên URL Facebook đã copy trong `source_url`; không suy ra ID từ share
+   token, media URL, tracking parameter, profile commenter hoặc photo ID.
+   Gán `link_validation_status='unvalidated'` cho listing mới; `post_id` và
+   canonical URL chỉ điền sau khi `validate-permalink` mở link và xác nhận đúng
+   bài. Comment permalink có parent path `/posts/<id>/` vẫn là evidence; lưu
+   parent URL trong context nhưng không cần mở thêm detail trong capture pass.
+   Nếu cả direct permalink và Facebook copy-link đều không lấy được, **không bỏ
+   card**: lưu raw card trong `sublet_events(event='capture_unresolved',
+   entity_type='fb_card', entity_id=null, source_url=<group_feed_url>)` với
+   poster, timestamp label, media/counters, `card_fingerprint`,
+   `missing_fields` và `unresolved_reason='no_link_evidence'`. Event này giữ
+   dữ liệu để retry capture; validator chỉ xử lý listing có `source_url`, không
+   đánh dấu card không có URL là `inaccessible`.
 4. Lưu `sublet_listings`:
    `source='fb_feed'`, `group_key`, `source_url`, `poster_name`, full
    `raw_text`, `posted_at` chỉ khi absolute timestamp hiển thị rõ, `seen_at`,
-   `kind=null`. `text_hash` là generated column, không insert thủ công.
+   `kind=null`, `link_validation_status='unvalidated'`. `text_hash` là
+   generated column, không insert thủ công. `source_url` được phép là
+   Facebook `share/p/...` chưa resolve.
    Nếu Facebook chỉ expose relative label, được phép tính thời điểm ước lượng
    từ `capture_now` (giờ `Europe/Amsterdam`) nhưng **không** ghi đè vào
    `posted_at`. Ghi estimate trong `notes` của listing và các key
@@ -163,6 +161,8 @@ Mỗi `context_captured` payload phải có đủ key, kể cả khi không th�
   },
   "post_id": "1126264226627111",
   "link_resolution_method": "direct_permalink",
+  "link_validation_status": "unvalidated",
+  "link_validated_url": null,
   "post_title": null,
   "post_text": "...",
   "language_label": null,
@@ -206,6 +206,9 @@ Card chưa resolve dùng payload raw tối thiểu riêng (không giả `post_ur
   "group_key": "...",
   "post_id": null,
   "post_url": null,
+  "link_resolution_method": "facebook_copy_link_failed",
+  "link_validation_status": "unvalidated",
+  "link_validated_url": null,
   "raw_card_text": "...",
   "poster": {"display_name": "...", "profile_url": null},
   "timestamp_label": null,
@@ -296,19 +299,21 @@ does not claim a new browser capture.
 
 - Card không có permalink trực tiếp nhưng đã lấy được Facebook share URL bằng
   **Chia sẻ → Sao chép liên kết**, hoặc có comment permalink với parent path
-  `/posts/<id>/`, là đã có link evidence và được tính vào verified total; vẫn
-  ghi `post_id=null` nếu share token chưa resolve được. Chỉ card không có
-  direct/comment permalink **và** không có share URL evidence mới là
-  `unresolved_cards`; raw card vẫn phải được lưu bằng `capture_unresolved`,
-  không đoán URL từ media/photo ID.
+  `/posts/<id>/`, là đã có link evidence và được lưu vào raw queue với
+  `link_validation_status='unvalidated'`; vẫn ghi `post_id=null` cho tới khi
+  validator xác nhận. Chỉ card không có direct/comment permalink **và** không
+  có share URL evidence mới là `unresolved_cards`; raw card vẫn phải được lưu
+  bằng `capture_unresolved`, không đoán URL từ media/photo ID.
 - Nhãn “2 tuần”, `posts_seen`, hoặc việc hết time-box **không** chứng minh đã
   capture đủ 14 ngày.
 - Chỉ set `sublet_group_metrics.posts_14d_count`,
   `posts_14d_complete=true`, `posts_14d_checked_at` khi đã qua boundary 14 ngày
-  và xử lý hết card trong window có verified link evidence; mọi card còn
-  `unresolved` hoặc `partial` phải được xử lý/ghi nhận đúng state trước khi
-  complete. `capture_unresolved` bảo đảm không mất raw data nhưng không tự biến
-  card đó thành verified.
+  và xử lý hết card trong window có link evidence; mọi card còn
+  `capture_unresolved` phải được ghi nhận đúng state trước khi complete. Raw
+  capture có thể kết thúc với queue `unvalidated`; chỉ sau khi
+  `validate-permalink` xử lý queue (terminal là `validated` hoặc xác nhận rõ
+  `inaccessible`) mới được chốt 14 ngày. `capture_unresolved` bảo đảm không mất
+  raw data nhưng không tự biến card đó thành verified.
 - Nếu feed virtualized, text vẫn collapsed, DB outage, browser reset hoặc có
   unresolved cards: giữ count null/known-but-incomplete, giữ run mở hoặc stop
   reason; không chuyển group.

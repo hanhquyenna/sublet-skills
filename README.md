@@ -1,6 +1,6 @@
 # sublet-skills
 
-> **Active scope (2026-09-15):** chỉ còn hai skill sublet được gọi: `information` và `sublet-scrape-14-groups`. Các phần phân tích, matching, messaging, outreach, email và Hetzner bên dưới là historical/future notes, không phải workflow đang bật.
+> **Active scope (2026-09-16):** ba skill sublet được gọi theo thứ tự: `information`, `sublet-scrape-14-groups`, rồi `validate-permalink`. Các phần phân tích, matching, messaging, outreach, email và Hetzner bên dưới là historical/future notes, không phải workflow đang bật.
 
 Bộ skill Claude Code để vận hành dịch vụ ghép sublet Amsterdam: agent đọc Facebook (chỉ trong ChatGPT browser panel đang mở cho bạn, chỉ đọc), giữ pool seeker, ghép theo ngày/giá/khu, soạn tin — **bạn gửi**. Offer: *3 người phù hợp đến viewing trong 72h, €49 nếu được, không thì free.*
 
@@ -31,6 +31,7 @@ Claude Code (Mac)                         Supabase (project Lamy, bảng sublet_
 |---|---|---|
 | 1 | `/information` | Khôi phục context, quyền, DB và cursor hiện tại |
 | 2 | `/sublet-scrape-14-groups` | Capture tuần tự tối đa 14 group, mỗi group 14 ngày |
+| 3 | `/validate-permalink` | Validate queue link Facebook đã capture, resume từ DB |
 
 Mọi analyze, match, messaging, viewing và outreach đều ngoài active scope hiện tại.
 
@@ -40,6 +41,7 @@ Mọi analyze, match, messaging, viewing và outreach đều ngoài active scope
 |---|---|---|
 | `information` | Context/runtime snapshot, quyền agent, DB, state và onboarding | Không |
 | `sublet-scrape-14-groups` | Chọn tối đa 14 group, capture raw 14 ngày tuần tự, resume/dedupe/checkpoint | Không |
+| `validate-permalink` | Kiểm tra link từng listing trong browser panel, ghi validated/inaccessible/needs_review | Không |
 
 ## Giới hạn an toàn (đã code vào skill)
 - ≤4 page load Facebook/chu kỳ, ≤~400/ngày, chỉ 08–23h, dừng ngay khi thấy checkpoint.

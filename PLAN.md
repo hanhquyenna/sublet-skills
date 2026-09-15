@@ -1,7 +1,7 @@
 # PLAN.md — sublet-skills: kế hoạch chi tiết cho agent (Codex/Claude Code) và cho người vận hành
 
 > **Active scope reset (2026-09-15):** Bộ skill hiện chỉ còn
-> `information` và `sublet-scrape-14-groups`. Các workflow cũ bên dưới là
+> `information`, `sublet-scrape-14-groups` và `validate-permalink`. Các workflow cũ bên dưới là
 > historical reference, không phải skill callable; không gọi hoặc khôi phục
 > chúng nếu người vận hành chưa yêu cầu mở rộng scope.
 
@@ -55,6 +55,7 @@ Bảng tổng: skill → đọc → ghi → trigger → page load
 | onboarding | config, sublet_groups, ops_state | sublet_ops_state | tay, lần đầu | 1 |
 | sublet-groups | FB search, sublet_listings (đếm) | sublet_groups, data/groups.yaml | tuần (discover tay, rank cron CN) | ≤6/tuần |
 | sublet-scrape-14-groups | groups, latest metrics, scan runs, listings/events, batch state | batch state + gọi backfill từng group | tay/worker | không tự đọc Facebook; serialize browser jobs |
+| validate-permalink | link queue chưa kiểm tra, context event gần nhất | listing link status + validation events + cursor | sau raw capture, tuần tự | ≤4/run |
 | sublet-backfill | 1 group, chronological, 14 ngày, resumable | sublet_listings raw, context events, scan_runs, group_metrics, ops_state | tay/worker, từng group | panel-only, theo page-load budget |
 | sublet-scan | FB groups/feed, /notifications, scan_runs.cursor | sublet_listings (kind=null), sublet_scan_runs, sublet_groups.last_post_seen_at, sublet_events | cron 12' | ≤4 |
 | sublet-email | Gmail IMAP | như scan (source=fb_email) | cron 10' (Hetzner 24/7) | 0 |
@@ -77,7 +78,7 @@ Bảng tổng: skill → đọc → ghi → trigger → page load
 ### C2. sublet-scan (capture-only)
 - **Logic:** kiểm giờ + tổng page_loads 24h (≥350 → dừng) + skip ngẫu nhiên 1/12 → mở `groups/feed` → đọc từ trên xuống → dừng khi gặp `cursor` run trước hoặc 3 URL đã biết → `/notifications` → insert thô mỗi post mới → ghi cursor = permalink đầu tiên → gọi `/intent-analyze`.
 - **Dữ liệu ghi:** `sublet_listings(source, source_url [unique], group_key, poster_name, posted_at, seen_at, raw_text, kind=null)`; `sublet_scan_runs(mode, page_loads, posts_seen, new_listings, cursor, stopped_reason)`; `sublet_events(event='captured')`.
-- **Xử lý:** login/checkpoint/captcha → `stopped_reason`, `sublet_inbox(level='stop')`, không chạy 24h (ghi `sublet_ops_state('scan_paused_until')`). Không map được group → tạo group key mới tier=null. Post không có permalink → không insert listing; ghi unresolved observation trong run cursor, không đoán URL.
+- **Xử lý:** login/checkpoint/captcha → `stopped_reason`, `sublet_inbox(level='stop')`, không chạy 24h (ghi `sublet_ops_state('scan_paused_until')`). Không map được group → tạo group key mới tier=null. Post không có direct permalink → dùng Share → Copy link và insert raw với `link_validation_status='unvalidated'`; chỉ khi không lấy được direct/comment/share evidence mới ghi `capture_unresolved`, không đoán URL.
 - **Cập nhật logic:** cadence/ngưỡng trong `config.scan`; điều kiện dừng trong SKILL.md bước 3.
 
 ### C3. sublet-email

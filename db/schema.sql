@@ -37,6 +37,13 @@ create table if not exists sublet_listings (
   -- capture
   source text not null check (source in ('fb_feed','fb_notif','fb_email','form','manual')),
   source_url text unique,
+  -- link evidence is captured first; validation happens in a separate browser skill
+  link_validation_status text not null default 'unvalidated'
+    check (link_validation_status in ('unvalidated','validated','inaccessible','needs_review')),
+  link_validated_url text,
+  link_validated_at timestamptz,
+  link_validation_attempts int not null default 0,
+  link_validation_note text,
   group_key text references sublet_groups(key) on delete set null,
   poster_name text,
   posted_at timestamptz,
@@ -221,6 +228,11 @@ alter table sublet_groups
   add column if not exists updated_at timestamptz not null default now();
 alter table sublet_listings
   add column if not exists city text not null default 'Amsterdam',
+  add column if not exists link_validation_status text not null default 'unvalidated',
+  add column if not exists link_validated_url text,
+  add column if not exists link_validated_at timestamptz,
+  add column if not exists link_validation_attempts int not null default 0,
+  add column if not exists link_validation_note text,
   add column if not exists canonical_id uuid references sublet_listings(id) on delete set null,
   add column if not exists subtype text,
   add column if not exists poster_type text,
@@ -253,8 +265,12 @@ alter table sublet_fees drop constraint if exists sublet_fees_trigger_check;
 alter table sublet_fees add constraint sublet_fees_trigger_check check (trigger in ('three_viewings_72h','move_in','signed','manual'));
 alter table sublet_messages add column if not exists in_reply_to uuid references sublet_messages(id) on delete set null;
 alter table sublet_scan_runs add column if not exists group_key text, add column if not exists cursor text;
+alter table sublet_listings drop constraint if exists sublet_listings_link_validation_status_check;
+alter table sublet_listings add constraint sublet_listings_link_validation_status_check
+  check (link_validation_status in ('unvalidated','validated','inaccessible','needs_review'));
 alter table sublet_scan_runs drop constraint if exists sublet_scan_runs_mode_check;
-alter table sublet_scan_runs add constraint sublet_scan_runs_mode_check check (mode in ('feed','notifications','email','group_page','search','backfill'));
+alter table sublet_scan_runs add constraint sublet_scan_runs_mode_check
+  check (mode in ('feed','notifications','email','group_page','search','backfill','validation'));
 alter table sublet_ops_state add column if not exists updated_at timestamptz not null default now();
 
 -- ---------- indexes ----------
@@ -262,6 +278,9 @@ create index if not exists sublet_listings_status_idx on sublet_listings(status)
 create index if not exists sublet_listings_seen_idx on sublet_listings(seen_at desc);
 create index if not exists sublet_listings_kind_idx on sublet_listings(kind) where kind is null;   -- hàng đợi intent-analyze
 create index if not exists sublet_listings_hash_idx on sublet_listings(text_hash);
+create index if not exists sublet_listings_link_validation_idx
+  on sublet_listings(link_validation_status, seen_at, id)
+  where source in ('fb_feed','fb_notif');
 create index if not exists sublet_listings_deal_idx on sublet_listings(deal_score desc) where status in ('new','matched');
 create index if not exists sublet_listings_fp_idx on sublet_listings(poster_name, rent_eur, available_from) where kind='offering';
 
@@ -286,6 +305,16 @@ create or replace view sublet_v_deal_queue as
 create or replace view sublet_v_analyze_queue as
   select id, source, source_url, group_key, poster_name, posted_at, seen_at, raw_text
   from sublet_listings where kind is null order by seen_at limit 40;
+
+create or replace view sublet_v_link_validation_queue as
+  select id, source, source_url, group_key, poster_name, raw_text, seen_at,
+         link_validation_status, link_validated_url, link_validated_at,
+         link_validation_attempts, link_validation_note
+  from sublet_listings
+  where source in ('fb_feed','fb_notif')
+    and source_url is not null
+    and link_validation_status = 'unvalidated'
+  order by seen_at, id;
 
 create or replace view sublet_v_seekers_active as
   select * from sublet_seekers where status='active' and (move_in is null or move_in >= current_date - 14);

@@ -21,10 +21,10 @@ Snapshot này được ghi ngày **2026-09-16**, sau commit `c0c1a2a` và lần 
 - Mục tiêu: dịch vụ broker sublet nhỏ ở Amsterdam, Phase 0 trong 30 ngày.
 - Người vận hành: **Kien**. Agent là mắt + trí nhớ + người soạn; Kien là người bấm/gửi.
 - Offer hiện tại: người có phòng nhận 3 viewing phù hợp trong 72h; €49 khi người được giới thiệu move-in; seeker dùng miễn phí.
-- Database lần kiểm tra gần nhất (2026-09-16): `sublet_groups=103`, `sublet_group_metrics=152`, `sublet_listings=27`, `sublet_events=39`, `sublet_scan_runs=6`, `sublet_ops_state=10`.
-- Raw QA của group đang chạy có 27/27 listing URL duy nhất, raw capture không phân tích (`kind=null`), và 29 `context_captured` events contract v2. Có 33 public comments được lưu; 15/27 listing chưa có absolute `posted_at` vì panel không expose timestamp tuyệt đối; key contract v2 và estimate fields không thiếu; không suy luận dữ liệu không hiển thị.
-- Đợt backfill group activity cao nhất đang là run resumable `sublet_scan_runs.id=7`; chronological đã vượt boundary tại card **31/08 lúc 23:40**. DB ghi `posts_seen=35`, `new_listings=23`, `posts_verified=27`, `unresolved_cards=15`, `page_loads=2/4`, `boundary_reached=true`; `posts_14d_count` vẫn `null` và `posts_14d_complete=false` vì 15 card chưa có permalink bài viết xác minh được hoặc là embedded/non-housing content. Không chuyển group khi run này chưa hoàn tất.
-- Raw capture quality hiện phân bố 19 `complete`, 8 `legacy_normalized`, 2 `legacy_unknown` trong 29 events của group; duplicate URL và comment-shape audit đều sạch. `legacy_*` là trạng thái provenance của dữ liệu cũ, không phải giấy phép suy đoán nội dung còn thiếu.
+- Database lần kiểm tra gần nhất (2026-09-16): `sublet_groups=103`, `sublet_group_metrics=152`, `sublet_listings=48`, `sublet_events=62`, `sublet_scan_runs=6`, `sublet_ops_state=10`; validation queue có 45 listing `unvalidated`, 2 `validated`, 1 `inaccessible`.
+- Raw QA của group đang chạy có 48 listing URL duy nhất, raw capture không phân tích (`kind=null`), và 62 events provenance; các link mới giữ share URL nếu chưa resolve và đi qua `validate-permalink`. Có 33 public comments được lưu; timestamp/field không hiển thị vẫn giữ null và có missing fields; không suy luận dữ liệu không hiển thị.
+- Đợt backfill group activity cao nhất đang là run resumable `sublet_scan_runs.id=7`; chronological đã vượt boundary tại card **31/08 lúc 23:40**. DB ghi `posts_seen=54`, `new_listings=42`, `posts_verified=46`, `unresolved_cards=15`, `page_loads=4/4`, `boundary_reached=true`; `posts_14d_count` vẫn `null` và `posts_14d_complete=false` vì còn card unresolved/partial. Không chuyển group khi run này chưa hoàn tất.
+- Raw capture quality hiện phân bố 20 `complete`, 18 `partial`, 8 `legacy_normalized`, 2 `legacy_unknown` và 2 event thiếu quality trong 50 `context_captured` events; duplicate URL và comment-shape audit đều sạch. `legacy_*` là trạng thái provenance của dữ liệu cũ, không phải giấy phép suy đoán nội dung còn thiếu.
 - DB hiện có 75 group mang cờ `joined=true`; metric mới nhất vẫn được bổ sung từ panel trong lúc kiểm tra. Batch notification vừa đối chiếu có 44 group unique đã báo approved và đều được ghi `joined=true`. Khi hai nguồn lệch nhau, chỉ metric mới nhất có `join_status='joined'` được coi là đủ điều kiện tier 1/2.
 - Group selection hiện chỉ dùng `joined=true`, loại group `allows_sublet='no'`, rồi sort theo metric `posts_per_day` mới nhất giảm dần; không tự rank lại tier trong capture.
 - Tier 1 hiện cần Kien bật Notifications → All posts thủ công cho 8 group; các group có số cao nhưng đang pending không được đưa vào danh sách.
@@ -77,11 +77,14 @@ snapshot; nếu mâu thuẫn `CLAUDE.md` thì `CLAUDE.md` thắng.
 
 ### Skill registry hiện tại
 
-Bộ sublet được intentionally rút gọn còn đúng **2 skills**:
+Bộ sublet hiện có đúng **3 skills active**:
 
 - `information` — context map và onboarding chi tiết.
 - `sublet-scrape-14-groups` — toàn bộ raw scraping workflow cho batch 14 group,
   gồm chọn group, resume, dedupe, capture context và DB checkpoint.
+- `validate-permalink` — xử lý tuần tự queue link đã capture trong browser panel;
+  giữ share URL gốc, ghi canonical URL nếu xác minh được và phân biệt
+  `validated`, `inaccessible`, `needs_review`.
 
 Không coi các skill sublet cũ đã xóa là dependency. Nếu cần phân tích sau này,
 đó là quyết định mở rộng mới, không tự khôi phục skill cũ.
@@ -109,7 +112,9 @@ find .claude/skills -mindepth 2 -maxdepth 2 -name SKILL.md -print | sort
 - `sublet_listings`: raw post với `source_url`, `group_key`, poster, absolute
   `posted_at` nếu thấy, `seen_at`, full `raw_text`, `kind=null`; relative-time
   estimate (nếu parse được) chỉ nằm trong `notes`/context payload và luôn có
-  uncertainty; `text_hash` do DB generate.
+  uncertainty; `text_hash` do DB generate. Link mới bắt đầu ở
+  `link_validation_status='unvalidated'`; `link_validated_url` giữ canonical
+  sau khi validator xác nhận, còn `source_url` luôn giữ evidence gốc.
 - `sublet_events`: provenance/context. Event raw chuẩn là
   `context_captured`, contract v2; `detail_audit` là QA riêng, không analyzer.
 - `sublet_scan_runs`: run, group, page loads, counts, cursor và stop reason.
@@ -118,10 +123,11 @@ find .claude/skills -mindepth 2 -maxdepth 2 -name SKILL.md -print | sort
 
 ### Current scrape context
 
-Mục tiêu hiện tại là `/sublet-scrape-14-groups`: tối đa 14 group đã joined,
+Mục tiêu hiện tại là `/sublet-scrape-14-groups` rồi `/validate-permalink`: tối đa 14 group đã joined,
 chọn theo `posts_per_day` mới nhất cao nhất, xử lý tuần tự từng group,
 chronological, đủ 14 ngày lịch, không duplicate, ghi DB sau từng batch. Skill
-này tự chứa backfill/chunk logic; không gọi skill sublet nào khác.
+này tự chứa backfill/chunk logic; sau capture gọi riêng `validate-permalink`,
+không gọi analyzer/match/outreach.
 
 Trước mỗi chunk, agent phải đọc run mở và DB: ưu tiên `cursor` với
 `last_verified_post_at`/`last_source_url`; `max(posted_at)` chỉ là tín hiệu
@@ -143,9 +149,11 @@ public activity giới hạn. Event mới phải có `capture_contract_version=2
 2. Query DB để xác nhận group count, latest metric, run mở, cursor, timestamp
    và duplicate source URLs; không tin snapshot nếu runtime khác.
 3. Chạy `/sublet-scrape-14-groups`; skill giữ batch state và xử lý từng group.
-4. Sau mỗi batch xác nhận listing/context/run/metric đã ghi. DB outage thì retry
+4. Chạy `/validate-permalink`; skill lấy record đầu tiên còn
+   `link_validation_status='unvalidated'`, xử lý tuần tự và resume từ DB.
+5. Sau mỗi batch xác nhận listing/context/run/metric đã ghi. DB outage thì retry
    một lần, dừng và giữ incomplete; không báo thành công giả.
-5. Sau khi raw batch hoàn tất, chưa có analyzer trong bộ skill hiện tại; chỉ
+6. Sau khi raw batch hoàn tất, chưa có analyzer trong bộ skill hiện tại; chỉ
    thêm analyzer khi Kien yêu cầu mở rộng scope.
 
 ## Supabase hiện tại
@@ -191,9 +199,16 @@ Giới hạn quan trọng: scrape tối đa 4 Facebook page loads/run và tối 
 
 ## Pipeline và nơi ghi dữ liệu
 
-Active flow chỉ là `information` → `sublet-scrape-14-groups`. Capture xong thì dừng; analyzer, matching, messaging và outreach chưa thuộc scope hiện tại.
+Active flow là `information` → `sublet-scrape-14-groups` →
+`validate-permalink`. Capture xong thì validator xử lý queue link; analyzer,
+matching, messaging và outreach chưa thuộc scope hiện tại.
 
-- Capture chỉ lưu post thô với `source_url` + `seen_at`, chưa tự phân loại.
+- Capture chỉ lưu post thô với `source_url` + `seen_at`, chưa tự phân loại và
+  chưa mở link để resolve. Share URL là evidence hợp lệ nhưng bắt đầu ở trạng
+  thái `unvalidated`; card không lấy được link vẫn lưu `capture_unresolved`.
+- Validation chỉ mở từng link trong panel, xác nhận group/poster/content rồi
+  ghi trạng thái và provenance event. Checkpoint/login/UI lỗi là
+  `needs_review`, không phải `inaccessible`.
 - Draft luôn lưu `status='draft'`; chỉ Kien đổi thành `sent`.
 - `filled`, `signed`, `paid` chỉ ghi khi có xác nhận thật và kèm nguồn.
 - Mọi việc cần Kien biết đưa vào `sublet_inbox`; không tự gửi notification ngoài.
