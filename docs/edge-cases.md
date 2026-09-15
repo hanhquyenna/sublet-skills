@@ -1,5 +1,7 @@
 # Edge-case registry — mọi tình huống hệ thống phải xử lý, ở đâu, đã test chưa
 
+> **Active scope:** chỉ `information` và `sublet-scrape-14-groups` được gọi. Các skill name cũ trong bảng là historical reference.
+
 Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_cases.json` (c###) hoặc `manual` (kiểm tay trong QA sau backfill) hoặc `—` (chưa có, cần thêm).
 
 ## A. KNOW — group

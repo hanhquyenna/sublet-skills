@@ -1,6 +1,6 @@
 #!/bin/zsh
 # Chạy 1 skill headless. Dùng bởi launchd (Mac) hoặc cron (Hetzner).
-# Usage: ops/run_skill.sh <skill> [args]   ví dụ: ops/run_skill.sh sublet-scan
+# Usage: ops/run_skill.sh <skill> [args]   ví dụ: ops/run_skill.sh sublet-scrape-14-groups
 # Env: SUBLET_RUNNER=claude|codex (mặc định claude)
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -9,6 +9,10 @@ source ~/.zshrc 2>/dev/null || true
 
 export TZ=Europe/Amsterdam
 SKILL="$1"; shift || true
+case "$SKILL" in
+  information|sublet-scrape-14-groups|backup) ;;
+  *) echo "unsupported skill in active two-skill scope: $SKILL" >&2; exit 2 ;;
+esac
 # R20: 1 skill 1 instance
 mkdir -p ops/locks; exec 9>"ops/locks/$SKILL.lock"; if ! flock -n 9; then echo "$(date +%T) skip $SKILL (locked)" >> "ops/logs/$(date +%Y-%m-%d).log"; exit 0; fi
 ARGS="$*"
@@ -18,12 +22,12 @@ mkdir -p ops/logs
 
 # Giờ chạy theo config (08–23 Amsterdam). Ngoài giờ → thoát im lặng.
 H=$(TZ=Europe/Amsterdam date +%H)
-if [[ "$SKILL" != "sublet-report" && ( $H -lt 8 || $H -ge 23 ) ]]; then
+if [[ "$SKILL" == "sublet-scrape-14-groups" && ( $H -lt 8 || $H -ge 23 ) ]]; then
   echo "$(date +%T) skip $SKILL (ngoài giờ)" >> "$LOG"; exit 0
 fi
 
 # Skill cần Chrome thật chỉ chạy khi máy thức > 2 phút và có màn hình mở
-if [[ "$SKILL" == "sublet-scan" || "$SKILL" == "inbox-triage" || "$SKILL" == "sublet-groups" || "$SKILL" == "sublet-backfill" ]]; then
+if [[ "$SKILL" == "sublet-scrape-14-groups" ]]; then
   BOOT=$(sysctl -n kern.boottime | awk -F'sec = ' '{print $2}' | awk -F',' '{print $1}')
   NOW=$(date +%s)
   if (( NOW - BOOT < 120 )); then echo "$(date +%T) skip $SKILL (vừa wake)" >> "$LOG"; exit 0; fi

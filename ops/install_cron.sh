@@ -29,18 +29,10 @@ if [[ "${1:-}" == "uninstall" ]]; then
   echo "gỡ xong"; exit 0
 fi
 
-# 1. worker mỗi 10' — tự chọn 1 job: scan / analyze / match / email / backfill chunk / verify chunk
-make_plist worker sublet-worker "<key>StartInterval</key><integer>600</integer>"
-# 2. inbox mỗi 20'
-make_plist inbox inbox-triage "<key>StartInterval</key><integer>1200</integer>"
-# 4. followup 08:30
-make_plist followup sublet-followup "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>30</integer></dict>"
-# 5. report 18:00
-make_plist report sublet-report "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>"
-# 7. backup 23:30
+# Active scrape is manual for now; run `/information` then
+# `/sublet-scrape-14-groups`. Do not schedule browser scraping implicitly.
+# Backup remains a non-Facebook maintenance task.
 make_plist backup "backup" "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>23</integer><key>Minute</key><integer>30</integer></dict>"
-# 6. groups rank Chủ nhật 10:00
-make_plist groups "sublet-groups rank" "<key>StartCalendarInterval</key><dict><key>Weekday</key><integer>0</integer><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>"
 
 for f in "$PLIST_DIR"/com.sublet.*.plist; do launchctl unload "$f" 2>/dev/null || true; launchctl load "$f"; done
 launchctl list | grep com.sublet || true

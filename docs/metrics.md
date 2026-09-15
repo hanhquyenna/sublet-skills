@@ -1,5 +1,7 @@
 # Metrics catalogue — success metric của từng workflow, lưu ở `sublet_metrics` (1 dòng/ngày/metric)
 
+> **Active scope:** hiện chỉ đo raw capture/run progress của `sublet-scrape-14-groups`; các metric analyzer, match, outreach và report bên dưới là historical/future reference.
+
 `sublet-report` tính và **insert** mỗi 18:00 (`day`, `workflow`, `metric`, `value`, `target`). Không tính lại từ đầu mỗi lần; xu hướng đọc từ bảng.
 
 | workflow | metric | Công thức | Target Phase 0 | Skill tạo dữ liệu |

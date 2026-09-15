@@ -1,5 +1,10 @@
 # PLAN.md — sublet-skills: kế hoạch chi tiết cho agent (Codex/Claude Code) và cho người vận hành
 
+> **Active scope reset (2026-09-15):** Bộ skill hiện chỉ còn
+> `information` và `sublet-scrape-14-groups`. Các workflow cũ bên dưới là
+> historical reference, không phải skill callable; không gọi hoặc khôi phục
+> chúng nếu người vận hành chưa yêu cầu mở rộng scope.
+
 Tài liệu này là nguồn sự thật. Agent đọc phần A–D. Bạn đọc phần E–G. Cả hai đọc phần H (cập nhật logic).
 
 ---

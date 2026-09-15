@@ -1,14 +1,14 @@
 # AGENTS.md — cho Codex (bản tương đương CLAUDE.md)
 
 Đọc **CLAUDE.md** — toàn bộ luật cứng ở đó và áp dụng nguyên văn cho Codex. Tóm tắt:
-- Chỉ ĐỌC Facebook. Không post/comment/like/DM/join. Người dùng gửi mọi tin.
-- ≤4 page load/chu kỳ scan, ≤6 cho inbox-triage, chỉ 08–23h Amsterdam, dừng ngay khi thấy checkpoint/captcha/login.
-- Match score từ `scripts/match.py`. Mọi tin gửi ra ngoài phải qua `partner-voice`.
-- Mọi record có `source_url` + `seen_at`.
+- Chỉ ĐỌC Facebook. Không post/comment/like/DM/join/submit form.
+- Capture tuần tự tối đa 14 group, cửa sổ 14 ngày; ≤4 page load/run và dừng ngay khi thấy checkpoint/captcha/login.
+- Mọi raw record có `source_url` + `seen_at`; resume từ DB cursor và dedupe trước khi ghi.
 
 ## Skills
-Cùng bộ với Claude Code, tại `.agents/skills/<name>/SKILL.md` (symlink → `.claude/skills`). Gọi bằng tên: "run the sublet-scan skill".
-Skill `information` là bản đồ context/runtime; đọc trước khi onboarding hoặc khi cần khôi phục trạng thái dự án.
+Active sublet scope chỉ có `.agents/skills/information/SKILL.md` và
+`.agents/skills/sublet-scrape-14-groups/SKILL.md` (symlink → `.claude/skills`).
+Đọc `information` trước; gọi `sublet-scrape-14-groups` để capture.
 
 ## Browser
 Mọi thao tác Facebook (search, đọc, verify) **chỉ dùng ChatGPT browser panel / Codex In-app Browser session đang mở cho người dùng**. Không dùng CLI, script, web-fetch/API, headless browser, Chrome session khác, hoặc cookie ở nơi khác để thao tác/verify Facebook. Người dùng login thủ công; agent chỉ đọc và phải dừng khi thấy login/checkpoint/captcha/unusual activity.

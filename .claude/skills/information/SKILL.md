@@ -11,7 +11,7 @@ Skill này là bản đồ context, không thay thế luật cứng hay logic ch
 
 - Dùng đầu mỗi session khi agent mới tiếp quản repo.
 - Dùng khi người vận hành hỏi “project đang ở đâu”, “DB dùng thế nào”, hoặc context đã thay đổi.
-- Trước `/onboarding`, kiểm tra snapshot dưới đây rồi đối chiếu trực tiếp bằng command/DB; không coi số liệu snapshot là bằng chứng mới nhất.
+- Trước `/sublet-scrape-14-groups`, kiểm tra snapshot dưới đây rồi đối chiếu trực tiếp bằng command/DB; không coi số liệu snapshot là bằng chứng mới nhất.
 
 ## Snapshot hiện tại
 
@@ -26,7 +26,7 @@ Snapshot này được ghi ngày **2026-09-15**, sau commit `a95fe61`, rank metr
 - Đợt backfill group activity cao nhất đang là run resumable `sublet_scan_runs.id=7`; đã thấy boundary “2 tuần” nhưng chưa chứng minh capture đủ mọi card. Vì vậy `posts_14d_count` vẫn chưa được chốt và `posts_14d_complete=false`; không báo 8/10 listings đã là tổng 14 ngày.
 - Raw capture QA: 10 `context_captured` events lịch sử hiện chưa có payload đồng nhất cho `reaction_count`, `comment_count`, `timestamp_label`, `media[]`, `truncated` và provenance; không được coi đó là “không có dữ liệu”. Contract v2 đã được ghi vào skill cho các lần capture sau; 10 event cũ vẫn `legacy_unknown` cho đến khi có DB-only normalization/re-audit.
 - DB hiện có 75 group mang cờ `joined=true`; metric mới nhất vẫn được bổ sung từ panel trong lúc kiểm tra. Batch notification vừa đối chiếu có 44 group unique đã báo approved và đều được ghi `joined=true`. Khi hai nguồn lệch nhau, chỉ metric mới nhất có `join_status='joined'` được coi là đủ điều kiện tier 1/2.
-- `sublet-groups rank` đã chạy lại từ `posts_per_day`: 8 group tier 1; phân bố tier hiện tại là 8 tier 1, 7 tier 2, 83 tier 3 và 5 chưa xếp tier. `offering_7d` chưa đủ dữ liệu để ghi đè tier tạm.
+- Group selection hiện chỉ dùng `joined=true`, loại group `allows_sublet='no'`, rồi sort theo metric `posts_per_day` mới nhất giảm dần; không tự rank lại tier trong capture.
 - Tier 1 hiện cần Kien bật Notifications → All posts thủ công cho 8 group; các group có số cao nhưng đang pending không được đưa vào danh sách.
 - Discovery Facebook dùng các batch query English/Dutch về Amsterdam, student housing, kamers, onderhuur và Nederland; tổng DB hiện có 103 group. `data/groups.yaml` đã được đồng bộ từ DB, giữ trường `keywords` và notes.
 - `data/config.yaml`: city Amsterdam, timezone `Europe/Amsterdam`, agent nói tiếng Việt, template gửi ra ngoài English, tên Kien. Còn trống `email.imap_user` và `seeker_form.url`; đã thêm advisory model routing: `gpt-5.6-luna` cho intent/backfill, `gpt-6-astra` cho draft/inbox/partner voice.
@@ -76,12 +76,14 @@ filesystem và browser rồi cập nhật snapshot; nếu mâu thuẫn `CLAUDE.m
 
 ### Skill registry hiện tại
 
-- Context/ops: `information`, `onboarding`, `sublet-worker`, `sublet-report`.
-- Group/capture: `sublet-groups`, `sublet-scan`, `sublet-backfill`,
-  `sublet-scrape-14-groups`, `sublet-email`, `sublet-diagnose`.
-- Analyze/match: `intent-analyze`, `seeker-intake`, `sublet-match`.
-- Communication/viewing: `partner-voice`, `sublet-draft`, `inbox-triage`,
-  `viewing-coordinate`, `sublet-followup`.
+Bộ sublet được intentionally rút gọn còn đúng **2 skills**:
+
+- `information` — context map và onboarding chi tiết.
+- `sublet-scrape-14-groups` — toàn bộ raw scraping workflow cho batch 14 group,
+  gồm chọn group, resume, dedupe, capture context và DB checkpoint.
+
+Không coi các skill sublet cũ đã xóa là dependency. Nếu cần phân tích sau này,
+đó là quyết định mở rộng mới, không tự khôi phục skill cũ.
 
 Skill source duy nhất là `/Users/ad/sublet-skills/.claude/skills/<name>/SKILL.md`.
 `.agents/skills` chỉ là symlink dùng cho Codex; không tạo bản copy thứ hai.
@@ -114,9 +116,9 @@ find .claude/skills -mindepth 2 -maxdepth 2 -name SKILL.md -print | sort
 ### Current scrape context
 
 Mục tiêu hiện tại là `/sublet-scrape-14-groups`: tối đa 14 group đã joined,
-chọn theo `posts_per_day` mới nhất cao nhất, xử lý tuần tự từng group. Mỗi
-group dùng `/sublet-backfill <group_key> 14`, chronological, đủ 14 ngày lịch,
-không duplicate, ghi DB sau từng batch.
+chọn theo `posts_per_day` mới nhất cao nhất, xử lý tuần tự từng group,
+chronological, đủ 14 ngày lịch, không duplicate, ghi DB sau từng batch. Skill
+này tự chứa backfill/chunk logic; không gọi skill sublet nào khác.
 
 Trước mỗi chunk, agent phải đọc run mở và DB: ưu tiên `cursor` với
 `last_verified_post_at`/`last_source_url`; `max(posted_at)` chỉ là tín hiệu
@@ -137,11 +139,11 @@ public activity giới hạn. Event mới phải có `capture_contract_version=2
 1. Đọc skill này và kiểm tra `git status`, current branch/commit.
 2. Query DB để xác nhận group count, latest metric, run mở, cursor, timestamp
    và duplicate source URLs; không tin snapshot nếu runtime khác.
-3. Chạy `/sublet-scrape-14-groups`; controller giữ batch state và gọi
-   `sublet-backfill` từng group.
+3. Chạy `/sublet-scrape-14-groups`; skill giữ batch state và xử lý từng group.
 4. Sau mỗi batch xác nhận listing/context/run/metric đã ghi. DB outage thì retry
    một lần, dừng và giữ incomplete; không báo thành công giả.
-5. Sau khi raw batch hoàn tất mới chạy `intent-analyze` riêng nếu Kien yêu cầu.
+5. Sau khi raw batch hoàn tất, chưa có analyzer trong bộ skill hiện tại; chỉ
+   thêm analyzer khi Kien yêu cầu mở rộng scope.
 
 ## Supabase hiện tại
 
@@ -172,11 +174,11 @@ Login Facebook là việc Kien làm tay trong ChatGPT browser panel. Agent chỉ
 
 Nếu thấy login, checkpoint, captcha hoặc “unusual activity”: dừng, ghi stop nếu workflow yêu cầu, không retry 24h.
 
-Giới hạn quan trọng: discovery tối đa 3 query và ≤6 Facebook page loads/tuần; scan ≤4 page loads/chu kỳ; inbox-triage ≤6; group page riêng theo daily budget; backfill từng group, cửa sổ 14 ngày, cập nhật DB sau từng batch. Join do người dùng tự làm. Không cố né phát hiện automation.
+Giới hạn quan trọng: scrape tối đa 4 Facebook page loads/run và tối đa 14 group/run; từng group có cửa sổ 14 ngày, cập nhật DB sau từng batch. Join do người dùng tự làm. Không cố né phát hiện automation.
 
 ## Pipeline và nơi ghi dữ liệu
 
-`sublet-groups` → `sublet-scan`/`sublet-email` (capture thô) → `intent-analyze` theo `docs/intent-logic.md` → `sublet-match` dùng `scripts/match.py` → `sublet-draft`/`inbox-triage` → Kien tự gửi → `viewing-coordinate` → `sublet-followup`/`sublet-report`.
+Active flow chỉ là `information` → `sublet-scrape-14-groups`. Capture xong thì dừng; analyzer, matching, messaging và outreach chưa thuộc scope hiện tại.
 
 - Capture chỉ lưu post thô với `source_url` + `seen_at`, chưa tự phân loại.
 - Draft luôn lưu `status='draft'`; chỉ Kien đổi thành `sent`.

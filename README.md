@@ -1,5 +1,7 @@
 # sublet-skills
 
+> **Active scope (2026-09-15):** chỉ còn hai skill sublet được gọi: `information` và `sublet-scrape-14-groups`. Các phần phân tích, matching, messaging, outreach, email và Hetzner bên dưới là historical/future notes, không phải workflow đang bật.
+
 Bộ skill Claude Code để vận hành dịch vụ ghép sublet Amsterdam: agent đọc Facebook (chỉ trong ChatGPT browser panel đang mở cho bạn, chỉ đọc), giữ pool seeker, ghép theo ngày/giá/khu, soạn tin — **bạn gửi**. Offer: *3 người phù hợp đến viewing trong 72h, €49 nếu được, không thì free.*
 
 Đọc [CLAUDE.md](CLAUDE.md) trước — đó là luật cứng. Kế hoạch chi tiết (logic từng skill, schema, cron, cách cập nhật): [PLAN.md](PLAN.md). Codex: [AGENTS.md](AGENTS.md). Context/runtime snapshot: [.claude/skills/information/SKILL.md](.claude/skills/information/SKILL.md). Prompt bàn giao cho agent: [HANDOFF.md](HANDOFF.md). Logic phân loại post bằng lời: [docs/intent-logic.md](docs/intent-logic.md). Registry: [rules](docs/rules.md) · [edge-cases](docs/edge-cases.md) · [metrics](docs/metrics.md) · [audit 2026-09-15](docs/audit-2026-09-15.md). Mỗi skill mở đầu bằng khối **Spec** (lịch · trigger · đọc · ghi · metrics · edge cases · rules).
@@ -10,7 +12,7 @@ Bộ skill Claude Code để vận hành dịch vụ ghép sublet Amsterdam: age
 Claude Code (Mac)                         Supabase (project Lamy, bảng sublet_*)
  ├─ ChatGPT browser panel → đọc Facebook    listings · seekers · matches · viewings
  ├─ scripts/match.py → chấm điểm            fees · messages · events · scan_runs
- └─ /loop 12m /sublet-scan                 Hetzner (sau): cron /sublet-email, không cần browser
+ └─ /sublet-scrape-14-groups (manual)       Không có browser automation/cron ngầm
 ```
 
 ## Setup (30 phút)
@@ -20,60 +22,40 @@ Claude Code (Mac)                         Supabase (project Lamy, bảng sublet_
 3. **config**: `data/config.yaml` — điền `email.imap_user`, `offer.your_first_name`. Giá/offer đã đặt €49.
 4. **Env**: `zsh ops/setup_env.sh` khi cần bổ sung biến — file `~/.sublet-skills.env` (chmod 600) giữ secret Supabase/IMAP, còn `data/config.yaml` giữ config không-secret. Không commit file env.
 5. **Seeker form**: tạo Tally form với các cột: name, contact, consent (checkbox), move_in, move_out, budget, areas, people, registration_need, pets, occupation, viewing_availability. Export CSV → `data/seekers_export.csv`.
-6. Mở Codex trong thư mục này rồi gõ `/onboarding` — nó dắt qua các bước còn lại. Cron do bạn tự cài nếu cần (`zsh ops/install_cron.sh`).
+6. Mở Codex trong thư mục này, đọc `/information`, rồi chạy
+   `/sublet-scrape-14-groups` khi muốn bắt đầu capture. Hiện chưa bật cron tự động.
 
-## Daily loop
+## Current loop
 
-| Giờ | Lệnh | Bạn làm |
+| Bước | Lệnh | Kết quả |
 |---|---|---|
-| 08:30 | `/sublet-followup` | Đọc ≤10 việc, gửi các draft |
-| 08:30–23:00 | `/loop 10m /sublet-worker` (hoặc launchd) | Để chạy nền. Worker tự chọn việc. Việc cần bạn rơi vào `sublet_inbox` |
-| khi có listing tốt | (tự động) `/intent-analyze` → `/sublet-match` → `/sublet-draft` | Copy DM, mở post, gửi tay. Gõ `/sublet-draft sent <id>` |
-| subletter "ok" | `/viewing-coordinate <listing>` | Gửi shortlist, chốt slot, gửi contact |
-| sau viewing | `/viewing-coordinate showed\|no_show <viewing_id>` | Gửi Tikkie khi đủ 3 viewing |
-| 18:00 | `/sublet-report` | Đọc metrics |
-| tuần 1 lần | `/sublet-report 30d` | Quyết định group lên/xuống tier |
+| 1 | `/information` | Khôi phục context, quyền, DB và cursor hiện tại |
+| 2 | `/sublet-scrape-14-groups` | Capture tuần tự tối đa 14 group, mỗi group 14 ngày |
 
-Có seeker mới: dán tin nhắn của họ vào chat và gõ `/seeker-intake`. Post của bạn 0 phản hồi: `/sublet-diagnose <link>`.
+Mọi analyze, match, messaging, viewing và outreach đều ngoài active scope hiện tại.
 
 ## Skills
 
 | Skill | Làm gì | Gửi gì ra ngoài? |
 |---|---|---|
-| `information` | Context/runtime snapshot: project, DB, browser, file map, quyết định | Không |
-| `onboarding` | Checklist khởi động, tự kiểm + hỏi bạn, ghi sublet_ops_state | Không |
-| `inbox-triage` | Đọc reply (Messenger đọc-only / bạn dán) → phân loại → cập nhật trạng thái → draft trả lời (FAQ điền sẵn) | **Bạn gửi** |
-| `sublet-groups` | Tìm group (FB search, đọc-only), rank tier theo offering/7d, cursor chống lặp | Không |
-| `sublet-worker` | Điểm vào cron: 1 tick = 1 job step ≤8' từ `sublet_jobs` (scan > analyze > match > email > backfill chunk > verify chunk) | Không |
-| `sublet-scrape-14-groups` | Controller batch: chọn tối đa 14 group theo activity, gọi backfill 14 ngày tuần tự, resume/dedupe/checkpoint | Không |
-| `sublet-backfill` | Đọc lịch sử 14 ngày của 1 group, resumable, panel-only, lưu raw post + public context → corpus trước khi phân tích | Không |
-| `sublet-scan` | **Capture-only**: groups/feed + notifications → post thô (link, text, time, group), dừng ở cursor | Không |
-| `intent-analyze` | Post thô → intent (subletter/sublettee), requirements có cấu trúc, scam score, tự match | Không |
-| `partner-voice` | Giọng + luật nói với subletter (xin hợp tác) và người tìm nhà (free, broker được subletter trả) | — (được draft/followup dùng) |
-| `sublet-email` | Email notification FB → listings (chạy được trên Hetzner) | Không |
-| `seeker-intake` | Tally/WhatsApp/text → seekers | Không |
-| `sublet-match` | `match.py` → sublet_matches có lý do | Không |
-| `sublet-draft` | DM offer + push seeker → `status='draft'` | **Bạn gửi** |
-| `viewing-coordinate` | Shortlist 3, slot, reminder, fee trigger | **Bạn gửi** |
-| `sublet-followup` | Việc hôm nay + draft follow-up | **Bạn gửi** |
-| `sublet-diagnose` | Vì sao post 0 view | Không |
-| `sublet-report` | Metrics Phase 0 → sublet_inbox | Không |
+| `information` | Context/runtime snapshot, quyền agent, DB, state và onboarding | Không |
+| `sublet-scrape-14-groups` | Chọn tối đa 14 group, capture raw 14 ngày tuần tự, resume/dedupe/checkpoint | Không |
 
 ## Giới hạn an toàn (đã code vào skill)
 - ≤4 page load Facebook/chu kỳ, ≤~400/ngày, chỉ 08–23h, dừng ngay khi thấy checkpoint.
 - Agent không bao giờ post/comment/like/DM/join. Mọi tin đi ra do người gửi.
-- ≤10 DM offer/ngày. Mỗi thread ≤2 follow-up.
 - Không thu tiền hộ, không giữ deposit, không chuyển địa chỉ chính xác qua bạn.
 - Không xếp hạng theo quốc tịch/giới tính/tuổi.
 
-## Phase 0 — 30 ngày, câu hỏi cần trả lời
-1. Bao nhiêu offering thật/ngày, group nào? (`/sublet-report`)
-2. DM → "ok" bao nhiêu %? (mốc 30%)
-3. Listing accepted → 3 viewing trong 72h bao nhiêu %? (mốc 50%)
-4. Show-up? Fee thu được? (mốc 70% / 70%)
-5. Subletter có chịu thêm "apply via link" vào post không?
+## Phase 0 — capture hiện tại
+
+Mục tiêu đang bật là hoàn tất raw capture 14 ngày cho tối đa 14 group đã joined,
+ghi từng batch vào DB, resume từ cursor và không duplicate. Phân tích offering,
+matching, messaging và outreach chỉ mở lại khi Kien yêu cầu.
 
 Dưới mốc → đổi offer/giá, không đổi kiến trúc. Đạt mốc → lúc đó mới viết daemon + Hetzner cho phần email/matching, và giữ Chrome trên Mac (hoặc Mac mini) cho phần đọc.
 
-## Hetzner (Phase 2)
-Chỉ chạy: `sublet-email`, `sublet-match`, `sublet-followup` (draft), `sublet-report`. **Không bao giờ** chạy Chrome/Facebook trên VPS — IP datacenter + session cá nhân = checkpoint.
+## Hetzner (chưa bật)
+
+Không có sublet cron đang hoạt động. Facebook capture chỉ chạy thủ công trong
+ChatGPT browser panel trên máy của Kien; không chạy Facebook trên VPS.

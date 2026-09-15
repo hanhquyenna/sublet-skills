@@ -1,52 +1,46 @@
 ---
 name: sublet-scrape-14-groups
-description: "Điều phối batch capture đầu tiên của 14 Facebook groups: chọn group đã joined theo posts_per_day mới nhất, scrape raw đủ cửa sổ 14 ngày từng group một, resume từ DB, chống duplicate, cập nhật DB sau từng batch và chỉ chuyển group khi group trước hoàn tất. Dùng với /sublet-scrape-14-groups."
+description: "Scrape raw data from up to 14 joined Facebook groups, one group at a time, for the latest 14 calendar days. Resume from the database, deduplicate, checkpoint after every batch, and finish each group before moving on. Use with /sublet-scrape-14-groups."
 ---
 
 # sublet-scrape-14-groups
 
-Đọc `CLAUDE.md`, `AGENTS.md` và
-`../sublet-scan/references/capture-contract.md` trước khi chạy. Đây là
-**batch controller**, không phải scraper riêng: nó gọi quy trình
-`sublet-backfill` theo từng group và không bypass capture contract.
+Đây là skill sublet duy nhất để scrape. `information` là skill duy nhất để
+khôi phục context/onboarding. Skill này tự chứa toàn bộ capture workflow; không
+phụ thuộc `sublet-scan`, `sublet-backfill`, `sublet-worker` hay skill sublet nào
+khác.
 
-## Spec
+## Mục tiêu và thứ tự
 
-| | |
-|---|---|
-| **Lịch** | chạy tay/worker; một batch 14 group tại một thời điểm |
-| **Trigger** | `/sublet-scrape-14-groups` |
-| **Đọc** | `sublet_groups`, latest `sublet_group_metrics`, `sublet_scan_runs`, `sublet_listings`, `sublet_events`, `sublet_ops_state` |
-| **Ghi** | raw listings/context, scan runs, group metrics, `sublet_ops_state` batch progress |
-| **Metrics** | `capture.groups_14d_complete`, `capture.posts_14d_verified`, page-load budget |
-| **Edge cases** | E10 E12 E20 E23 E24 E25 E26 E27 E28 E29 → `docs/edge-cases.md` |
-| **Rules** | R02 R03 R05 R06 R10 R19 R21 R25 R26 R27 R28 → `docs/rules.md` |
+- Chọn tối đa 14 group đã `joined=true`, loại group có
+  `allows_sublet='no'`, sắp theo `posts_per_day` mới nhất giảm dần.
+- Xử lý đúng **một group tại một thời điểm**. Không mở 14 group song song và
+  không chuyển group khi group hiện tại chưa complete.
+- Với mỗi group, đọc feed chronological từ mới tới cũ trong **14 ngày lịch**
+  theo timezone `Europe/Amsterdam`.
+- Capture-only: lưu raw, chưa phân loại offering/seeking/scam và chưa match hay
+  outreach. Chỉ chạy phân tích khi người vận hành yêu cầu sau khi scrape xong.
+- Routine flow không cần hỏi lại; chỉ dừng khi gặp blocker an toàn, DB lỗi,
+  Facebook login/checkpoint/captcha/unusual activity, hoặc dữ liệu không thể
+  xác minh.
 
-## Luật cứng của batch
+## Quyền và browser hard rule
 
-- Chỉ dùng ChatGPT/Codex in-app browser panel đang đăng nhập thủ công. Không
-  dùng script/API/HTTP/Selenium/headless/cookie/browser session khác để đọc
-  Facebook.
-- Facebook chỉ được đọc. Không join, submit membership form, bật notification,
-  post, comment, like, DM, send hoặc donate.
-- Một lần chỉ có **một group browser job**. Không mở 14 group song song và
-  không giả vờ đã xử lý group nếu chưa capture đủ.
-- Mỗi group có cửa sổ **14 ngày lịch**, capture raw post + poster + comment/reply
-  công khai nhìn thấy + public context giới hạn; không phân tích intent trong
-  bước này.
-- Ghi listing/context/progress vào DB sau từng batch. Nếu DB lỗi sau một lần
-  retry, dừng và giữ group incomplete.
+- Chỉ đọc Facebook qua ChatGPT/Codex in-app browser panel trong session người
+  dùng đã login thủ công.
+- Không dùng script scraper, HTTP/API, Selenium, headless browser, cookie,
+  browser session khác hoặc raw page dump để đọc Facebook.
+- Không join, submit membership form, bật notification, post, comment, like,
+  DM, send, donate hoặc tương tác profile.
+- Khi thấy login/checkpoint/captcha/“unusual activity” hoặc Facebook yêu cầu
+  verification: dừng ngay, ghi stop/incomplete; không retry trong 24 giờ.
+- Giữ page-load budget hiện hành: tối đa 4 page load mỗi run và không vượt daily
+  volume gate; scroll phải có khoảng chờ human pace nhưng không dùng delay để
+  vượt rate limit.
 
-## Khởi tạo hoặc tiếp tục batch
+## Batch state và resume
 
-1. Đọc state `sublet_ops_state` key `scrape_14_groups_batch`. Nếu có batch đang
-   chạy, tiếp tục `current_group` và cursor của group đó; không tạo batch mới.
-2. Nếu chưa có batch, lấy tối đa 14 group đã `joined=true`, loại group có
-   `allows_sublet='no'`, ưu tiên `posts_per_day` từ metric mới nhất giảm dần.
-   Metric stale hoặc chưa verified chỉ dùng để xếp thứ tự, không gọi là
-   offering thật. Nếu có dưới 14 group đủ điều kiện, ghi số thực tế, không bịa
-   đủ 14.
-3. Ghi state JSON tối thiểu:
+Lưu state vào `sublet_ops_state` key `scrape_14_groups_batch`:
 
 ```json
 {
@@ -61,51 +55,98 @@ description: "Điều phối batch capture đầu tiên của 14 Facebook groups
 }
 ```
 
-## DB checkpoint trước khi chạm browser
+Trước khi mở browser cho `current_group`, kiểm tra DB:
 
-Với `current_group`, đọc theo thứ tự:
-
-1. Run `sublet_scan_runs` mới nhất có `group_key` và `finished_at is null`;
-   lấy `cursor` JSON: `window_days`, `last_verified_post_at`,
+1. Run `sublet_scan_runs` mới nhất có `group_key` và `finished_at is null`.
+   Đọc `cursor` JSON: `window_days`, `last_verified_post_at`,
    `last_source_url`, `posts_verified`, `unresolved_cards`, `phase`.
-2. Nếu không có run mở, đọc metric mới nhất và:
-   - `max(posted_at)` của các listing đã có timestamp tuyệt đối;
-   - `max(seen_at)` chỉ để biết lần quan sát DB gần nhất, **không** dùng nó làm
-     thời điểm bài đăng;
-   - listing/event mới nhất theo `source_url` để chống bắt đầu lại.
-3. Ưu tiên resume cursor của run mở. Không reset về bài mới nhất chỉ vì prompt
-   bị dừng, browser reset, hoặc DB vừa hoạt động lại. Nếu timestamp post là
-   `null`, resume bằng verified `source_url`/cursor và dedupe DB.
-4. Trước mỗi insert, kiểm tra `source_url` và raw `text_hash` hiện có. URL đã có
-   thì không insert listing lần hai. Context event contract v2 đã có thì không
-   tạo event trùng; chỉ bổ sung khi capture mới có raw evidence rõ ràng hơn và
-   giữ provenance cũ.
+2. Nếu không có run mở, đọc metric mới nhất và `max(posted_at)` của các listing
+   có timestamp tuyệt đối. Đọc `max(seen_at)` chỉ để biết lần DB quan sát gần
+   nhất; **không** dùng `seen_at` làm thời điểm bài đăng.
+3. Nếu timestamp post là `null`, resume bằng verified `source_url`/cursor.
+   Không reset về đầu chỉ vì prompt/browser bị dừng hoặc DB vừa hoạt động lại.
+4. Nếu group đã có `posts_14d_complete=true`, ghi group vào `completed` và bỏ
+   qua; không scrape lại.
 
-## Vòng xử lý một group
+## Capture từng group
 
-1. Gọi `/sublet-backfill <current_group> 14` trong chế độ chunk. Skill đó mở
-   đúng group chronological trong panel, đọc từ mới tới cũ và capture theo
-   `sublet-scan/references/capture-contract.md`.
-2. Sau mỗi chunk, kiểm tra DB: số listing mới, số context event contract v2,
-   `last_verified_post_at`, `last_source_url`, `unresolved_cards`,
-   `posts_14d_complete`. Không lấy `posts_seen` làm tổng 14 ngày.
-3. Nếu chưa qua boundary hoặc còn card có permalink chưa xử lý, giữ group là
-   `current_group`, queue chunk tiếp theo và không chuyển group.
-4. Chỉ khi `posts_14d_complete=true` mới thêm group vào `completed`, tăng
-   `current_index`, cập nhật batch state, rồi chọn group kế tiếp. `detail_audit`
-   không thay thế `context_captured` và không được tính vào completion.
-5. Khi cả danh sách đã complete, set batch `status='complete'`. Nếu group bị
-   checkpoint/login/captcha/DB outage/layout blocker, đưa vào `blocked`, giữ
-   `status='blocked'`, ghi lý do và không đánh dấu batch complete.
+1. Tạo hoặc tiếp tục `sublet_scan_runs(mode='group_page', group_key=<key>)`.
+2. Mở URL group với sort chronological trong panel. Đọc từng card từ mới tới
+   cũ, expand visible collapse khi có thể, scroll theo chunk time-box.
+3. Mỗi post chỉ được insert khi group và permalink đã xác minh. Chuẩn hóa URL
+   bằng cách bỏ query/hash; kiểm tra `source_url` và raw text hash trước insert.
+   URL đã có thì không tạo listing mới.
+4. Lưu `sublet_listings`:
+   `source='fb_feed'`, `group_key`, `source_url`, `poster_name`, full
+   `raw_text`, `posted_at` chỉ khi absolute timestamp hiển thị rõ, `seen_at`,
+   `kind=null`. `text_hash` là generated column, không insert thủ công.
+5. Lưu một `sublet_events` event `context_captured` với raw context contract
+   bên dưới. Nếu listing đã có context event contract v2 hoàn chỉnh, không tạo
+   event trùng; chỉ bổ sung khi capture mới có evidence rõ ràng hơn.
+6. Sau **từng batch**, ghi listing/event + run cursor/progress + metric group.
+   Không chờ hết 14 group mới update DB.
 
-## Completion contract
+### Raw context contract v2
 
-Batch chỉ hoàn thành khi mọi group trong `group_keys` đều có:
+Mỗi `context_captured` payload phải có đủ key, kể cả khi không thấy giá trị:
 
-- `posts_14d_complete=true` và `posts_14d_count` là số verified deduplicated;
-- raw listings có `source_url` + `seen_at`, `kind=null`;
-- context event có `capture_contract_version=2`, `capture_quality='complete'`,
-  `scan_run_id`, `page_load`, `source_surface`, và đủ raw keys;
-- không còn cursor/card có permalink trong cửa sổ 14 ngày chưa xử lý.
+```json
+{
+  "capture_contract_version": 2,
+  "capture_quality": "complete",
+  "scan_run_id": 7,
+  "page_load": 1,
+  "source_surface": "codex_in_app_browser",
+  "post_text": "...",
+  "timestamp_label": "2 weeks ago",
+  "posted_at_observed": null,
+  "poster": {
+    "display_name": "...",
+    "profile_url": null,
+    "visibility": "public"
+  },
+  "post_url": "https://www.facebook.com/groups/.../posts/.../",
+  "reaction_count": null,
+  "comment_count": null,
+  "media": [],
+  "comments": [],
+  "poster_public_activity": [],
+  "commenter_public_activity": [],
+  "truncated": false
+}
+```
 
-Sau batch capture mới chạy `/intent-analyze` riêng nếu người vận hành yêu cầu.
+Capture tất cả comment/reply công khai đang hiển thị, tối đa 100 mỗi post. Chỉ
+đọc public profile/activity trực tiếp gắn với post đã capture, tối đa 10 post
+hoặc 30 ngày mỗi poster/commenter. Lưu raw text, verified URL, absolute date
+nếu có, relative label nếu có và `visibility`. Không đọc DM/private content,
+friend list, album/ảnh riêng tư, không tách phone/email thành contact profile,
+không suy luận thuộc tính nhạy cảm.
+
+## Completion và chống báo sai
+
+- Card không có permalink xác minh là `unresolved_cards`; không insert listing,
+  không đoán URL và không tính vào verified total.
+- Nhãn “2 tuần”, `posts_seen`, hoặc việc hết time-box **không** chứng minh đã
+  capture đủ 14 ngày.
+- Chỉ set `sublet_group_metrics.posts_14d_count`,
+  `posts_14d_complete=true`, `posts_14d_checked_at` khi đã qua boundary 14 ngày
+  và xử lý hết card trong window có permalink xác minh.
+- Nếu feed virtualized, text vẫn collapsed, DB outage, browser reset hoặc có
+  unresolved cards: giữ count null/known-but-incomplete, giữ run mở hoặc stop
+  reason; không chuyển group.
+- Chỉ khi `posts_14d_complete=true` mới thêm group vào `completed` và chuyển
+  `current_index` sang group kế tiếp. Nếu group bị blocker, thêm vào `blocked`
+  và giữ batch chưa complete.
+
+## Database và tiếp tục flow
+
+- Database live: Supabase project Lamy; schema tham chiếu `db/schema.sql`; SQL
+  qua `python3 scripts/db.py "<SQL>"`, không dùng để điều khiển Facebook.
+- Bảng capture: `sublet_listings`, `sublet_events`, `sublet_scan_runs`,
+  `sublet_group_metrics`, `sublet_groups`.
+- Bảng state: `sublet_ops_state` và `sublet_jobs` nếu chạy theo chunk.
+- DB lỗi: retry đúng một lần sau 5 giây; vẫn lỗi thì dừng, giữ incomplete và
+  báo warning. Không claim database đã update nếu chưa có xác nhận.
+- Sau khi toàn bộ batch raw capture hoàn tất, người vận hành mới yêu cầu bước
+  phân tích riêng; không tự gửi tin ra ngoài.
