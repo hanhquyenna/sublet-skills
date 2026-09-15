@@ -13,7 +13,8 @@ Bạn tiếp quản dự án `sublet-skills` — bộ skill vận hành dịch v
 3. PLAN.md    — logic từng skill, bảng đọc/ghi, state machine, cron, cách cập nhật rule (phần H)
 4. README.md  — setup + daily loop
 5. .agents/skills/*/SKILL.md — 14 skill (symlink tới .claude/skills)
-6. db/schema.sql — 10 bảng sublet_* trên Supabase (đã apply; RLS bật, không policy)
+6. db/schema.sql — 11 bảng sublet_* trên Supabase (đã apply; RLS bật, không policy)
+7. docs/intent-logic.md — cách hiểu một post, bằng lời; intent-analyze phải theo file này
 
 TRẠNG THÁI HIỆN TẠI:
 - Code + schema xong, chưa chạy thật lần nào. Chưa join group nào. Chưa có seeker. data/config.yaml còn trống: email.imap_user, offer.your_first_name, seeker_form.url.

@@ -80,9 +80,23 @@ def score(listing, s):
     if s.get("pets"):
         flags.append("pets_ask"); reasons.append("seeker has pets — ask")
 
-    # scam veto
+    # poster constraints — chỉ điều kiện chỗ ở (people/pets/occupation), không nhân thân
+    pc = (listing.get("poster_constraints") or "").lower()
+    if pc:
+        if "no couple" in pc and (s.get("people") or 1) >= 2:
+            flags.append("poster_no_couples"); reasons.append("poster: no couples")
+        if "no pet" in pc and s.get("pets"):
+            flags.append("poster_no_pets"); reasons.append("poster: no pets")
+        if "student" in pc and "only" in pc and (s.get("occupation") or "") not in ("student", ""):
+            flags.append("poster_students_only"); reasons.append("poster: students only")
+
+    # vetoes
     if (listing.get("scam_score") or 0) >= 60:
         flags.append("listing_scam_risk")
+    if listing.get("poster_type") == "agency":
+        flags.append("agency_listing")
+    if listing.get("status") == "dead":
+        flags.append("listing_dead")
 
     return max(0, min(100, pts)), reasons, flags
 

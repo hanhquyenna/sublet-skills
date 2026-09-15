@@ -7,25 +7,27 @@ description: Đọc các post thô mới trong sublet_listings (kind is null) v�
 
 Tầng phân tích tách khỏi tầng capture: chạy lại được bất cứ lúc nào, không tốn page load.
 
+**Nguồn sự thật cho mọi rule là `docs/intent-logic.md`.** Đọc nó trước khi phân loại. SKILL.md này chỉ là quy trình; nếu hai nơi khác nhau, docs thắng.
+
 ## Input
 `select * from sublet_listings where kind is null order by seen_at limit 40` (batch). Thêm tham số `--all` để phân tích lại toàn bộ (khi đổi rule).
 
-## Với mỗi post
-1. **Intent** (`kind`):
-   - `offering` — người có phòng/căn: "subletting my room", "available from", "looking for someone to take over", "onderhuur aangeboden", "my flatmate is leaving". Poster = **subletter**.
-   - `seeking` — người tìm: "looking for a room", "op zoek naar", "need a place from", "anyone renting". Poster = **sublettee**.
-   - `other` — agency ads, roommate-only, sale, spam, hỏi chung.
-   Nếu post vừa có phòng vừa tìm (swap) → `offering` + notes='swap'.
-2. **Requirements** (chỉ với offering; null nếu không có trong text — không đoán):
-   `area` (chuẩn hoá theo danh sách khu trong seeker-intake), `room_type`, `rent_eur` (all-in nếu ghi "incl."), `deposit_eur`, `bills_included`, `available_from`, `available_to` (ISO; năm = năm tới gần nhất còn hợp lý), `min_term_days`, `furnished`, `registration_allowed` (yes/no/unknown), `sublet_permission` (yes nếu ghi "landlord approved"; unknown mặc định), `max_people`.
-3. **Scam score** 0–100, `scam_flags` từ `config.scam.flags`:
-   - +40 deposit/transfer trước viewing · +25 giá <70% thị trường khu đó (room Amsterdam ~€900) · +20 "I'm abroad, my agent will send keys" · +15 không có khu/địa chỉ gì · +15 wire/crypto/Western Union · +10 văn phong stock ("beautiful cozy fully equipped") không có chi tiết thật · −20 có chi tiết cụ thể (tầng, ga tàu, tên đường) · −10 poster trả lời comment.
-4. **Seeking → seeker**: nếu có move_in hoặc budget rõ → insert `sublet_seekers(source='fb_seeking', source_url, contact_consent=false, ...)`; không lưu contact. Không có ngày+giá → chỉ đánh `kind='seeking'`, không tạo seeker.
-5. Update listing; `sublet_events(event='analyzed', payload={kind, scam_score})`.
+## Với mỗi post (theo docs/intent-logic.md)
+1. **kind**: offering / seeking / other — theo mục 0–3 (đối tượng của động từ, không phải động từ).
+2. **subtype**: offering → mục 4 (sublet_whole / sublet_room / takeover / roommate / swap / short_stay / long_term); seeking → mục 5 (seek_sublet / seek_room / seek_group).
+3. **poster_type**: individual / proxy / agency — mục 6. Agency → không bao giờ DM.
+4. **status từ post**: "found / rented / taken" → `status='dead'` — mục 6.
+5. **Trường** (chỉ offering; null nếu không có trong text): area, room_type, rent_eur, deposit_eur, bills_included, available_from, available_to, min_term_days, furnished, registration_allowed, sublet_permission, max_people — chuẩn hoá theo mục 11.
+6. **poster_constraints**: nguyên văn — mục 9. Không dùng để chấm điểm nhân thân.
+7. **scam_score + scam_flags**: mục 8.
+8. **deal_score**: mục 7 (0–100; DM khi ≥60 và confidence ≠ low).
+9. **confidence**: mục 10; low → `notes='needs_full_read'`.
+10. **seeking → seeker**: mục 5; không lưu contact; `contact_consent=false`.
+11. Update listing; `sublet_events(event='analyzed', payload={kind, subtype, poster_type, scam_score, deal_score, confidence})`.
 
 ## Sau batch
-- Với offering mới, scam_score < 60, có `available_from` và `rent_eur` → gọi `/sublet-match`.
-- In: n offering / n seeking / n other / n nghi scam, và 3 offering đáng DM nhất (mới nhất, đủ dữ liệu, score thấp).
+- Với offering mới: `deal_score ≥ 60`, `scam_score < 60`, `confidence != low`, `poster_type != agency`, có `available_from` và `rent_eur` → gọi `/sublet-match`.
+- In: n offering (theo subtype) / n seeking / n other / n dead / n nghi scam, và 3 offering `deal_score` cao nhất.
 
 ## Kiểm tra chất lượng (mỗi tuần)
-Lấy ngẫu nhiên 10 post đã phân loại, in cạnh kết quả, hỏi bạn đúng/sai. Sai ≥2 → sửa rule trong skill này, chạy `--all`.
+Lấy ngẫu nhiên 10 post đã phân loại, in cạnh kết quả, hỏi bạn đúng/sai. Sai ≥2 → sửa `docs/intent-logic.md` (thêm ví dụ vào mục 12), chạy `--all`. 10 ví dụ ở mục 12 là bộ test tối thiểu: chạy lại sau mỗi lần sửa rule.

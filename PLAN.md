@@ -76,6 +76,7 @@ Bảng tổng: skill → đọc → ghi → trigger → page load
 - **Cập nhật:** regex subject/URL trong `scripts/gmail_pull.py` (Facebook đổi format email thỉnh thoảng — sửa 2 regex đó).
 
 ### C4. intent-analyze
+- **Nguồn rule:** `docs/intent-logic.md` (bằng lời, EN/NL keywords, 12 ví dụ test). SKILL.md chỉ là quy trình.
 - **Logic:** batch 40 post `kind is null` → intent (offering/seeking/other) → extract fields (null nếu không có trong text) → scam score theo bảng cộng/trừ → seeking có ngày+giá → tạo seeker (no contact) → gọi match cho offering đủ dữ liệu.
 - **Dữ liệu ghi:** `sublet_listings(kind, area, room_type, rent_eur, deposit_eur, bills_included, available_from, available_to, min_term_days, furnished, registration_allowed, sublet_permission, max_people, scam_score, scam_flags, notes)`; `sublet_seekers(source='fb_seeking')`; `sublet_events(event='analyzed', payload)`.
 - **Xử lý:** text quá ngắn/không rõ → `kind='other'`, notes='needs_full_read' nếu có dấu hiệu offering; ngày không có năm → năm tới gần nhất còn hợp lý; giá theo tuần → ×4.33.
@@ -206,7 +207,7 @@ Runner: `SUBLET_RUNNER=claude` (mặc định, `claude -p "/<skill>"`) hoặc `c
 | Giờ chạy, cadence, ngưỡng page load | `data/config.yaml → scan, hours` | không cần gì |
 | Giá, fee trigger, promise, tên bạn | `data/config.yaml → offer` | draft mới tự dùng |
 | Group nào tier nào | `sublet_groups` (DB) hoặc `/sublet-groups rank` | scan tự theo |
-| Từ khoá intent, bảng scam, chuẩn hoá khu | `intent-analyze/SKILL.md` | `/intent-analyze --all` |
+| Từ khoá intent, subtype, scam, deal_score, chuẩn hoá khu | `docs/intent-logic.md` (thêm ví dụ mục 12) | `/intent-analyze --all`, kiểm 10 ví dụ |
 | Trọng số match | `scripts/match.py → score()` | `/sublet-match <id>` cho listing mở |
 | Giọng, định vị, giới hạn từ | `partner-voice/SKILL.md` | draft mới tự theo |
 | Câu chữ template | `templates/*.md` | draft mới tự theo |

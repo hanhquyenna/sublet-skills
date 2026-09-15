@@ -178,3 +178,11 @@ create table if not exists sublet_inbox (
   done_at timestamptz
 );
 alter table sublet_inbox enable row level security;
+
+-- v5: intent fields
+alter table sublet_listings
+  add column if not exists subtype text check (subtype in ('sublet_whole','sublet_room','takeover','roommate','swap','short_stay','long_term','seek_sublet','seek_room','seek_group')),
+  add column if not exists poster_type text check (poster_type in ('individual','proxy','agency')) default 'individual',
+  add column if not exists poster_constraints text,
+  add column if not exists confidence text check (confidence in ('high','medium','low')),
+  add column if not exists deal_score int;
