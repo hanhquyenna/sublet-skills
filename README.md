@@ -1,26 +1,26 @@
 # sublet-skills
 
-Bộ skill Claude Code để vận hành dịch vụ ghép sublet Amsterdam: agent đọc Facebook (trong Chrome thật của bạn, chỉ đọc), giữ pool seeker, ghép theo ngày/giá/khu, soạn tin — **bạn gửi**. Offer: *3 người phù hợp đến viewing trong 72h, €49 nếu được, không thì free.*
+Bộ skill Claude Code để vận hành dịch vụ ghép sublet Amsterdam: agent đọc Facebook (chỉ trong ChatGPT browser panel đang mở cho bạn, chỉ đọc), giữ pool seeker, ghép theo ngày/giá/khu, soạn tin — **bạn gửi**. Offer: *3 người phù hợp đến viewing trong 72h, €49 nếu được, không thì free.*
 
-Đọc [CLAUDE.md](CLAUDE.md) trước — đó là luật cứng. Kế hoạch chi tiết (logic từng skill, schema, cron, cách cập nhật): [PLAN.md](PLAN.md). Codex: [AGENTS.md](AGENTS.md). Prompt bàn giao cho agent: [HANDOFF.md](HANDOFF.md). Logic phân loại post bằng lời: [docs/intent-logic.md](docs/intent-logic.md).
+Đọc [CLAUDE.md](CLAUDE.md) trước — đó là luật cứng. Kế hoạch chi tiết (logic từng skill, schema, cron, cách cập nhật): [PLAN.md](PLAN.md). Codex: [AGENTS.md](AGENTS.md). Context/runtime snapshot: [.claude/skills/information/SKILL.md](.claude/skills/information/SKILL.md). Prompt bàn giao cho agent: [HANDOFF.md](HANDOFF.md). Logic phân loại post bằng lời: [docs/intent-logic.md](docs/intent-logic.md).
 
 ## Kiến trúc
 
 ```
 Claude Code (Mac)                         Supabase (project Lamy, bảng sublet_*)
- ├─ Claude in Chrome → đọc groups/feed      listings · seekers · matches · viewings
+ ├─ ChatGPT browser panel → đọc Facebook    listings · seekers · matches · viewings
  ├─ scripts/match.py → chấm điểm            fees · messages · events · scan_runs
  └─ /loop 12m /sublet-scan                 Hetzner (sau): cron /sublet-email, không cần browser
 ```
 
 ## Setup (30 phút)
 
-1. **Supabase**: chạy `db/schema.sql` (đã apply nếu bạn dùng project Lamy qua MCP). RLS bật, không policy → chỉ MCP/service role đọc ghi.
-2. **Chrome**: đăng nhập Facebook trong Chrome thật. Join các group trong `data/groups.yaml` bằng tay (2–5 group/ngày, đừng vội). Trong mỗi group tier 1–2: Notifications → **All posts**.
+1. **Supabase**: project Lamy hiện tại ref `cteunhuxrghpozwbnehh`; chạy `db/schema.sql` nếu DB mới (đã apply cho project hiện tại). RLS bật, không policy → chỉ MCP/service role đọc ghi. Codex dùng `scripts/db.py`, tự đọc `~/.sublet-skills.env` và REST RPC `sublet_exec`.
+2. **Facebook browser**: đăng nhập Facebook thủ công trong ChatGPT browser panel. Mọi search/đọc/verify Facebook chỉ chạy trong panel này; không dùng CLI, script, web-fetch/API, headless browser, Chrome session khác, hoặc cookie nơi khác. Join các group trong `data/groups.yaml` bằng tay (2–5 group/ngày). Trong mỗi group tier 1–2: Notifications → **All posts**.
 3. **config**: `data/config.yaml` — điền `email.imap_user`, `offer.your_first_name`. Giá/offer đã đặt €49.
-4. **Env**: `zsh ops/setup_env.sh` — hỏi SUPABASE_DB_URL (Codex/Hetzner), Gmail IMAP, tên bạn, link form → ghi `~/.sublet-skills.env` (chmod 600) + `data/config.yaml`. Không commit.
+4. **Env**: `zsh ops/setup_env.sh` khi cần bổ sung biến — file `~/.sublet-skills.env` (chmod 600) giữ secret Supabase/IMAP, còn `data/config.yaml` giữ config không-secret. Không commit file env.
 5. **Seeker form**: tạo Tally form với các cột: name, contact, consent (checkbox), move_in, move_out, budget, areas, people, registration_need, pets, occupation, viewing_availability. Export CSV → `data/seekers_export.csv`.
-6. Mở Claude Code trong thư mục này: `cd ~/sublet-skills && claude` rồi gõ `/onboarding` — nó dắt qua các bước còn lại và cài cron (`zsh ops/install_cron.sh`).
+6. Mở Codex trong thư mục này rồi gõ `/onboarding` — nó dắt qua các bước còn lại. Cron do bạn tự cài nếu cần (`zsh ops/install_cron.sh`).
 
 ## Daily loop
 
@@ -40,6 +40,7 @@ Có seeker mới: dán tin nhắn của họ vào chat và gõ `/seeker-intake`.
 
 | Skill | Làm gì | Gửi gì ra ngoài? |
 |---|---|---|
+| `information` | Context/runtime snapshot: project, DB, browser, file map, quyết định | Không |
 | `onboarding` | Checklist khởi động, tự kiểm + hỏi bạn, ghi sublet_ops_state | Không |
 | `inbox-triage` | Đọc reply (Messenger đọc-only / bạn dán) → phân loại → cập nhật trạng thái → draft trả lời (FAQ điền sẵn) | **Bạn gửi** |
 | `sublet-groups` | Tìm group (FB search, đọc-only), rank tier theo offering/7d, cursor chống lặp | Không |

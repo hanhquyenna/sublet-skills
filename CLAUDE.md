@@ -8,7 +8,7 @@
 3. Không chạy scan ngoài giờ trong `data/config.yaml` (`hours`). Không chạy khi máy vừa thức dậy dưới 2 phút.
 4. **Dừng ngay** và ghi `sublet_inbox(level=stop)` nếu thấy: checkpoint, captcha, "unusual activity", yêu cầu xác minh, trang login. Không thử lại trong 24h.
 5. Không đọc profile member, không lưu ảnh, không lưu số điện thoại/email từ post trừ khi poster tự ghi trong post và cần để liên hệ.
-6. Không dùng headless browser, không dùng cookie ở nơi khác ngoài Chrome thật của người dùng.
+6. Mọi thao tác Facebook (search, đọc, verify) **chỉ dùng ChatGPT browser panel đang mở cho người dùng**. Không dùng CLI, script, web-fetch/API, headless browser, Chrome session khác, hoặc cookie ở nơi khác để thao tác/verify Facebook.
 7. Không ghi outcome (signed / moved-in) nếu không có xác nhận từ subletter hoặc seeker. Không đoán.
 8. Không xếp hạng seeker theo quốc tịch, giới tính, tuổi, tôn giáo, hay bất kỳ tiêu chí phân biệt nào. Chỉ: ngày, ngân sách, khu vực, số người, registration, pets.
 
