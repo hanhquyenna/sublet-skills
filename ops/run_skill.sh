@@ -23,7 +23,7 @@ if [[ "$SKILL" != "sublet-report" && ( $H -lt 8 || $H -ge 23 ) ]]; then
 fi
 
 # Skill cần Chrome thật chỉ chạy khi máy thức > 2 phút và có màn hình mở
-if [[ "$SKILL" == "sublet-scan" || "$SKILL" == "inbox-triage" || "$SKILL" == "sublet-groups" ]]; then
+if [[ "$SKILL" == "sublet-scan" || "$SKILL" == "inbox-triage" || "$SKILL" == "sublet-groups" || "$SKILL" == "sublet-backfill" ]]; then
   BOOT=$(sysctl -n kern.boottime | awk -F'sec = ' '{print $2}' | awk -F',' '{print $1}')
   NOW=$(date +%s)
   if (( NOW - BOOT < 120 )); then echo "$(date +%T) skip $SKILL (vừa wake)" >> "$LOG"; exit 0; fi

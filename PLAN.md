@@ -182,13 +182,14 @@ Việc bạn **không bao giờ** phải làm: đọc group, phân loại, nhớ
 
 ## G. Cron / lịch chạy — ai chạy skill nào
 
+**Nguyên tắc (từ 2026-09-15): 1 cron tick = 1 prompt = 1 job step.** Cron không gọi skill trực tiếp cho việc nền; gọi `sublet-worker`, worker chọn 1 job từ `sublet_jobs` theo ưu tiên, làm ≤8', ghi `progress`, thoát. Việc lớn (backfill 300 post, verify 92 group) tự chia chunk và nối qua nhiều tick. Không có "check 92 group" — post mới đọc qua `groups/feed` (1 trang gom hết) + email.
+
 **Mac (launchd, `ops/install_cron.sh`)** — cần Chrome thật, máy thức:
 
 | Job | Skill | Lịch | Cần Chrome |
 |---|---|---|---|
-| com.sublet.scan | sublet-scan | mỗi 720s, 08–23 | ✅ |
+| com.sublet.worker | sublet-worker → scan/analyze/match/email/backfill chunk/verify chunk | mỗi 600s, 08–23 | tuỳ job |
 | com.sublet.inbox | inbox-triage | mỗi 1200s, 08–23 | ✅ |
-| com.sublet.email | sublet-email | mỗi 600s | ❌ (chuyển Hetzner sau) |
 | com.sublet.followup | sublet-followup | 08:30 | ❌ |
 | com.sublet.report | sublet-report | 18:00 | ❌ |
 | com.sublet.groups | sublet-groups rank | CN 10:00 | ❌ |

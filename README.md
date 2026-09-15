@@ -27,7 +27,7 @@ Claude Code (Mac)                         Supabase (project Lamy, bảng sublet_
 | Giờ | Lệnh | Bạn làm |
 |---|---|---|
 | 08:30 | `/sublet-followup` | Đọc ≤10 việc, gửi các draft |
-| 08:30–23:00 | `/loop 12m /sublet-scan` | Để chạy nền. Việc mới rơi vào `sublet_inbox` |
+| 08:30–23:00 | `/loop 10m /sublet-worker` (hoặc launchd) | Để chạy nền. Worker tự chọn việc. Việc cần bạn rơi vào `sublet_inbox` |
 | khi có listing tốt | (tự động) `/intent-analyze` → `/sublet-match` → `/sublet-draft` | Copy DM, mở post, gửi tay. Gõ `/sublet-draft sent <id>` |
 | subletter "ok" | `/viewing-coordinate <listing>` | Gửi shortlist, chốt slot, gửi contact |
 | sau viewing | `/viewing-coordinate showed\|no_show <viewing_id>` | Gửi Tikkie khi đủ 3 viewing |
@@ -44,6 +44,7 @@ Có seeker mới: dán tin nhắn của họ vào chat và gõ `/seeker-intake`.
 | `onboarding` | Checklist khởi động, tự kiểm + hỏi bạn, ghi sublet_ops_state | Không |
 | `inbox-triage` | Đọc reply (Messenger đọc-only / bạn dán) → phân loại → cập nhật trạng thái → draft trả lời (FAQ điền sẵn) | **Bạn gửi** |
 | `sublet-groups` | Tìm group (FB search, đọc-only), rank tier theo offering/7d, cursor chống lặp | Không |
+| `sublet-worker` | Điểm vào cron: 1 tick = 1 job step ≤8' từ `sublet_jobs` (scan > analyze > match > email > backfill chunk > verify chunk) | Không |
 | `sublet-backfill` | Đọc lịch sử 60–90 ngày của 1 group, 1 lần, human pace → corpus để soi edge case trước khi DM | Không |
 | `sublet-scan` | **Capture-only**: groups/feed + notifications → post thô (link, text, time, group), dừng ở cursor | Không |
 | `intent-analyze` | Post thô → intent (subletter/sublettee), requirements có cấu trúc, scam score, tự match | Không |

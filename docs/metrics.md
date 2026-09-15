@@ -37,6 +37,8 @@
 | fee | listing_to_fill_days | median seen_at → filled_at | ≤10 | — |
 | ops | token_cost_eur_24h | sum events.payload.tokens × giá | ≤€1 | mọi skill (J3 #5) |
 | ops | cron_runs_24h / cron_skips_24h | từ ops/logs | runs ≥40, skips có lý do | run_skill |
+| ops | jobs_done_24h / jobs_failed_24h | sublet_jobs finished 24h by status | failed ≤2 | sublet-worker |
+| ops | job_step_seconds_p50 | median finished−started | ≤300 | sublet-worker |
 | ops | backup_ok | file hôm nay tồn tại | 1 | backup.sh |
 
 ## Quyết định tự động từ metrics (ghi trong PLAN §I)

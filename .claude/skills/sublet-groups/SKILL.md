@@ -38,6 +38,9 @@ Quản lý "biết group nào". Chỉ đọc. Không join (bạn join tay), khô
 3. Update `sublet_groups.tier`, `offering_7d`, `last_ranked_at`. **Đồng bộ ngược** `data/groups.yaml` (viết lại file từ DB, giữ notes).
 4. In thay đổi tier + lý do.
 
+## /sublet-groups verify  (chạy qua sublet-worker, 5 group/step, đọc-only)
+Cho 5 group chưa có `sublet_group_metrics`: mở trang group (1 load mỗi cái) → ghi `sublet_group_metrics(join_status, member_count, posts_per_day ước từ 10 post đầu, last_active_post_at, membership_questions, source='panel')` + `sublet_groups.is_private/member_count`. Không join, không bấm gì. 5 group = 5 load = ~2 phút. 92 group = 19 step, xen kẽ với scan.
+
 ## /sublet-groups status
 Bảng: key · tier · joined · notif_all_posts · offering_7d · last_scanned_at · notes. Nhắc việc bạn cần làm tay: join pending, bật notification.
 

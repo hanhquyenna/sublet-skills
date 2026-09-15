@@ -109,6 +109,10 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | E103 | DST (cuối tháng 10 / cuối tháng 3) | mọi giờ tính bằng `TZ=Europe/Amsterdam`, không hardcode UTC | run_skill, skills | — |
 | E104 | Backup fail | log; followup hôm sau hiện "backup thiếu" | backup.sh, followup | — |
 | E105 | 2 agent (Claude Code + Codex) sửa cùng file | commit nhỏ, pull --rebase trước khi sửa; file `information` chỉ Codex sửa | quy ước | — |
+| E106 | Job `running` quá 20' (prompt chết giữa chừng) | worker dọn: → queued, attempts+1, giữ progress; ≥3 → failed + warning | sublet-worker | — |
+| E107 | 1 prompt không đủ cho 1 group backfill | chunk ≤6'/≤60 post, progress.last_post_at, nối qua nhiều tick | sublet-backfill, worker | — |
+| E108 | Hàng đợi nhiều việc, page-load budget hết | job browser → next_run_at = mai 08:00; job không browser vẫn chạy | sublet-worker | — |
+| E109 | 92 group cần verify | 5 group/step, xen kẽ, không bao giờ 1 prompt | sublet-groups verify | — |
 
 ## Coverage
 - Có test tự động: nhóm C (intent) — 100 case.

@@ -8,9 +8,8 @@ SUBLET_IMAP_USER=
 SUBLET_IMAP_PASS=
 
 # email → capture thô + intent-analyze (24/7, không giờ giấc — email không đụng Facebook)
-*/10 * * * *  cd /opt/sublet-skills && ops/run_skill.sh sublet-email
-# match lại các listing mới có đủ dữ liệu (đã gọi trong intent-analyze; dòng này là lưới an toàn)
-*/30 * * * *  cd /opt/sublet-skills && ops/run_skill.sh sublet-match latest
+# worker 24/7 — trên Hetzner chỉ nhận job không cần browser (email, analyze, match, groups_rank); scan/backfill/verify bị gate chrome_fb_login ở đây
+*/10 * * * *  cd /opt/sublet-skills && ops/run_skill.sh sublet-worker
 # followup sáng, report tối
 30 8 * * *    cd /opt/sublet-skills && ops/run_skill.sh sublet-followup
 0 18 * * *    cd /opt/sublet-skills && ops/run_skill.sh sublet-report

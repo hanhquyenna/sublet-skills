@@ -21,10 +21,10 @@ Snapshot này được ghi ngày **2026-09-15**, sau commit `e6e4b65`, rank metr
 - Mục tiêu: dịch vụ broker sublet nhỏ ở Amsterdam, Phase 0 trong 30 ngày.
 - Người vận hành: **Kien**. Agent là mắt + trí nhớ + người soạn; Kien là người bấm/gửi.
 - Offer hiện tại: người có phòng nhận 3 viewing phù hợp trong 72h; €49 khi người được giới thiệu move-in; seeker dùng miễn phí.
-- Database lần kiểm tra gần nhất: `sublet_groups=93`, `sublet_group_metrics=75`, `sublet_listings=0`, `sublet_seekers=0`, `sublet_ops_state=7`.
-- DB hiện có 66 group mang cờ `joined=true`; metric mới nhất xác nhận 39 `joined`, 27 `pending`, 6 `blocked`. Khi hai nguồn lệch nhau, chỉ metric mới nhất có `join_status='joined'` được coi là đủ điều kiện tier 1/2.
-- `sublet-groups rank` đã chạy từ `posts_per_day`: 3 group đủ ngưỡng tier 1 (13, 5, 4 post/ngày), 57 group joined tạm tier 3, 6 group chưa joined vẫn để tier `NULL`. `offering_7d` chưa đủ dữ liệu để ghi đè tier tạm.
-- Tier 1 hiện cần Kien bật Notifications → All posts thủ công cho 3 group; không mở rộng lên 8 khi metrics thực tế chỉ đủ 3 group đã joined và đạt ngưỡng.
+- Database lần kiểm tra gần nhất: `sublet_groups=93`, `sublet_group_metrics=91`, `sublet_listings=0`, `sublet_seekers=0`, `sublet_ops_state=7`.
+- DB hiện có 82 group mang cờ `joined=true`; metric mới nhất vẫn được bổ sung từ panel trong lúc kiểm tra. Khi hai nguồn lệch nhau, chỉ metric mới nhất có `join_status='joined'` được coi là đủ điều kiện tier 1/2.
+- `sublet-groups rank` đã chạy lại từ `posts_per_day`: 4 group đủ ngưỡng tier 1 (18, 13, 5, 4 post/ngày); phân bố tier hiện tại là 4 tier 1, 1 tier 2, 78 tier 3 và 10 chưa xếp tier. `offering_7d` chưa đủ dữ liệu để ghi đè tier tạm.
+- Tier 1 hiện cần Kien bật Notifications → All posts thủ công cho 4 group; các group có số cao nhưng đang pending không được đưa vào danh sách.
 - Discovery Facebook dùng các batch query English/Dutch về Amsterdam, student housing, kamers, onderhuur và Nederland; tổng DB hiện có 93 group. `data/groups.yaml` đã được đồng bộ từ DB, giữ trường `keywords` và notes.
 - `data/config.yaml`: city Amsterdam, timezone `Europe/Amsterdam`, agent nói tiếng Việt, template gửi ra ngoài English, tên Kien. Còn trống `email.imap_user` và `seeker_form.url`; đã thêm advisory model routing: `gpt-5.6-luna` cho intent/backfill, `gpt-6-astra` cho draft/inbox/partner voice.
 - `sublet_v_today` tồn tại và lần kiểm tra trả về rỗng; chưa có pipeline DM/viewing/fee.

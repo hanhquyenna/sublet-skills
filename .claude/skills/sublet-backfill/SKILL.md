@@ -18,6 +18,10 @@ description: Đọc lịch sử 60–90 ngày của MỘT group (1 lần duy nh�
 
 Mục đích: có dữ liệu thật để `intent-analyze` chạy trên vài trăm post và bạn thấy edge case **trước** khi gửi DM đầu tiên. Chạy 1 lần/group, không lặp.
 
+## Chế độ chunk (bắt buộc khi gọi từ sublet-worker)
+1 group = ~300 post = quá 1 prompt. Vì vậy backfill **resumable**: mỗi lần chạy là 1 chunk ≤6 phút hoặc ≤60 post, đọc `sublet_jobs.progress` `{last_post_at, posts_done, scrolls}` để tiếp tục từ chỗ dừng (scroll tới khi post cũ hơn `last_post_at`), ghi lại progress khi hết chunk. Job `queued` lại với `next_run_at = now()+15'` — khoảng nghỉ này chính là human pace. Chỉ khi post đã cũ hơn `days` → `done` + `ops_state backfill_<key>`.
+Gọi tay `/sublet-backfill <key>` = 1 chunk, không phải cả group.
+
 ## Model routing
 
 Đọc `models.sublet_backfill` từ `data/config.yaml`. Nếu runtime cho phép chọn model, dùng model nhỏ/rẻ nhất được cấu hình cho capture lịch sử và phần phân tích; nếu không, giữ model runtime hiện tại. Không dùng routing này cho draft hoặc giao tiếp đối tác.

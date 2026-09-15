@@ -29,12 +29,10 @@ if [[ "${1:-}" == "uninstall" ]]; then
   echo "gỡ xong"; exit 0
 fi
 
-# 1. scan mỗi 12' (run_skill.sh tự bỏ qua ngoài 08–23 và 1/12 lần ngẫu nhiên trong skill)
-make_plist scan sublet-scan "<key>StartInterval</key><integer>720</integer>"
+# 1. worker mỗi 10' — tự chọn 1 job: scan / analyze / match / email / backfill chunk / verify chunk
+make_plist worker sublet-worker "<key>StartInterval</key><integer>600</integer>"
 # 2. inbox mỗi 20'
 make_plist inbox inbox-triage "<key>StartInterval</key><integer>1200</integer>"
-# 3. email mỗi 10' (không cần Chrome — sẽ chuyển sang Hetzner)
-make_plist email sublet-email "<key>StartInterval</key><integer>600</integer>"
 # 4. followup 08:30
 make_plist followup sublet-followup "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>30</integer></dict>"
 # 5. report 18:00

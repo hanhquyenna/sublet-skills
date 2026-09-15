@@ -372,3 +372,25 @@ create table if not exists sublet_metrics (
   unique (day, workflow, metric)
 );
 alter table sublet_metrics enable row level security;
+
+-- ---------- jobs: hàng đợi việc cho worker (1 cron tick = 1 job step có time-box) ----------
+create table if not exists sublet_jobs (
+  id bigserial primary key,
+  job_type text not null check (job_type in ('scan','email','analyze','match','backfill','verify_group','followup','report','backup','groups_rank')),
+  key text,                                  -- group_key / listing_id / null
+  priority int not null default 50,          -- thấp = ưu tiên cao
+  status text not null default 'queued' check (status in ('queued','running','done','failed','paused')),
+  progress jsonb not null default '{}'::jsonb, -- backfill: {last_post_at, posts_done, scrolls}; verify: {checked}
+  attempts int not null default 0,
+  next_run_at timestamptz not null default now(),
+  started_at timestamptz,
+  finished_at timestamptz,
+  last_error text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists sublet_jobs_due_idx on sublet_jobs(priority, next_run_at) where status in ('queued','running');
+create unique index if not exists sublet_jobs_open_uq on sublet_jobs(job_type, coalesce(key,'')) where status in ('queued','running','paused');
+drop trigger if exists sublet_jobs_touch on sublet_jobs;
+create trigger sublet_jobs_touch before update on sublet_jobs for each row execute function sublet_touch();
+alter table sublet_jobs enable row level security;
