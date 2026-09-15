@@ -14,8 +14,10 @@ scan:
 
 offer:
   price_eur: 49
+  fee_trigger: move_in        # move_in | three_viewings_72h — đổi sau 10 deal nếu thu <70%
   promise: "3 qualified viewings within 72h, or free"
   attribution_days: 30
+  your_first_name: ""
 
 telegram:
   chat_id: ""             # điền chat id của bạn (Telegram MCP)
@@ -28,6 +30,7 @@ email:
 
 seeker_form:
   provider: tally
+  url: ""                  # link form seeker; dùng làm offer_link "apply via ..."
   csv_export_path: data/seekers_export.csv   # Tally → export CSV → seeker-intake đọc
 
 scam:

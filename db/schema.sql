@@ -155,3 +155,11 @@ create table if not exists sublet_groups (
 );
 alter table sublet_groups enable row level security;
 alter table sublet_scan_runs add column if not exists cursor text;
+
+-- v3: ops state cho onboarding
+create table if not exists sublet_ops_state (
+  key text primary key,
+  value text,
+  updated_at timestamptz not null default now()
+);
+alter table sublet_ops_state enable row level security;

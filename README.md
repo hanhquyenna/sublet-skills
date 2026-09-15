@@ -2,7 +2,7 @@
 
 Bộ skill Claude Code để vận hành dịch vụ ghép sublet Amsterdam: agent đọc Facebook (trong Chrome thật của bạn, chỉ đọc), giữ pool seeker, ghép theo ngày/giá/khu, soạn tin — **bạn gửi**. Offer: *3 người phù hợp đến viewing trong 72h, €49 nếu được, không thì free.*
 
-Đọc [CLAUDE.md](CLAUDE.md) trước — đó là luật cứng.
+Đọc [CLAUDE.md](CLAUDE.md) trước — đó là luật cứng. Kế hoạch chi tiết (logic từng skill, schema, cron, cách cập nhật): [PLAN.md](PLAN.md). Codex: [AGENTS.md](AGENTS.md).
 
 ## Kiến trúc
 
@@ -21,7 +21,7 @@ Claude Code (Mac)                         Supabase (project Lamy, bảng sublet_
 3. **config**: `data/config.yaml` — điền `telegram.chat_id`, `email.imap_user`. Giá/offer đã đặt €49.
 4. **Email (tuỳ chọn, cho 24/7)**: Gmail App Password → `export SUBLET_IMAP_USER=... SUBLET_IMAP_PASS=...` trong `~/.zshrc`. Không commit.
 5. **Seeker form**: tạo Tally form với các cột: name, contact, consent (checkbox), move_in, move_out, budget, areas, people, registration_need, pets, occupation, viewing_availability. Export CSV → `data/seekers_export.csv`.
-6. Mở Claude Code trong thư mục này: `cd ~/sublet-skills && claude`.
+6. Mở Claude Code trong thư mục này: `cd ~/sublet-skills && claude` rồi gõ `/onboarding` — nó dắt qua các bước còn lại và cài cron (`zsh ops/install_cron.sh`).
 
 ## Daily loop
 
@@ -41,6 +41,8 @@ Có seeker mới: dán tin nhắn của họ vào chat và gõ `/seeker-intake`.
 
 | Skill | Làm gì | Gửi gì ra ngoài? |
 |---|---|---|
+| `onboarding` | Checklist khởi động, tự kiểm + hỏi bạn, ghi sublet_ops_state | Không |
+| `inbox-triage` | Đọc reply (Messenger đọc-only / bạn dán) → phân loại → cập nhật trạng thái → draft trả lời (FAQ điền sẵn) | **Bạn gửi** |
 | `sublet-groups` | Tìm group (FB search, đọc-only), rank tier theo offering/7d, cursor chống lặp | Không |
 | `sublet-scan` | **Capture-only**: groups/feed + notifications → post thô (link, text, time, group), dừng ở cursor | Không |
 | `intent-analyze` | Post thô → intent (subletter/sublettee), requirements có cấu trúc, scam score, tự match | Không |

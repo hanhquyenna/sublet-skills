@@ -1,0 +1,20 @@
+# Hetzner VPS crontab (Phase 2). CHỈ các skill không cần Chrome/Facebook.
+# Cài: crontab ops/hetzner.crontab   (sau khi clone repo vào /opt/sublet-skills, cài claude CLI hoặc codex, set env)
+# TZ=Europe/Amsterdam
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+SUBLET_RUNNER=claude
+SUBLET_IMAP_USER=
+SUBLET_IMAP_PASS=
+
+# email → capture thô + intent-analyze (24/7, không giờ giấc — email không đụng Facebook)
+*/10 * * * *  cd /opt/sublet-skills && ops/run_skill.sh sublet-email
+# match lại các listing mới có đủ dữ liệu (đã gọi trong intent-analyze; dòng này là lưới an toàn)
+*/30 * * * *  cd /opt/sublet-skills && ops/run_skill.sh sublet-match latest
+# followup sáng, report tối
+30 8 * * *    cd /opt/sublet-skills && ops/run_skill.sh sublet-followup
+0 18 * * *    cd /opt/sublet-skills && ops/run_skill.sh sublet-report
+# rank group Chủ nhật
+0 10 * * 0    cd /opt/sublet-skills && ops/run_skill.sh sublet-groups rank
+
+# KHÔNG cài ở đây: sublet-scan, inbox-triage, sublet-groups discover, sublet-diagnose (cần Chrome thật trên máy bạn).
