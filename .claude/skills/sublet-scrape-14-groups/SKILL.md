@@ -94,6 +94,13 @@ Trước khi mở browser cho `current_group`, kiểm tra DB:
    `/posts/<id>/` cũng được chuẩn hóa về parent post URL và ghi
    `link_resolution_method='comment_permalink'`; không tự tạo URL từ profile
    commenter hoặc media/photo ID.
+   Nếu cả direct permalink, comment-parent permalink và Facebook copy-link đều
+   không lấy được, **không bỏ card**: ghi một event
+   `sublet_events(event='capture_unresolved', entity_type='fb_card',
+   entity_id=null, source_url=<group_feed_url>)` với raw card text, poster,
+   timestamp label, media/counters đang thấy, `card_fingerprint`,
+   `missing_fields` và `unresolved_reason='no_link_evidence'`. Event này là
+   hàng chờ resolve, không phải listing và không được tính vào verified total.
 4. Lưu `sublet_listings`:
    `source='fb_feed'`, `group_key`, `source_url`, `poster_name`, full
    `raw_text`, `posted_at` chỉ khi absolute timestamp hiển thị rõ, `seen_at`,
@@ -188,6 +195,34 @@ Mỗi `context_captured` payload phải có đủ key, kể cả khi không th�
 }
 ```
 
+Card chưa resolve dùng payload raw tối thiểu riêng (không giả `post_url`):
+
+```json
+{
+  "capture_contract_version": 2,
+  "capture_quality": "unresolved",
+  "source_surface": "user_browser_panel",
+  "capture_now": "2026-09-15T23:00:00+02:00",
+  "group_key": "...",
+  "post_id": null,
+  "post_url": null,
+  "raw_card_text": "...",
+  "poster": {"display_name": "...", "profile_url": null},
+  "timestamp_label": null,
+  "media": [],
+  "reaction_count": null,
+  "comment_count": null,
+  "card_fingerprint": "sha256(normalized group + poster + time + card text)",
+  "missing_fields": ["post_url", "post_id"],
+  "unresolved_reason": "no_link_evidence"
+}
+```
+
+Khi chạy lại, tìm `capture_unresolved` bằng `card_fingerprint` trước khi ghi
+event mới. Khi một card lấy được link evidence, tạo listing/context event bình
+thường, liên kết fingerprint trong payload và đánh dấu event unresolved đã
+resolved; không tạo bản sao.
+
 Capture tất cả comment/reply công khai đang hiển thị, tối đa 100 mỗi post. Chỉ
 đọc public profile/activity trực tiếp gắn với post đã capture, tối đa 10 post
 hoặc 30 ngày mỗi poster/commenter. Lưu raw text, verified URL, absolute date
@@ -264,12 +299,16 @@ does not claim a new browser capture.
   `/posts/<id>/`, là đã có link evidence và được tính vào verified total; vẫn
   ghi `post_id=null` nếu share token chưa resolve được. Chỉ card không có
   direct/comment permalink **và** không có share URL evidence mới là
-  `unresolved_cards`; không đoán URL từ media/photo ID.
+  `unresolved_cards`; raw card vẫn phải được lưu bằng `capture_unresolved`,
+  không đoán URL từ media/photo ID.
 - Nhãn “2 tuần”, `posts_seen`, hoặc việc hết time-box **không** chứng minh đã
   capture đủ 14 ngày.
 - Chỉ set `sublet_group_metrics.posts_14d_count`,
   `posts_14d_complete=true`, `posts_14d_checked_at` khi đã qua boundary 14 ngày
-  và xử lý hết card trong window có permalink xác minh.
+  và xử lý hết card trong window có verified link evidence; mọi card còn
+  `unresolved` hoặc `partial` phải được xử lý/ghi nhận đúng state trước khi
+  complete. `capture_unresolved` bảo đảm không mất raw data nhưng không tự biến
+  card đó thành verified.
 - Nếu feed virtualized, text vẫn collapsed, DB outage, browser reset hoặc có
   unresolved cards: giữ count null/known-but-incomplete, giữ run mở hoặc stop
   reason; không chuyển group.
