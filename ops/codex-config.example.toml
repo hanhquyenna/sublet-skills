@@ -1,0 +1,13 @@
+# Mẫu ~/.codex/config.toml cho sublet-skills. Copy các block cần vào file thật.
+
+# Chrome thật, profile riêng đã login Facebook (khởi động trước: xem AGENTS.md)
+[mcp_servers.chrome]
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest", "--browserUrl", "http://127.0.0.1:9222"]
+
+# Tuỳ chọn: Supabase MCP (thay cho scripts/db.py). Cần Personal Access Token:
+# Supabase dashboard → Account → Access Tokens. project-ref lấy ở Project Settings → General.
+# [mcp_servers.supabase]
+# command = "npx"
+# args = ["-y", "@supabase/mcp-server-supabase@latest", "--project-ref=<PROJECT_REF>"]
+# env = { SUPABASE_ACCESS_TOKEN = "<PAT>" }

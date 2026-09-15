@@ -13,11 +13,12 @@ Mục tiêu: sau khi chạy xong, hệ thống chạy tự động mà bạn ch�
 ## Checklist (theo thứ tự)
 
 ### Ngày 0 — nền
-1. `supabase_ok` — `select count(*) from sublet_groups` chạy được qua MCP.
+0. `env_file` — tồn tại `~/.sublet-skills.env`. Chưa có → bảo bạn chạy `zsh ops/setup_env.sh` (hỏi 5 thứ, 3 phút) rồi chạy lại /onboarding. **Codex bắt buộc** (cần SUPABASE_DB_URL); Claude Code có Supabase MCP nên chỉ cần IMAP.
+1. `supabase_ok` — `select count(*) from sublet_groups` chạy được: Claude Code → Supabase MCP `execute_sql`; Codex → `python3 scripts/db.py "select count(*) from sublet_groups"` (cần `pip3 install psycopg2-binary` + env). Lỗi kết nối → dừng onboarding ở đây, in đúng lỗi, không tick mục nào tiếp.
 2. `config_filled` — `data/config.yaml` có `email.imap_user`, `offer.your_first_name`. Agent đọc file kiểm tra.
 3. `inbox_ok` — `insert into sublet_inbox(level,title) values ('info','onboarding started')` chạy được.
-4. `chrome_fb_login` — Chrome thật đã login Facebook. Agent `navigate` `facebook.com/groups/feed` (1 load) và xác nhận thấy feed, không thấy login. (Codex: profile riêng đã login.)
-5. `env_imap` — `echo $SUBLET_IMAP_USER` không rỗng. Nếu rỗng: hướng dẫn tạo Gmail App Password, thêm vào `~/.zshrc`.
+4. `chrome_fb_login` — Chrome thật đã login Facebook. Agent `navigate` `facebook.com/groups/feed` (1 load) và xác nhận thấy feed, không thấy login. Thấy trang login → ghi `no`, **không thử lại, không tự login**, bảo bạn login tay rồi chạy lại. (Codex: profile riêng cổng 9222, lệnh trong AGENTS.md.)
+5. `env_imap` — `source ~/.sublet-skills.env; echo $SUBLET_IMAP_USER` không rỗng. Nếu rỗng: `zsh ops/setup_env.sh`.
 
 ### Ngày 0–7 — group (tay, chậm)
 6. `groups_join_plan` — `/sublet-groups status` → in danh sách tier 1–2 chưa `joined`. Bạn join **≤5/ngày**. Mỗi ngày /onboarding hỏi lại, bạn tick.

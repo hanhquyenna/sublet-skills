@@ -18,7 +18,7 @@ Claude Code (Mac)                         Supabase (project Lamy, bảng sublet_
 1. **Supabase**: chạy `db/schema.sql` (đã apply nếu bạn dùng project Lamy qua MCP). RLS bật, không policy → chỉ MCP/service role đọc ghi.
 2. **Chrome**: đăng nhập Facebook trong Chrome thật. Join các group trong `data/groups.yaml` bằng tay (2–5 group/ngày, đừng vội). Trong mỗi group tier 1–2: Notifications → **All posts**.
 3. **config**: `data/config.yaml` — điền `email.imap_user`, `offer.your_first_name`. Giá/offer đã đặt €49.
-4. **Email (tuỳ chọn, cho 24/7)**: Gmail App Password → `export SUBLET_IMAP_USER=... SUBLET_IMAP_PASS=...` trong `~/.zshrc`. Không commit.
+4. **Env**: `zsh ops/setup_env.sh` — hỏi SUPABASE_DB_URL (Codex/Hetzner), Gmail IMAP, tên bạn, link form → ghi `~/.sublet-skills.env` (chmod 600) + `data/config.yaml`. Không commit.
 5. **Seeker form**: tạo Tally form với các cột: name, contact, consent (checkbox), move_in, move_out, budget, areas, people, registration_need, pets, occupation, viewing_availability. Export CSV → `data/seekers_export.csv`.
 6. Mở Claude Code trong thư mục này: `cd ~/sublet-skills && claude` rồi gõ `/onboarding` — nó dắt qua các bước còn lại và cài cron (`zsh ops/install_cron.sh`).
 

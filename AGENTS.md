@@ -28,7 +28,7 @@ args = ["-y", "chrome-devtools-mcp@latest", "--browserUrl", "http://127.0.0.1:92
 Trong skill, các bước "navigate / get_page_text / scroll" map sang tool của chrome-devtools-mcp (`navigate_page`, `take_snapshot`, `evaluate_script` để lấy innerText). Không gọi `Runtime.enable`-heavy tool nếu có lựa chọn snapshot/a11y.
 
 ## Database
-Supabase project Lamy, bảng `sublet_*`. Codex không có Supabase MCP mặc định → dùng `scripts/db.py` (psql qua `SUPABASE_DB_URL` env) hoặc cài Supabase MCP vào `~/.codex/config.toml`.
+Supabase project Lamy, bảng `sublet_*`. Codex không có Supabase MCP mặc định → dùng `scripts/db.py` (psycopg2 qua `SUPABASE_DB_URL` trong `~/.sublet-skills.env`, tạo bằng `zsh ops/setup_env.sh`) hoặc cài Supabase MCP theo `ops/codex-config.example.toml`. Mọi chỗ skill viết "execute_sql" → với Codex là `python3 scripts/db.py "<sql>"`.
 
 ## Headless run
 `ops/run_skill.sh` với `SUBLET_RUNNER=codex` → `codex exec "Run the <skill> skill"`.

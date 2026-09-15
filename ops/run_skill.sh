@@ -5,6 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source ~/.zshrc 2>/dev/null || true
+[ -f ~/.sublet-skills.env ] && source ~/.sublet-skills.env
 
 SKILL="$1"; shift || true
 ARGS="$*"
