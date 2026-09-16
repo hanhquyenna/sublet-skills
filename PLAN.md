@@ -1,10 +1,12 @@
 # PLAN.md — sublet-skills: kế hoạch chi tiết cho agent (Codex/Claude Code) và cho người vận hành
 
-> **Active scope reset (2026-09-15, +`analyze-insights` 2026-09-16):** Bộ
-> skill hiện có `information`, `sublet-scrape-14-groups`, `validate-permalink`
-> và `analyze-insights` (đọc-only, chạy độc lập sau capture để tóm tắt
+> **Active scope reset (2026-09-15, +`analyze-insights` 2026-09-16,
+> +`data-engineer` 2026-09-16):** Bộ
+> skill hiện có `information`, `sublet-scrape-14-groups`, `validate-permalink`,
+> `analyze-insights` (đọc-only, chạy độc lập sau capture để tóm tắt
 > insight thô — không phải pipeline `intent-analyze` chính thức ở mục C4 dưới
-> đây). Các workflow cũ khác bên dưới là historical reference, không phải
+> đây) và `data-engineer` (DB-only normalize/QA/aggregate/report). Các
+> workflow cũ khác bên dưới là historical reference, không phải
 > skill callable; không gọi hoặc khôi phục chúng nếu người vận hành chưa yêu
 > cầu mở rộng scope.
 
@@ -59,6 +61,7 @@ Bảng tổng: skill → đọc → ghi → trigger → page load
 | sublet-groups | FB search, sublet_listings (đếm) | sublet_groups, data/groups.yaml | tuần (discover tay, rank cron CN) | ≤6/tuần |
 | sublet-scrape-14-groups | groups, latest metrics, scan runs, listings/events, batch state | batch state + gọi backfill từng group | tay/worker | không tự đọc Facebook; serialize browser jobs |
 | validate-permalink | link queue chưa kiểm tra, context event gần nhất | listing link status + validation events + cursor | sau raw capture, tuần tự | ≤4/run |
+| data-engineer | sublet_* raw/insight/lifecycle events | quality/provenance metrics, inbox, ops state, reports | tay hoặc sau mỗi batch | 0 |
 | sublet-backfill | 1 group, chronological, 14 ngày, resumable | sublet_listings raw, context events, scan_runs, group_metrics, ops_state | tay/worker, từng group | panel-only, theo page-load budget |
 | sublet-scan | FB groups/feed, /notifications, scan_runs.cursor | sublet_listings (kind=null), sublet_scan_runs, sublet_groups.last_post_seen_at, sublet_events | cron 12' | ≤4 |
 | sublet-email | Gmail IMAP | như scan (source=fb_email) | cron 10' (Hetzner 24/7) | 0 |

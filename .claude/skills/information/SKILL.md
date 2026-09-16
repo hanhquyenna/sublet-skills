@@ -110,7 +110,7 @@ snapshot; nếu mâu thuẫn `CLAUDE.md` thì `CLAUDE.md` thắng.
 
 ### Skill registry hiện tại
 
-Bộ sublet hiện có đúng **4 skills active**:
+Bộ sublet hiện có đúng **5 skills active**:
 
 - `information` — context map và onboarding chi tiết.
 - `sublet-scrape-14-groups` — toàn bộ raw scraping workflow cho batch 14 group,
@@ -128,6 +128,9 @@ Bộ sublet hiện có đúng **4 skills active**:
   `sublet_insight_matches` (bảng riêng, không phải `sublet_matches` chính
   thức) — xem snapshot bullet riêng bên dưới và SKILL.md của skill này để biết
   đầy đủ thiết kế/lịch sử quyết định.
+- `data-engineer` — DB-only normalization, provenance, dedupe, data-quality,
+  checkpoint, customer-behavior events và aggregate/report; không browse
+  Facebook, không tự phân loại semantic hay outreach.
 
 Không coi các skill sublet cũ đã xóa là dependency (ví dụ `intent-analyze`,
 `sublet-groups`, `sublet-backfill` — thư mục còn rỗng, không có `SKILL.md`,
@@ -169,7 +172,8 @@ find .claude/skills -mindepth 2 -maxdepth 2 -name SKILL.md -print | sort
 ### Current scrape context
 
 Mục tiêu hiện tại là `/sublet-scrape-14-groups` rồi `/validate-permalink`, có
-thể xen `/analyze-insights` bất kỳ lúc nào sau capture để xem tình hình: tối đa 14 group đã joined,
+thể xen `/data-engineer` để QA/normalize/aggregate và `/analyze-insights` bất
+kỳ lúc nào sau capture để xem tình hình: tối đa 14 group đã joined,
 chọn theo `posts_per_day` mới nhất cao nhất, xử lý tuần tự từng group,
 chronological, đủ 14 ngày lịch, không duplicate, ghi DB sau từng batch. Skill
 này tự chứa backfill/chunk logic; sau capture gọi riêng `validate-permalink`,
@@ -209,9 +213,12 @@ cho outreach và không sửa lẻ từng cặp.
 5. Sau mỗi batch xác nhận listing/context/run/metric đã ghi. DB outage thì retry
    một lần, dừng và giữ incomplete; không báo thành công giả.
 6. Muốn xem tình hình chung, chạy `/analyze-insights` (đọc-only, không mở
-   Facebook) — skill tự bỏ qua listing đã có event `insight_reviewed`, chỉ xử
-   lý phần mới. Đây vẫn không phải pipeline `intent-analyze` chính thức; chỉ
-   thêm pipeline đó khi Kien yêu cầu mở rộng scope.
+  Facebook) — skill tự bỏ qua listing đã có event `insight_reviewed`, chỉ xử
+  lý phần mới. Đây vẫn không phải pipeline `intent-analyze` chính thức; chỉ
+  thêm pipeline đó khi Kien yêu cầu mở rộng scope.
+7. Khi cần biến raw/insight thành dataset queryable hoặc kiểm tra customer
+   behavior, chạy `/data-engineer`; skill này không mở Facebook và không thay
+   đổi semantic fields chính thức.
 
 ## Supabase hiện tại
 

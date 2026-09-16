@@ -1,6 +1,6 @@
 # HANDOFF — prompt cho Codex (hoặc bất kỳ agent nào) tiếp quản repo này
 
-> **Active scope:** bộ sublet hiện có `information`, `sublet-scrape-14-groups` và `validate-permalink`. Các tên skill/workflow cũ còn trong phần lịch sử bên dưới không được gọi hoặc khôi phục.
+> **Active scope:** bộ sublet hiện có `information`, `sublet-scrape-14-groups`, `validate-permalink`, `data-engineer` và `analyze-insights`. Các tên skill/workflow cũ còn trong phần lịch sử bên dưới không được gọi hoặc khôi phục.
 
 Copy nguyên khối dưới đây làm tin nhắn đầu tiên cho Codex khi mở `~/sublet-skills`.
 
@@ -15,12 +15,12 @@ Bạn tiếp quản dự án `sublet-skills` — bộ skill vận hành dịch v
 3. CLAUDE.md  — luật cứng: CHỈ ĐỌC Facebook, không post/comment/like/DM/join; ≤4 page load/chu kỳ scan, ≤6 cho inbox-triage; chỉ 08–23h Amsterdam; thấy checkpoint/captcha/login → dừng, ghi sublet_inbox(level='stop'), không chạy lại 24h. Mọi tin gửi ra do tôi gửi.
 4. PLAN.md    — logic từng skill, bảng đọc/ghi, state machine, cron, cách cập nhật rule (phần H)
 5. README.md  — setup + daily loop
-6. `.agents/skills/information/SKILL.md`, `.agents/skills/sublet-scrape-14-groups/SKILL.md` và `.agents/skills/validate-permalink/SKILL.md` — ba skill active
+6. `.agents/skills/information/SKILL.md`, `.agents/skills/sublet-scrape-14-groups/SKILL.md`, `.agents/skills/validate-permalink/SKILL.md`, `.agents/skills/analyze-insights/SKILL.md` và `.agents/skills/data-engineer/SKILL.md` — năm skill active
 7. db/schema.sql — 11 bảng sublet_* trên Supabase (đã apply; RLS bật, không policy)
 
 TRẠNG THÁI HIỆN TẠI (2026-09-16):
 - Code + schema xong. Supabase canonical là project ref `cteunhuxrghpozwbnehh`; `scripts/db.py` dùng `~/.sublet-skills.env` + REST RPC `sublet_exec`. Snapshot DB mới nhất: 103 `sublet_groups`, 152 metrics, 48 listings, 62 events, 6 scan runs, 10 ops_state; validation queue có 45 `unvalidated`, 2 `validated`, 1 `inaccessible`. Schema có `link_validation_status`, `link_validated_url`, attempts/note và view `sublet_v_link_validation_queue`. Config `your_first_name=Kien`; `email.imap_user` và `seeker_form.url` còn trống. Chưa có cron.
-- Kiến trúc active: `information` → `sublet-scrape-14-groups` → `validate-permalink` qua ChatGPT browser panel. Capture lưu post + public context raw với `kind=null`, giữ cả share URL chưa resolve; validation tuần tự ghi `validated`/`inaccessible`/`needs_review`. Phần analyze/match/outreach là future scope.
+- Kiến trúc active: `information` → `sublet-scrape-14-groups` → `validate-permalink` qua ChatGPT browser panel; `data-engineer` QA/normalize/aggregate DB-only; `analyze-insights` tạo insight heuristic và candidate signal. Capture lưu post + public context raw với `kind=null`, giữ cả share URL chưa resolve; validation tuần tự ghi `validated`/`inaccessible`/`needs_review`. Match chính thức và outreach vẫn là future scope.
 - Run group activity cao nhất là `sublet_scan_runs.id=7`; boundary đã chạm card **31/08 lúc 23:40**, DB ghi `posts_seen=54`, `new_listings=42`, `posts_verified=46`, `unresolved_cards=15`, `page_loads=4/4`, `finished_at=NULL`, `posts_14d_complete=false`. Không báo đủ 14 ngày và không chuyển group khi run/capture còn incomplete.
 - Không có Telegram/notification và không có outreach trong active scope.
 - Offer: €49 khi người tôi giới thiệu dọn vào (config.offer.fee_trigger=move_in). Miễn phí cho người tìm nhà. Định vị: broker nhỏ, không phải agency, không nhắc AI trong tin nhắn.

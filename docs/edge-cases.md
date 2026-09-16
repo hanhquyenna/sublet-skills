@@ -1,6 +1,8 @@
 # Edge-case registry — mọi tình huống hệ thống phải xử lý, ở đâu, đã test chưa
 
-> **Active scope:** `information`, `sublet-scrape-14-groups`, `validate-permalink` và `analyze-insights` (mục J) được gọi. Các skill name cũ trong bảng A–I là historical reference.
+> **Active scope:** `information`, `sublet-scrape-14-groups`, `validate-permalink`,
+> `data-engineer` và `analyze-insights` (mục J/K) được gọi. Các skill name cũ
+> trong bảng A–I là historical reference.
 
 Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_cases.json` (c###) hoặc `manual` (kiểm tay trong QA sau backfill) hoặc `—` (chưa có, cần thêm).
 
@@ -134,6 +136,18 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | E115 | Kien yêu cầu rescan (raw_text được cập nhật, hoặc muốn phân tích lại) | thêm event `insight_reviewed` mới, không xoá/sửa event cũ (append-only); chỉ xảy ra khi có yêu cầu rõ, không tự động | analyze-insights | manual |
 | E116 | Hàng đợi rỗng khi gọi skill | không ghi `sublet_inbox` mới (tránh spam); báo Kien số liệu cũ trong chat, không tự chạy lại phân tích | analyze-insights | manual |
 | E117 | Report tổng hợp lớn bất thường (corpus rất lớn) | giữ toàn bộ breakdown số đếm; chỉ liệt kê chi tiết top cụm trùng lặp/risk-flag lớn nhất, trỏ sang `sublet_events` cho phần còn lại thay vì dump hết vào `sublet_inbox.body` | analyze-insights | — |
+
+## K. DATA-ENGINEER (active, DB-only)
+| # | Tình huống | Xử lý | Skill | Test |
+|---|---|---|---|---|
+| E120 | Raw row thiếu `source_url`/`seen_at` hoặc event thiếu provenance | giữ row ở trạng thái incomplete/unknown, báo audit; không bulk-mark verified và không claim complete | data-engineer | manual |
+| E121 | Retry làm trùng listing/event | dedupe theo unique source/entity-event-source/text fingerprint; upsert idempotent, giữ event history | data-engineer | manual |
+| E122 | Missing budget/location/date/requirements | giữ `NULL`/`unknown`/`[]`; không biến thành zero/no/mismatch và không loại candidate chỉ vì thiếu | data-engineer, analyze-insights | manual |
+| E123 | Một actor có nhiều listing hoặc display name trùng | chỉ merge khi public identity rõ và không mâu thuẫn; nếu không thì giữ entity riêng, không tạo person profile suy đoán | data-engineer | manual |
+| E124 | Actor có cả bài offering và seeking | `offer_or_need='both'` chỉ khi cả hai hướng có evidence; field nào không có evidence vẫn unknown | data-engineer | manual |
+| E125 | Public comment/reaction bị hiểu thành conversion | lưu như observed behavior; không suy ra intent, consent, reply hay rejection nếu chưa có evidence first-party | data-engineer | manual |
+| E126 | Hai event có thời điểm khác nhau | tách `occurred_at`, `observed_at`, `created_at`; không dùng `seen_at` làm move-in/start date | data-engineer | manual |
+| E127 | Thay đổi heuristic matching | full recompute `sublet_insight_matches`, ghi run/provenance và giữ event cũ; không sửa lẻ score/reasons | data-engineer, analyze-insights | manual |
 
 ## Coverage
 - Có test tự động: nhóm C (intent) — 100 case.

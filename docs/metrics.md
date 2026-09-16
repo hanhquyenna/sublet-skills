@@ -1,8 +1,9 @@
 # Metrics catalogue — success metric của từng workflow, lưu ở `sublet_metrics` (1 dòng/ngày/metric)
 
-> **Active scope:** hiện đo raw capture/run progress của `sublet-scrape-14-groups`
-> và insight snapshot của `analyze-insights` (hàng `insight_*` dưới đây, workflow
-> `analyze`). Các metric `intent-analyze` chính thức (analyzed_24h, offering_7d,
+> **Active scope:** hiện đo raw capture/run progress của `sublet-scrape-14-groups`,
+> data quality/behavior aggregates của `data-engineer` và insight snapshot của
+> `analyze-insights` (hàng `insight_*` dưới đây, workflow `analyze`). Các metric
+> `intent-analyze` chính thức (analyzed_24h, offering_7d,
 > scam_high_rate, …), match, outreach và report bên dưới vẫn là historical/future
 > reference — chưa có skill nào ghi chúng.
 
@@ -33,6 +34,19 @@
 | analyze | insight_risk_flagged | listings có ≥1 `insight_risk_flags` | theo dõi xu hướng, không phải scam_score | analyze-insights |
 | analyze | insight_unique_posters | distinct poster_name đã review | — | analyze-insights |
 | analyze | insight_queue_remaining | listings chưa có `insight_reviewed` | 0 sau khi run xong (không tính listing mới capture sau đó) | analyze-insights |
+| analyze | insight_match_candidates_high / _medium / _low / _weak | count theo confidence trong `sublet_insight_matches` | báo đủ 4 tier; không gộp `weak` vào `low` | analyze-insights, data-engineer |
+| data | rows_profiled | rows được profile trong dataset/window | báo cáo đủ phạm vi đã chọn | data-engineer |
+| data | rows_missing_required_evidence | rows thiếu `source_url` hoặc `seen_at` | 0 | data-engineer |
+| data | provenance_complete_rate | events có contract/source/run/page metadata cần thiết / events audited | 100% cho event mới | data-engineer |
+| data | duplicate_source_rows | rows trùng `source_url` hoặc natural key | 0 | data-engineer |
+| data | unknown_field_rate | field values `unknown`/null trên denominator có thể quan sát | báo cùng denominator, không target giả | data-engineer |
+| data | behavior_posts_with_comments | captured posts có ≥1 public comment / captured posts có comment count quan sát được | theo nguồn và window | data-engineer |
+| data | comments_per_observed_post | public comments captured / posts có comment data | theo nguồn và window | data-engineer |
+| data | lifecycle_reply_rate | confirmed replies / contacted or prompted entities | đo khi có first-party denominator | data-engineer |
+| data | lifecycle_consent_rate | confirmed consent / entities asked for consent | đo khi có first-party denominator | data-engineer |
+| data | viewing_show_rate | confirmed attended / scheduled viewings | theo dõi funnel | data-engineer |
+| data | accepted_to_move_in_rate | confirmed moved-in / confirmed accepted | theo dõi funnel | data-engineer |
+| data | fee_collection_rate | confirmed paid / fees due and trackable | theo dõi funnel | data-engineer |
 | demand | seekers_active | v_seekers_active | ≥50 trước khi hứa 72h; ≥100 → 24h | seeker-intake |
 | demand | seekers_new_7d | created_at >7d | ≥15 | seeker-intake |
 | demand | consent_rate | consent true / all form | ≥80% | seeker-intake |

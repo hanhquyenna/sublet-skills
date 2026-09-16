@@ -1,0 +1,4 @@
+interface:
+  display_name: "Data Engineer"
+  short_description: "Normalize, validate, and measure sublet data"
+  default_prompt: "Use $data-engineer to turn captured sublet data into reliable, queryable datasets."

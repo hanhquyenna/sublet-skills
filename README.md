@@ -1,9 +1,10 @@
 # sublet-skills
 
-> **Active scope (2026-09-16):** bốn skill sublet: `information`,
+> **Active scope (2026-09-16):** năm skill sublet: `information`,
 > `sublet-scrape-14-groups`, `validate-permalink` theo thứ tự, cộng
 > `analyze-insights` (đọc-only, chạy độc lập bất kỳ lúc nào sau capture để tóm
-> tắt insight — không phải pipeline `intent-analyze` chính thức). Các phần
+> tắt insight — không phải pipeline `intent-analyze` chính thức), và
+> `data-engineer` (DB-only QA/normalization/behavior aggregates). Các phần
 > phân tích đầy đủ, matching, messaging, outreach, email và Hetzner bên dưới
 > là historical/future notes, không phải workflow đang bật.
 
@@ -40,6 +41,7 @@ Claude Code (Mac)                         Supabase (project Lamy, bảng sublet_
 | 2 | `/sublet-scrape-14-groups` | Capture tuần tự tối đa 14 group, mỗi group 14 ngày |
 | 3 | `/validate-permalink` | Validate queue link Facebook đã capture, resume từ DB |
 | — | `/analyze-insights` | Đọc-only, chạy bất kỳ lúc nào sau bước 2: tóm tắt offering/seeking/duplicate/risk cho Kien, bỏ qua listing đã review |
+| — | `/data-engineer` | DB-only: normalize, audit provenance, dedupe, checkpoint, customer-behavior aggregates và report |
 
 Pipeline `intent-analyze` chính thức, match, messaging, viewing và outreach đều ngoài active scope hiện tại.
 
@@ -51,6 +53,7 @@ Pipeline `intent-analyze` chính thức, match, messaging, viewing và outreach 
 | `sublet-scrape-14-groups` | Chọn tối đa 14 group, capture raw 14 ngày tuần tự, resume/dedupe/checkpoint | Không |
 | `validate-permalink` | Kiểm tra link từng listing trong browser panel, ghi validated/inaccessible/needs_review | Không |
 | `analyze-insights` | Đọc-only trên DB (không mở Facebook): offering/seeking/other thô, cụm trùng lặp, cờ rủi ro, tóm tắt vào inbox/metrics; không re-đọc listing đã `insight_reviewed` | Không |
+| `data-engineer` | Chuẩn hoá raw/insight/lifecycle events, QA, dedupe, provenance, behavior aggregates và report; không browse Facebook, không semantic matching/outreach | Không |
 
 ## Giới hạn an toàn (đã code vào skill)
 - ≤4 page load Facebook/chu kỳ, ≤~400/ngày, 24/7 (đổi từ 08–23h ngày 2026-09-16 theo yêu cầu Kien), dừng ngay khi thấy checkpoint.

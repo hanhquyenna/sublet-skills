@@ -28,10 +28,11 @@
 
 ## Thứ tự skill hiện tại
 `information` → `sublet-scrape-14-groups` → `validate-permalink` (raw capture
-trước, link validation sau). `analyze-insights` là bước đọc-only độc lập, có
-thể chạy bất kỳ lúc nào sau capture (không cần chờ validate xong) để tóm tắt
-insight cho Kien; không phải pipeline `intent-analyze` chính thức. Các bước
-match, draft, viewing và outreach chưa nằm trong active skill scope.
+trước, link validation sau). `data-engineer` là lớp DB-only để QA, normalize,
+aggregate và report; `analyze-insights` là bước đọc-only độc lập, có thể chạy
+bất kỳ lúc nào sau capture (không cần chờ validate xong) để tóm tắt insight cho
+Kien. Các bước match, draft, viewing và outreach chưa nằm trong active skill
+scope.
 
 ## Active scope
 - **Context** (`information`): onboarding, quyền agent, DB, state và cách tiếp tục.
@@ -50,3 +51,7 @@ match, draft, viewing và outreach chưa nằm trong active skill scope.
   event `insight_reviewed`, không đụng `sublet_seekers`/`sublet_matches`/
   `sublet_messages` (khác `sublet_insight_matches`, bảng riêng chỉ mang tính
   tham khảo).
+- **Data engineering** (`data-engineer`): DB-only normalization, provenance,
+  dedupe, data-quality audits, idempotent checkpoints, customer-behavior event
+  aggregates và reports. Không browse Facebook, không tự phân loại semantic,
+  không làm identity enrichment và không tự động outreach.

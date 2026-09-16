@@ -10,7 +10,7 @@ source ~/.zshrc 2>/dev/null || true
 export TZ=Europe/Amsterdam
 SKILL="$1"; shift || true
 case "$SKILL" in
-  information|sublet-scrape-14-groups|validate-permalink|backup) ;;
+  information|sublet-scrape-14-groups|validate-permalink|data-engineer|backup) ;;
   *) echo "unsupported skill in active scope: $SKILL" >&2; exit 2 ;;
 esac
 # Skill nào cần Chrome thật (Facebook) — dùng để gate giờ/wake/login/pause bên dưới.

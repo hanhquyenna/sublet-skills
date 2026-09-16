@@ -16,6 +16,10 @@ tham khảo**, không phải quyết định cuối, và không bao giờ ghi v�
 `.scam_score`, `.scam_flags`, `.deal_score`, `.status`, `.analyzed_at` — để
 tránh xung đột với pipeline chính thức khi nó được bật sau này.
 
+Phần storage/provenance/normalization/QA/behavior aggregates dùng chung thuộc
+`data-engineer`. Khi cần các việc đó, đọc hoặc gọi skill này; đừng nhân bản
+logic data engineering thành một heuristic mới trong `analyze-insights`.
+
 ## Spec
 
 - **Trigger:** Kien gọi tay, thường sau khi `sublet-scrape-14-groups` capture
@@ -40,8 +44,9 @@ tránh xung đột với pipeline chính thức khi nó được bật sau này.
   `insight_duplicate_clusters`, `insight_duplicate_listings`,
   `insight_risk_flagged`, `insight_unique_posters`, `insight_queue_remaining`
   (luôn 0 sau khi chạy xong vì mọi listing đều được ghi `insight_reviewed`),
-  `insight_match_candidates_high/medium/low`, `insight_pricing_tagged`,
-  `insight_no_pricing`.
+  `insight_match_candidates_high/medium/low/weak`, `insight_pricing_tagged`,
+  `insight_no_pricing`. The `weak` metric is required; do not collapse it into
+  `low` or omit it from the snapshot.
 - **Kết quả:** một bản tóm tắt trong `sublet_inbox` + số liệu trong
   `sublet_metrics`; không claim đây là phân loại chính thức, không tự động
   chuyển `listings.status`.
@@ -353,12 +358,14 @@ poster/URL 2 bên, sort theo confidence rồi score) khi cần dựng báo cáo.
 
 Khi Kien yêu cầu "làm báo cáo"/"flag ra bảng data": dựng từ
 `sublet_v_insight_matches_report`, cột tối thiểu — ngày chạy, seeker (tên +
-link `source_url`), offering (tên + link `source_url`), lý do khớp
-(`reasons`), confidence. Có thể xuất Artifact (bảng HTML) để Kien xem/chia sẻ
-dễ hơn dump JSON; nêu rõ đây là tín hiệu đọc-only, không phải danh sách đã xác
-nhận outreach. Nhóm `high` lên đầu; nếu `high` rỗng, nói thẳng thay vì im lặng
-bỏ qua tầng đó (dữ liệu 14 ngày/1 group ban đầu có thể chưa đủ để có cặp
-`high`).
+link `source_url`), offering (tên + link `source_url`), nội dung raw của hai
+bài nếu có trong view/query, lý do khớp (`reasons`), score và confidence.
+Phải hiển thị đủ cả bốn tier `high`, `medium`, `low`, `weak`; không được bỏ
+`weak` chỉ vì tier này không có evidence khu vực/ngân sách. Có thể xuất Artifact
+(bảng HTML) để Kien xem/chia sẻ dễ hơn dump JSON; nêu rõ đây là tín hiệu
+đọc-only, không phải danh sách đã xác nhận outreach. Nhóm `high` lên đầu; nếu
+`high` rỗng, nói thẳng thay vì im lặng bỏ qua tầng đó (dữ liệu 14 ngày/1 group
+ban đầu có thể chưa đủ để có cặp `high`).
 
 ## DB write contract
 
