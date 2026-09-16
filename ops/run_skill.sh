@@ -48,6 +48,13 @@ if [[ "$NEEDS_CHROME" == "1" ]]; then
   # Tạm dừng 24h sau checkpoint
   PAUSE=$(python3 scripts/db.py "select value from sublet_ops_state where key='scan_paused_until' and value::timestamptz > now()" 2>/dev/null | grep -c '"value"' || true)
   if [[ "$PAUSE" != "0" ]]; then echo "$(date +%T) skip $SKILL (paused)" >> "$LOG"; exit 0; fi
+  # R03: ≤350 page load Facebook/24h tổng cộng (mọi mode: scrape+validation), tính từ
+  # sublet_scan_runs thật — trước đây chỉ được report.py báo cáo sau khi đã vượt, không
+  # có gì chặn thật. Vá 2026-09-16 theo yêu cầu Kien.
+  LOADS24=$(python3 scripts/db.py "select coalesce(sum(page_loads),0) as n from sublet_scan_runs where started_at > now() - interval '24 hours'" 2>/dev/null | grep -o '"n": [0-9]*' | grep -o '[0-9]*')
+  if [[ -n "${LOADS24:-}" && "$LOADS24" -ge 350 ]]; then
+    echo "$(date +%T) skip $SKILL (R03: page_loads_24h=$LOADS24 >= 350)" >> "$LOG"; exit 0
+  fi
 fi
 
 echo "$(date +%T) run $SKILL $ARGS" >> "$LOG"
