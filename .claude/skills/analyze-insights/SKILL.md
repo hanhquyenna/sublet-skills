@@ -268,85 +268,54 @@ Một offering có thể khớp với nhiều seeker, và một seeker có thể
 nhiều offering — đây là hành vi **đúng, không phải bug**. Không giới hạn
 "mỗi seeker chỉ 1 offering tốt nhất"; Kien tự lọc/chọn từ danh sách đầy đủ.
 
-- **Khu vực:** trích tên khu Amsterdam xuất hiện trong `raw_text` (danh sách
-  khu chuẩn, có thể mở rộng khi gặp khu mới). **Bỏ qua `"ring"`/"trong vành
-  đai"** làm tín hiệu khu vực — đây là cụm chỉ "trong vành đai A10", gần như
-  toàn bộ Amsterdam, không phải một khu cụ thể; giữ nó sẽ tạo match giả (khớp
-  bừa vì mọi nơi đều "trong ring"). Trùng tên khu = tín hiệu mạnh; khu liền kề
-  theo bảng lân cận cố định (vd. Amstelveen ~ Diemen ~ Venserpolder, Zuid ~
-  Zuidas ~ Oud-Zuid ~ De Pijp) = tín hiệu vừa. Một bên không nêu khu = không
-  tính là khớp cũng không tính là loại (bỏ qua tín hiệu này, không suy diễn).
-  Hai bên có nêu khu nhưng không trùng/không liền kề = loại thẳng, không đưa
-  vào danh sách ứng viên.
-- **Ngân sách/giá:** dùng `pricing_tag`/`price_or_budget_eur` đã trích ở Bước
-  1.5 (seeker → ngân sách trần, offering → giá thuê). Khớp khi
-  `0.5 ≤ (giá offering / ngân sách seeker) ≤ 1.1` — **cả biên trên lẫn biên
-  dưới đều bắt buộc**. Biên trên (1.1, tức +10%) chừa sai số trích số/chi phí
-  phát sinh nhỏ. Biên dưới (0.5) là fix sau khi phát hiện lỗi thật (xem "Edge
-  case đã phát hiện" bên dưới) — thiếu biên dưới, seeker ngân sách cao sẽ
-  "khớp" với offering rẻ hơn nhiều lần dù khác hẳn loại hình/sức chứa. Một
-  trong hai bên `no_pricing` → bỏ qua tín hiệu này hoàn toàn (không suy diễn
-  số, không coi là khớp cũng không loại). Có cả hai mà tỷ lệ ngoài
-  [0.5, 1.1] → loại thẳng.
-- **Thời điểm:** `seen_at` hai bên cách nhau ≤ 3 ngày → tín hiệu yếu bổ sung
-  ("cùng đợt hoạt động"). Không dùng riêng một mình để tạo ứng viên — chỉ cộng
-  điểm khi đã có ít nhất một tín hiệu khu vực hoặc ngân sách.
+### Tín hiệu so khớp — unknown không phải mismatch
 
-### Edge case đã phát hiện — vì sao có biên dưới 0.5 ở ngân sách
+- **Khu vực:** trích tên khu Amsterdam xuất hiện trong `raw_text` (bỏ qua
+  `ring`/"trong vành đai"). Trùng khu = tín hiệu mạnh; khu liền kề theo bảng
+  cố định = tín hiệu vừa. Nếu một bên không nêu khu, ghi
+  `area_signal='unknown'`: không cộng điểm nhưng cũng **không trừ điểm và
+  không loại ứng viên**. Chỉ coi là conflict khi cả hai bên nêu khu cụ thể và
+  không có overlap/lân cận rõ ràng.
+- **Ngân sách/giá:** nếu cả hai bên có số tiền và giá offering ≤ ngân sách
+  seeker × 1.1 thì ghi `budget_signal='compatible'`; không dùng biên dưới để
+  loại một chỗ rẻ hơn ngân sách. Giá thấp có thể hoàn toàn phù hợp. Nếu giá
+  vượt ngân sách rõ ràng thì ghi `budget_signal='conflict'` và loại, trừ khi
+  seeker nói budget flexible. Nếu một bên không nêu giá/ngân sách, ghi
+  `budget_signal='unknown'`: không cộng cũng không trừ.
+- **Loại hình/sức chứa/thời gian:** chỉ loại khi raw text nêu mâu thuẫn rõ
+  (ví dụ offering chỉ 1 người nhưng seeker yêu cầu tối thiểu 2 người). Nếu
+  không đủ dữ liệu, ghi `unknown`, không suy diễn.
+- **`seen_at`:** chỉ là freshness/activity metadata (`activity_age_days`),
+  không phải tín hiệu tương thích và không được cộng vào `score`/`reasons`.
 
-Chạy đầu tiên (chưa có biên dưới, chỉ có `giá ≤ ngân sách × 1.1`) trên group 1
-cho ra 41 ứng viên (8 medium / 33 low). Soát tay phát hiện **18/33 match
-`low`** chỉ đến từ đúng **2 seeker** — Esteban Penalva Sánchez (ngân sách
-€3.000, muốn apartment 2 phòng ngủ cho 2 người) và Samrawit Alula (ngân sách
-€2.000) — **không nêu khu vực cụ thể**, nên "khớp" bừa với gần như mọi
-offering rẻ hơn ngân sách của họ, kể cả phòng studio 1 người giá €650-800
-(tỷ lệ giá/ngân sách thấp tới 0.22-0.27). Đây không phải match thật: ngân sách
-cao không có nghĩa seeker sẵn sàng nhận bất kỳ chỗ rẻ nào — khoảng cách quá xa
-giữa giá và ngân sách thường là dấu hiệu khác loại hình/sức chứa, không phải
-tín hiệu phù hợp. Thêm biên dưới 0.5 giảm ứng viên `low` từ 33 xuống 21 (tổng
-41→29), loại đúng 12 case vô nghĩa này. **Bài học:** một tín hiệu "chỉ có 1 vế
-điều kiện" (chỉ chặn trên, không chặn dưới) dễ tạo match giả khi 1 bên dữ liệu
-rất lệch (ngân sách cao bất thường + không có khu vực) — nếu heuristic mới sau
-này thêm tín hiệu số khác (m², số phòng...), luôn cân nhắc cả 2 chiều, không
-chỉ 1 chiều "đủ điều kiện tối thiểu".
+### Thang điểm `score` — chỉ cộng evidence dương
 
-### Thang điểm `score` — tối đa 5, tối thiểu 2 để được lưu
-
-`score` là tổng cộng dồn của 3 tín hiệu độc lập, **không phải** phần trăm hay
-đã chuẩn hoá:
+`score` là điểm tham khảo, không phải phần trăm xác suất:
 
 | Tín hiệu | Điểm | Điều kiện |
-|---|---|---|
-| Khu vực (trùng hoặc liền kề) | +2 | `area_signal` có giá trị (không phải `None`/`False`) |
-| Ngân sách/giá hợp lệ | +2 | cả 2 bên có số tiền **và** `0.5 ≤ tỷ lệ ≤ 1.1` |
-| Thời điểm (`seen_at` cách ≤3 ngày) | +1 | luôn cộng thêm nếu đúng; **không tự đứng một mình** — không tạo được ứng viên nếu đây là tín hiệu duy nhất |
+|---|---:|---|
+| Khu vực trùng | +2 | hai bên nêu cùng khu |
+| Khu vực liền kề | +1 | hai bên nêu khu lân cận |
+| Ngân sách/giá compatible | +2 | cả hai có số tiền và không vượt ngân sách |
+| Loại hình/sức chứa compatible | +1 | text xác nhận tương thích |
+| Thời gian compatible | +1 | ngày thuê/ở giao nhau |
 
-- **Tối đa = 5** (khu vực + ngân sách + thời điểm cùng đạt) → luôn ứng với
-  `confidence='high'`.
-- **Tối thiểu để lưu vào `sublet_insight_matches` = 2** (có khu vực HOẶC ngân
-  sách, có thể không có thời điểm). Dưới 2 điểm → loại, không insert.
-- **score=3** phổ biến nhất trong dữ liệu group 1 hiện tại (29/29 record đêm
-  2026-09-16) — nghĩa là mọi cặp hiện có chỉ đạt 1 trong 2 tín hiệu chính
-  (khu vực hoặc ngân sách) cộng thời điểm; **chưa có cặp nào đạt 4-5** vì chưa
-  có seeker nào vừa nêu khu vực vừa nêu ngân sách khớp cùng 1 offering trong
-  dataset 14 ngày/1 group này. Đây là phản ánh thật của dữ liệu, không phải
-  giới hạn của công thức.
+Unknown luôn = 0; không có điểm âm vì thiếu dữ liệu. Conflict rõ ràng là
+veto, không tạo candidate. Chỉ lưu candidate khi có ít nhất một tín hiệu
+dương và không có veto.
 
 ### Xếp hạng confidence
 
-- `high`: có cả tín hiệu khu vực thật **và** ngân sách/giá khớp (score 4-5).
-- `medium`: có tín hiệu khu vực thật, có hoặc không có ngân sách (score 2-3).
-- `low`: chỉ có tín hiệu ngân sách/giá, không có bằng chứng khu vực nào cho
-  một hoặc cả hai bên (score 2-3).
+- `high`: ít nhất hai tín hiệu tương thích dương và không có veto.
+- `medium`: một tín hiệu tương thích dương và các tín hiệu còn lại là
+  `unknown`, không có veto. Budget-only hoặc area-only đều thuộc nhóm này.
+- `low`: chỉ dùng khi raw text quá ngắn/mơ hồ hoặc tín hiệu dương yếu; **không
+  dùng `low` chỉ vì seeker/offering không khai báo khu vực**.
 
-Hai record cùng `score=3` có thể khác `confidence` tuỳ tín hiệu nào tạo ra nó
-(khu vực+thời điểm = `medium`; ngân sách+thời điểm = `low`) — không suy ra
-confidence chỉ từ con số `score`, phải nhìn `reasons` đi kèm.
-
-Không tạo ứng viên nếu không có ít nhất một trong hai tín hiệu khu vực/ngân
-sách (thời điểm một mình không đủ). Ghi rõ `reasons` bằng câu người đọc được
-(vd. `"cùng khu 'zuid'"`, `"ngân sách 3000 >= giá 1500 (tỷ lệ 0.50)"`), không
-chỉ số điểm.
+Reasons phải phân biệt rõ `compatible`, `unknown` và `conflict`, ví dụ:
+`"budget compatible: €800 ≤ €1,300"`, `"area unknown: seeker không nêu khu
+vực — chưa kết luận mismatch"`, hoặc `"type conflict: seeker cần 2-bedroom,
+offering chỉ 1-bedroom"`. Không đưa `seen_at` vào lý do match.
 
 ### Ghi `sublet_insight_matches` (bảng riêng, KHÔNG phải `sublet_matches`)
 

@@ -172,6 +172,9 @@ thái ẩn danh không có profile URL) phải giữ nguyên label và được 
 `anonymous_access_ready=true` sau khi có usable post permalink đã validate
 thật; share URL chưa validate hoặc card không có link không được dùng cho
 profile follow-up, matching hay outreach.
+Insight matches là bảng tín hiệu đọc-only; nếu heuristic matching thay đổi,
+toàn bộ bảng phải được recompute từ đầu. Không dùng score/reasons của run cũ
+cho outreach và không sửa lẻ từng cặp.
 
 ### Cách tiếp tục ở session sau
 

@@ -37,6 +37,7 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | E28 | Resume group có timestamp null hoặc run bị dừng | ưu tiên run cursor + verified source_url; `seen_at` chỉ là thời điểm quan sát, không dùng làm post time; không bắt đầu lại từ đầu | sublet-scrape-14-groups, sublet-backfill | manual |
 | E29 | Batch 14 group có group chưa complete hoặc bị block | giữ `current_group`, ghi blocked reason, không chuyển group/đóng batch như complete | sublet-scrape-14-groups | manual |
 | E30 | Poster hiển thị anonymous/không có profile URL | flag `anonymous_poster`; giữ nguyên label; không đoán danh tính; bắt buộc usable post permalink đã validate trước khi resolved/access-ready, match hoặc outreach | sublet-scrape-14-groups, validate-permalink, analyze-insights | manual |
+| E31 | Seeker/offering không khai báo khu vực hoặc ngân sách | ghi `unknown`; không coi là mismatch, không trừ điểm và không loại; chỉ loại khi có conflict rõ ràng; `seen_at` chỉ ghi freshness | analyze-insights, sublet-match | manual |
 
 ## C. ANALYZE — intent (chi tiết rule ở docs/intent-logic.md)
 | # | Tình huống | Xử lý | Skill | Test |
