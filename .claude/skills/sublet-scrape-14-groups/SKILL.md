@@ -1,6 +1,6 @@
 ---
 name: sublet-scrape-14-groups
-description: "Scrape raw data from up to 14 joined Facebook groups, one group at a time, for the latest 14 calendar days. Resume from the database, deduplicate, checkpoint after every batch, and finish each group before moving on. Use with /sublet-scrape-14-groups."
+description: "Scrape raw data from up to 14 joined Facebook groups, one group at a time, for the latest 7 calendar days (changed 2026-09-16 from 14 days; groups already completed under the old 14-day window are not redone). Resume from the database, deduplicate, checkpoint after every batch, and finish each group before moving on. Use with /sublet-scrape-14-groups."
 ---
 
 # sublet-scrape-14-groups
@@ -16,8 +16,14 @@ khác.
   `allows_sublet='no'`, sắp theo `posts_per_day` mới nhất giảm dần.
 - Xử lý đúng **một group tại một thời điểm**. Không mở 14 group song song và
   không chuyển group khi group hiện tại chưa complete.
-- Với mỗi group, đọc feed chronological từ mới tới cũ trong **14 ngày lịch**
-  theo timezone `Europe/Amsterdam`.
+- Với mỗi group, đọc feed chronological từ mới tới cũ trong **7 ngày lịch**
+  (đổi từ 14 xuống 7 ngày theo yêu cầu Kien 2026-09-16 — chỉ áp dụng cho
+  group **chưa** scrape/chưa complete; group đã complete dưới cửa sổ 14 ngày
+  cũ **không** cần scrape lại, giữ nguyên kết quả cũ) theo timezone
+  `Europe/Amsterdam`. Tên field/cột DB `window_days`, `posts_14d_count`,
+  `posts_14d_complete`, `posts_14d_checked_at` giữ nguyên tên cũ (đổi tên cột
+  là việc migration riêng, không cần thiết chỉ để đổi số ngày) — đọc giá trị
+  thật trong `window_days`/context, không suy ra từ tên cột.
 - Capture-only: lưu raw, chưa phân loại offering/seeking/scam và chưa match hay
   outreach. Chỉ chạy phân tích khi người vận hành yêu cầu sau khi scrape xong.
   Link được thu thập trước; khả năng truy cập/permalink được kiểm tra tuần tự
@@ -50,7 +56,7 @@ Lưu state vào `sublet_ops_state` key `scrape_14_groups_batch`:
 ```json
 {
   "batch_id": "2026-09-15T22:00:00+02:00",
-  "window_days": 14,
+  "window_days": 7,
   "group_keys": [],
   "current_index": 0,
   "current_group": null,
@@ -398,9 +404,10 @@ does not claim a new browser capture.
 - Notes phải ghi theo dạng dễ lọc, ví dụ
   `posted_at_estimated=2026-09-15T22:20:00+02:00; basis="2 hours"; uncertainty_hours=1`.
 - Estimate chỉ phục vụ sort/triage tham khảo. Không dùng estimate để chốt
-  `posts_14d_complete`, vượt boundary 14 ngày, tính `posts_14d_count`, hay
-  thay thế `posted_at` trong logic dedupe/resume. Khi cần chứng minh đủ 14
-  ngày, vẫn phải có absolute timestamp hoặc boundary Facebook xác minh được.
+  `posts_14d_complete`, vượt boundary `window_days` (mặc định 7 ngày, xem
+  mục "Mục tiêu và thứ tự"), tính `posts_14d_count`, hay thay thế `posted_at`
+  trong logic dedupe/resume. Khi cần chứng minh đủ `window_days` ngày, vẫn
+  phải có absolute timestamp hoặc boundary Facebook xác minh được.
 
 ## Completion và chống báo sai
 
@@ -411,8 +418,8 @@ does not claim a new browser capture.
   validator xác nhận. Chỉ card không có direct/comment permalink **và** không
   có share URL evidence mới là `unresolved_cards`; raw card vẫn phải được lưu
   bằng `capture_unresolved`, không đoán URL từ media/photo ID.
-- Nhãn “2 tuần”, `posts_seen`, hoặc việc hết time-box **không** chứng minh đã
-  capture đủ 14 ngày.
+- Nhãn “2 tuần”/“1 tuần”, `posts_seen`, hoặc việc hết time-box **không**
+  chứng minh đã capture đủ `window_days` ngày.
 - **Số lượng card unresolved (thiếu link) không chặn completion** (nới lỏng
   2026-09-16 theo yêu cầu Kien, thay cho ngưỡng ≤5/≤10% đặt ra trước đó cùng
   ngày — bỏ hẳn, không dùng số ngưỡng nào nữa). Group active cỡ lớn (chục
@@ -420,8 +427,10 @@ does not claim a new browser capture.
   dồn nhanh hơn tốc độ capture cho phép (≤4 page load/run); việc resolve link
   là việc của `validate-permalink` (kể cả recovery), không phải điều kiện để
   `sublet-scrape-14-groups` complete một group.
-- **Điều kiện complete thật sự chỉ còn hai vế: (1) đã qua boundary 14 ngày,
-  và (2) mọi card trong window đã có raw data đầy đủ** — card có link thì lưu
+- **Điều kiện complete thật sự chỉ còn hai vế: (1) đã qua boundary
+  `window_days` (mặc định 7 ngày kể từ 2026-09-16; nhóm đã complete dưới
+  cửa sổ 14 ngày cũ giữ nguyên, không tính lại), và (2) mọi card trong
+  window đã có raw data đầy đủ** — card có link thì lưu
   listing bình thường; card không có link vẫn bắt buộc lưu đủ raw qua event
   `capture_unresolved` (poster, timestamp/label, **toàn bộ raw text**, media,
   counters, `card_fingerprint`, theo đúng "Raw context contract v2" phía
