@@ -7,6 +7,16 @@ Env nằm trong ~/.sublet-skills.env (source trước, hoặc script tự đọc
 
 Usage: python3 scripts/db.py "select count(*) from sublet_groups"   -> JSON rows
        echo "insert ..." | python3 scripts/db.py -
+
+GOTCHA (tìm ra 2026-09-16): RPC `sublet_exec` phân biệt select/insert bằng regex
+trên TOÀN BỘ chuỗi câu lệnh: `q ~* '\yreturning\y'`. Nếu payload/text bạn insert
+tình cờ chứa chữ "returning" ở bất kỳ đâu — kể cả trong 1 string literal/JSON,
+không phải mệnh đề RETURNING thật — RPC vẫn bọc câu lệnh theo kiểu
+`select ... from (<câu lệnh của bạn>) t`, gây lỗi
+`syntax error at or near "into"` cho INSERT/UPDATE thường. Sửa: đổi chữ trong
+nội dung để tránh chứa "returning" (không phải bug ở đây hay ở RPC không hỗ trợ
+RETURNING — RPC không hỗ trợ RETURNING thật sự, nhưng lỗi này thường bị chẩn
+đoán nhầm là vậy).
 """
 import json, os, sys, urllib.request, urllib.error
 
