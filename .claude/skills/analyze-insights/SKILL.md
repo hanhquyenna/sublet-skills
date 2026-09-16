@@ -40,7 +40,8 @@ tránh xung đột với pipeline chính thức khi nó được bật sau này.
   `insight_duplicate_clusters`, `insight_duplicate_listings`,
   `insight_risk_flagged`, `insight_unique_posters`, `insight_queue_remaining`
   (luôn 0 sau khi chạy xong vì mọi listing đều được ghi `insight_reviewed`),
-  `insight_match_candidates_high/medium/low`.
+  `insight_match_candidates_high/medium/low`, `insight_pricing_tagged`,
+  `insight_no_pricing`.
 - **Kết quả:** một bản tóm tắt trong `sublet_inbox` + số liệu trong
   `sublet_metrics`; không claim đây là phân loại chính thức, không tự động
   chuyển `listings.status`.
@@ -231,7 +232,37 @@ where l.group_key = <group đang xử lý>
 - `seeker.id == offering.id` không thể xảy ra do đã lọc theo `kind_guess`
   khác nhau, nhưng vẫn kiểm tra phòng hờ nếu logic lọc thay đổi sau này.
 
+### Bước 1.5 — tag `pricing`/`no_pricing` (đi kèm classification, không phải skill riêng)
+
+Ngay sau khi có `insight_kind_guess` cho một listing, trích thêm 2 field và ghi
+cùng event `insight_reviewed` (không phải event riêng, không phải skill riêng
+— đây vẫn là 1 bước rẻ tiền, thuần regex trên `raw_text` đã có sẵn trong DB,
+không cần Facebook, không cần LLM đọc lại):
+
+- `pricing_tag`: `'pricing'` nếu trích được ít nhất 1 số tiền EUR hợp lệ
+  (200–5000, xem quy tắc trích bên dưới) trong `raw_text`; `'no_pricing'` nếu
+  không có số nào. Tag này cho biết ngay listing nào **không thể** dùng tín
+  hiệu ngân sách/giá ở Bước 3 (matching), tách bạch với `insight_kind_guess`
+  (một listing có thể là `seeking_like` + `no_pricing`, nghĩa là seeker chưa
+  nêu ngân sách — vẫn hợp lệ để match theo khu vực, chỉ không match được theo
+  giá).
+- `price_or_budget_eur`: số đã trích (ngân sách cao nhất với seeker, giá thấp
+  nhất với offering), hoặc `null` nếu `no_pricing`.
+
+Lý do tách thành tag rõ ràng thay vì để ẩn trong logic Bước 3: khi review lại
+kết quả matching, đếm nhanh được bao nhiêu % listing có giá (`select
+payload->>'pricing_tag', count(*) from sublet_events where
+event='insight_reviewed' group by 1`) mà không cần chạy lại phép trích. Đây
+**không phải** lý do để tách thành skill `/data-engineer` riêng — vẫn là 1
+bước trong `analyze-insights`, dùng chung code trích số với Bước 3, không có
+queue/cursor/spec riêng. Tách skill chỉ đáng làm nếu có ≥2 skill khác cần dùng
+lại tag này độc lập với `analyze-insights`; hiện tại chưa có.
+
 ### Tín hiệu so khớp (mỗi seeker × mỗi offering, chỉ trong cùng group)
+
+Một offering có thể khớp với nhiều seeker, và một seeker có thể khớp với
+nhiều offering — đây là hành vi **đúng, không phải bug**. Không giới hạn
+"mỗi seeker chỉ 1 offering tốt nhất"; Kien tự lọc/chọn từ danh sách đầy đủ.
 
 - **Khu vực:** trích tên khu Amsterdam xuất hiện trong `raw_text` (danh sách
   khu chuẩn, có thể mở rộng khi gặp khu mới). **Bỏ qua `"ring"`/"trong vành
@@ -243,15 +274,37 @@ where l.group_key = <group đang xử lý>
   tính là khớp cũng không tính là loại (bỏ qua tín hiệu này, không suy diễn).
   Hai bên có nêu khu nhưng không trùng/không liền kề = loại thẳng, không đưa
   vào danh sách ứng viên.
-- **Ngân sách/giá:** trích số tiền EUR trong text (dạng `€1.500`, `1500 eur`).
-  Seeker: lấy số cao nhất nêu (coi là trần ngân sách). Offering: lấy số thấp
-  nhất nêu (coi là giá thuê). Khớp khi `giá offering ≤ ngân sách seeker × 1.1`
-  (biên 10% cho sai số trích số/chi phí phát sinh nhỏ). Ngân sách hoặc giá
-  không trích được → bỏ qua tín hiệu này (không suy diễn số). Có cả hai mà giá
-  vượt ngân sách rõ ràng → loại thẳng.
+- **Ngân sách/giá:** dùng `pricing_tag`/`price_or_budget_eur` đã trích ở Bước
+  1.5 (seeker → ngân sách trần, offering → giá thuê). Khớp khi
+  `0.5 ≤ (giá offering / ngân sách seeker) ≤ 1.1` — **cả biên trên lẫn biên
+  dưới đều bắt buộc**. Biên trên (1.1, tức +10%) chừa sai số trích số/chi phí
+  phát sinh nhỏ. Biên dưới (0.5) là fix sau khi phát hiện lỗi thật (xem "Edge
+  case đã phát hiện" bên dưới) — thiếu biên dưới, seeker ngân sách cao sẽ
+  "khớp" với offering rẻ hơn nhiều lần dù khác hẳn loại hình/sức chứa. Một
+  trong hai bên `no_pricing` → bỏ qua tín hiệu này hoàn toàn (không suy diễn
+  số, không coi là khớp cũng không loại). Có cả hai mà tỷ lệ ngoài
+  [0.5, 1.1] → loại thẳng.
 - **Thời điểm:** `seen_at` hai bên cách nhau ≤ 3 ngày → tín hiệu yếu bổ sung
   ("cùng đợt hoạt động"). Không dùng riêng một mình để tạo ứng viên — chỉ cộng
   điểm khi đã có ít nhất một tín hiệu khu vực hoặc ngân sách.
+
+### Edge case đã phát hiện — vì sao có biên dưới 0.5 ở ngân sách
+
+Chạy đầu tiên (chưa có biên dưới, chỉ có `giá ≤ ngân sách × 1.1`) trên group 1
+cho ra 41 ứng viên (8 medium / 33 low). Soát tay phát hiện **18/33 match
+`low`** chỉ đến từ đúng **2 seeker** — Esteban Penalva Sánchez (ngân sách
+€3.000, muốn apartment 2 phòng ngủ cho 2 người) và Samrawit Alula (ngân sách
+€2.000) — **không nêu khu vực cụ thể**, nên "khớp" bừa với gần như mọi
+offering rẻ hơn ngân sách của họ, kể cả phòng studio 1 người giá €650-800
+(tỷ lệ giá/ngân sách thấp tới 0.22-0.27). Đây không phải match thật: ngân sách
+cao không có nghĩa seeker sẵn sàng nhận bất kỳ chỗ rẻ nào — khoảng cách quá xa
+giữa giá và ngân sách thường là dấu hiệu khác loại hình/sức chứa, không phải
+tín hiệu phù hợp. Thêm biên dưới 0.5 giảm ứng viên `low` từ 33 xuống 21 (tổng
+41→29), loại đúng 12 case vô nghĩa này. **Bài học:** một tín hiệu "chỉ có 1 vế
+điều kiện" (chỉ chặn trên, không chặn dưới) dễ tạo match giả khi 1 bên dữ liệu
+rất lệch (ngân sách cao bất thường + không có khu vực) — nếu heuristic mới sau
+này thêm tín hiệu số khác (m², số phòng...), luôn cân nhắc cả 2 chiều, không
+chỉ 1 chiều "đủ điều kiện tối thiểu".
 
 ### Xếp hạng confidence
 
@@ -274,11 +327,20 @@ values (...)
 on conflict (seeker_listing_id, offering_listing_id) do nothing;
 ```
 
-`on conflict do nothing` giữ idempotent: chạy lại không tạo trùng cặp. Không
-cần xoá match cũ khi rerun — dữ liệu insight append/idempotent như phần còn
-lại của skill này. Đọc lại toàn bộ qua view
-`sublet_v_insight_matches_report` (join sẵn poster/URL 2 bên, sort theo
-confidence rồi score) khi cần dựng báo cáo.
+`on conflict do nothing` giữ idempotent cho **rerun thường** (có listing mới,
+logic tính điểm không đổi): chạy lại không tạo trùng cặp, không cần xoá gì.
+
+**Ngoại lệ — khi chính logic tính điểm/tín hiệu thay đổi** (vd. sửa ngưỡng,
+thêm/bớt tín hiệu, như case biên dưới 0.5 ở trên): `on conflict do nothing`
+sẽ giữ lại các cặp cũ sai theo logic cũ mà không xoá, vì cặp (seeker,
+offering) không đổi — chỉ điểm/lý do đổi. Trường hợp này phải
+`delete from sublet_insight_matches where id > 0` (RPC từ chối `delete`
+không có `where`) rồi tính và insert lại **toàn bộ** theo logic mới, không chỉ
+phần chênh lệch. Nêu rõ trong `sublet_inbox`/chat khi làm việc này là
+"tính lại toàn bộ do sửa logic", không phải "insight mới".
+
+Đọc lại toàn bộ qua view `sublet_v_insight_matches_report` (join sẵn
+poster/URL 2 bên, sort theo confidence rồi score) khi cần dựng báo cáo.
 
 ### Báo cáo cho Kien
 
@@ -305,9 +367,16 @@ bỏ qua tầng đó (dữ liệu 14 ngày/1 group ban đầu có thể chưa đ
   "risk_flags": [],
   "duplicate_of": null,
   "repost_same_poster": false,
+  "pricing_tag": "no_pricing",
+  "price_or_budget_eur": null,
   "run_at": "2026-09-16T09:00:00+02:00"
 }
 ```
+
+`pricing_tag`/`price_or_budget_eur` là 2 field mới (Bước 1.5) — bắt buộc có
+mặt trên mọi event mới, kể cả khi `no_pricing`/`null`. Event cũ trước khi thêm
+2 field này không bị sửa lại (append-only); chỉ backfill nếu Kien yêu cầu rõ
+ràng.
 
 `entity_type='listing'`, `entity_id=<listing id>`, `event='insight_reviewed'`,
 `source_url=<listing.source_url>`.
