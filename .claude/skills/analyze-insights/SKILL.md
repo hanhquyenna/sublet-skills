@@ -214,7 +214,7 @@ cùng lý do (`duplicate cluster`) là phép đếm SQL rẻ tính lại toàn b
 là tín hiệu tham khảo — **không phải** `sublet_matches` chính thức, không tạo
 `sublet_seekers`, không tự outreach.
 
-### Input: chỉ listing đã "sạch" theo cả 2 điều kiện
+### Input: chỉ listing đã "sạch" theo cả 3 điều kiện
 
 1. `link_validation_status='validated'` **và** không nằm trong
    `sublet_v_link_needs_reverification` (tức không phải
@@ -227,17 +227,51 @@ là tín hiệu tham khảo — **không phải** `sublet_matches` chính thức
    từ event `insight_reviewed` **mới nhất** của listing đó. Listing `other_like`
    vì raw text thiếu/truncated phải giữ trong unknown/review pool, không xoá
    hay đánh dấu không phù hợp.
+3. **Không phải bản repost/duplicate** (nới rộng 2026-09-16, xem quyết định
+   cross-group bên dưới): loại listing có `duplicate_of` khác `null` trong
+   event `insight_reviewed` mới nhất — chỉ giữ lại bản gốc (id được các bản
+   khác trỏ `duplicate_of` tới) trong pool matching. Lý do: một người đăng
+   cùng 1 bài ở nhiều group (`repost_same_poster=true`) không phải N cơ hội
+   khác nhau; nếu không lọc, bỏ giới hạn group ở bước dưới sẽ nhân bản 1 match
+   thật thành N match giả theo số group họ đăng. Cặp `duplicate_across_posters`
+   (hai người khác nhau, text giống hệt — thường là spam network) **không**
+   bị loại ở đây vì đó là 2 identity khác nhau, không phải cùng 1 bài; rủi ro
+   của case đó đã được nêu ở `risk_flags`, không phải việc của bước lọc này.
 
 ```sql
-select l.id, l.poster_name, l.source_url, l.seen_at, l.raw_text,
+select l.id, l.poster_name, l.source_url, l.seen_at, l.raw_text, l.group_key,
   (select e.payload->>'insight_kind_guess' from sublet_events e
    where e.entity_type='listing' and e.entity_id=l.id and e.event='insight_reviewed'
-   order by e.id desc limit 1) as kind_guess
+   order by e.id desc limit 1) as kind_guess,
+  (select e.payload->>'duplicate_of' from sublet_events e
+   where e.entity_type='listing' and e.entity_id=l.id and e.event='insight_reviewed'
+   order by e.id desc limit 1) as duplicate_of
 from sublet_listings l
-where l.group_key = <group đang xử lý>
-  and l.link_validation_status = 'validated'
+where l.link_validation_status = 'validated'
   and l.id not in (select id from sublet_v_link_needs_reverification)
 ```
+
+Lọc `duplicate_of is null` ở tầng ứng dụng (hoặc thêm `and not exists (...)`
+tương đương) sau khi lấy kết quả trên, trước khi tách seeker/offering.
+**Không còn điều kiện `group_key = <group đang xử lý>`** — xem "Cross-group
+matching" ngay dưới đây.
+
+### Cross-group matching (đổi 2026-09-16 theo yêu cầu Kien)
+
+Bước 3 **không còn giới hạn trong 1 group**. Lý do: seeker/offering là 2 bài
+độc lập theo `listing_id`; người tìm nhà ở Amsterdam không quan tâm bài đăng ở
+group Facebook nào, nên giới hạn cùng-group trước đây là quyết định tuỳ tiện
+của thiết kế đầu, không phải rào cản dữ liệu thật. So khớp seeker × offering
+trên **toàn bộ** danh sách đã lọc (mọi group), miễn qua được loại trừ cứng và
+tín hiệu bên dưới. Đây không phải "identity resolution" — không cần gộp danh
+tính người dùng nào cả, chỉ cần so từng cặp `listing_id` độc lập; xem thêm
+`data-engineer/SKILL.md` mục "Per-user/entity normalized profile" về việc
+data-engineer **không** xây bảng khách hàng riêng và tại sao đó không phải
+điều kiện tiên quyết cho cross-group matching.
+
+Điều kiện tiên quyết bắt buộc đi kèm: lọc duplicate/repost ở điều kiện 3 phía
+trên phải chạy **trước khi** bỏ giới hạn group, nếu không 1 offering đăng lại
+ở nhiều group sẽ tạo nhiều match giả cho cùng 1 seeker.
 
 ### Loại trừ cứng trước khi tính tín hiệu
 
@@ -245,9 +279,13 @@ where l.group_key = <group đang xử lý>
   trùng `offering.poster_name` (cùng người vừa đăng seeking vừa đăng offering,
   hoặc 2 bản capture trùng của cùng 1 post), bỏ qua cặp đó ngay, không tính
   điểm. Đây là điều kiện cứng theo yêu cầu Kien, áp dụng trước mọi tín hiệu
-  khu vực/ngân sách/thời điểm bên dưới.
+  khu vực/ngân sách/thời điểm bên dưới, và áp dụng xuyên group (so sánh
+  `poster_name`, không so `group_key`).
 - `seeker.id == offering.id` không thể xảy ra do đã lọc theo `kind_guess`
   khác nhau, nhưng vẫn kiểm tra phòng hờ nếu logic lọc thay đổi sau này.
+- Bản repost/duplicate (`duplicate_of` khác null) đã bị loại khỏi pool ở bước
+  Input trên; không cần lọc lại ở đây, nhưng nếu code thay đổi khiến bản
+  duplicate lọt vào, áp dụng lại điều kiện đó trước khi tính điểm.
 
 ### Bước 1.5 — tag `pricing`/`no_pricing` (đi kèm classification, không phải skill riêng)
 
@@ -275,7 +313,7 @@ bước trong `analyze-insights`, dùng chung code trích số với Bước 3, 
 queue/cursor/spec riêng. Tách skill chỉ đáng làm nếu có ≥2 skill khác cần dùng
 lại tag này độc lập với `analyze-insights`; hiện tại chưa có.
 
-### Tín hiệu so khớp (mỗi seeker × mỗi offering, chỉ trong cùng group)
+### Tín hiệu so khớp (mỗi seeker × mỗi offering, xuyên toàn bộ group)
 
 Một offering có thể khớp với nhiều seeker, và một seeker có thể khớp với
 nhiều offering — đây là hành vi **đúng, không phải bug**. Không giới hạn
