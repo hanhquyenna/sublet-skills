@@ -83,12 +83,18 @@ where l.link_validation_status = 'validated'
   );
 ```
 
-## Template (do Kien cung cấp 2026-09-16, giữ nguyên văn — không tự đổi giọng)
+## Template (Kien chốt bản cuối 2026-09-16, giữ nguyên văn — không tự đổi giọng)
 
-- **Offering** (`template='availability_check_offering'`): `"Hi! Is your
-  place still available?"`
-- **Seeking** (`template='availability_check_seeker'`): `"Hey! Are you still
-  looking for a place?"`
+- **Offering** (`template='availability_check_offering'`): `"Hi! I saw your
+  post, is the place still available?"`
+- **Seeking** (`template='availability_check_seeker'`): `"Hey! I saw your
+  post, are you still looking for a place?"`
+
+Bản đầu (`"Hi! Is your place still available?"` / `"Hey! Are you still
+looking for a place?"`) đã bị thay — 12 draft tạo ngày 2026-09-16 đã được
+UPDATE tại chỗ sang bản mới vì còn `status='draft'` (chưa gửi, sửa tại chỗ an
+toàn — khác `sublet_events` là append-only, `sublet_messages` ở trạng thái
+draft chưa gửi thì sửa được bình thường).
 
 Ghi đúng nguyên văn 2 câu trên vào `body`, không thêm tên poster, không thêm
 chi tiết bài đăng, không nhắc AI/agent/automation — Kien có thể tự sửa/cá
@@ -99,7 +105,7 @@ template sau này, cập nhật đúng 2 dòng trên, không suy diễn thêm bi
 
 ```sql
 insert into sublet_messages (entity_type, entity_id, direction, channel, template, body, status)
-values ('listing', '<listing_id>', 'out', 'fb_dm', 'availability_check_offering', 'Hi! Is your place still available?', 'draft');
+values ('listing', '<listing_id>', 'out', 'fb_dm', 'availability_check_offering', 'Hi! I saw your post, is the place still available?', 'draft');
 ```
 
 `entity_type='listing'` (không dùng `'match'`/`'seeker'` vì dự án chưa có
