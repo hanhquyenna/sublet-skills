@@ -10,8 +10,13 @@ source ~/.zshrc 2>/dev/null || true
 export TZ=Europe/Amsterdam
 SKILL="$1"; shift || true
 case "$SKILL" in
-  information|sublet-scrape-14-groups|backup) ;;
-  *) echo "unsupported skill in active two-skill scope: $SKILL" >&2; exit 2 ;;
+  information|sublet-scrape-14-groups|validate-permalink|backup) ;;
+  *) echo "unsupported skill in active scope: $SKILL" >&2; exit 2 ;;
+esac
+# Skill nào cần Chrome thật (Facebook) — dùng để gate giờ/wake/login/pause bên dưới.
+case "$SKILL" in
+  sublet-scrape-14-groups|validate-permalink) NEEDS_CHROME=1 ;;
+  *) NEEDS_CHROME=0 ;;
 esac
 # R20: 1 skill 1 instance
 mkdir -p ops/locks; exec 9>"ops/locks/$SKILL.lock"; if ! flock -n 9; then echo "$(date +%T) skip $SKILL (locked)" >> "ops/logs/$(date +%Y-%m-%d).log"; exit 0; fi
@@ -28,12 +33,12 @@ ENDSTR=$(grep -A2 '^hours:' data/config.yaml | grep 'end:' | sed -E 's/.*"([0-9]
 STARTMIN=$(( 10#$(echo $STARTSTR | awk '{print $1}') * 60 + 10#$(echo $STARTSTR | awk '{print $2}') ))
 ENDMIN=$(( 10#$(echo $ENDSTR | awk '{print $1}') * 60 + 10#$(echo $ENDSTR | awk '{print $2}') ))
 # start=00:00 và end=23:59 (hoặc lớn hơn) nghĩa là 24/7, không chặn giờ nào.
-if [[ "$SKILL" == "sublet-scrape-14-groups" && ! ( $STARTMIN -eq 0 && $ENDMIN -ge 1439 ) && ( $NOWMIN -lt $STARTMIN || $NOWMIN -ge $ENDMIN ) ]]; then
+if [[ "$NEEDS_CHROME" == "1" && ! ( $STARTMIN -eq 0 && $ENDMIN -ge 1439 ) && ( $NOWMIN -lt $STARTMIN || $NOWMIN -ge $ENDMIN ) ]]; then
   echo "$(date +%T) skip $SKILL (ngoài giờ config: ${STARTSTR// /:}-${ENDSTR// /:})" >> "$LOG"; exit 0
 fi
 
 # Skill cần Chrome thật chỉ chạy khi máy thức > 2 phút và có màn hình mở
-if [[ "$SKILL" == "sublet-scrape-14-groups" ]]; then
+if [[ "$NEEDS_CHROME" == "1" ]]; then
   BOOT=$(sysctl -n kern.boottime | awk -F'sec = ' '{print $2}' | awk -F',' '{print $1}')
   NOW=$(date +%s)
   if (( NOW - BOOT < 120 )); then echo "$(date +%T) skip $SKILL (vừa wake)" >> "$LOG"; exit 0; fi

@@ -28,7 +28,11 @@ Claude Code (Mac)                         Supabase (project Lamy, bảng sublet_
 4. **Env**: `zsh ops/setup_env.sh` khi cần bổ sung biến — file `~/.sublet-skills.env` (chmod 600) giữ secret Supabase/IMAP, còn `data/config.yaml` giữ config không-secret. Không commit file env.
 5. **Seeker form**: tạo Tally form với các cột: name, contact, consent (checkbox), move_in, move_out, budget, areas, people, registration_need, pets, occupation, viewing_availability. Export CSV → `data/seekers_export.csv`.
 6. Mở Codex trong thư mục này, đọc `/information`, rồi chạy
-   `/sublet-scrape-14-groups` khi muốn bắt đầu capture. Hiện chưa bật cron tự động.
+   `/sublet-scrape-14-groups` khi muốn bắt đầu capture thủ công. Từ 2026-09-16,
+   cron Mac (`launchd`, `ops/install_cron.sh`) đã bật:
+   `com.sublet.scrape_and_validate` chạy mỗi 20 phút (`ops/run_scrape_and_validate.sh`
+   → `sublet-scrape-14-groups` rồi `validate-permalink` nối tiếp) và
+   `com.sublet.backup` chạy 23:30. Gỡ bằng `zsh ops/install_cron.sh uninstall`.
 
 ## Current loop
 
