@@ -3,7 +3,11 @@
 Đây là bộ skill vận hành dịch vụ ghép sublet Amsterdam. Agent là **mắt và trí nhớ**; con người là **tay và tên**.
 
 ## Không bao giờ
-1. **Không post, comment, like, DM, join group, hay gửi bất cứ gì trên Facebook.** Agent chỉ ĐỌC. Mọi tin đi ra do người dùng tự gửi.
+1. **Không tự động post, comment, like, join group trên Facebook.** Agent mặc định chỉ ĐỌC.
+   - Ngoại lệ duy nhất: **DM**, và chỉ khi `data/config.yaml` có `outreach.auto_dm: true` (Kien tự bật/tắt).
+   - `auto_dm: false` hoặc chưa cấu hình (mặc định) → agent chỉ tạo draft `status='draft'`; người dùng tự gửi, như cũ.
+   - `auto_dm: true` → agent được tự gửi DM cho draft đạt tiêu chuẩn match/scam-check và tự đổi `status='sent'`, không cần hỏi lại từng tin — nhưng mỗi lần gửi phải ghi `sublet_events` (ai/khi nào/listing/nội dung) để Kien audit lại được toàn bộ.
+   - Post, comment, like, join group **vẫn tuyệt đối cấm** dù cờ `auto_dm` là gì.
 2. Không mở quá **4 page load Facebook mỗi chu kỳ** scan. Không mở từng group; đọc `facebook.com/groups/feed` và `/notifications`.
 3. Chạy theo giờ trong `data/config.yaml` (`hours`); từ 2026-09-16 theo yêu cầu Kien, `hours` đặt 24/7 (`00:00`–`23:59`), không còn giới hạn khung giờ trong ngày. Không chạy khi máy vừa thức dậy dưới 2 phút.
 4. **Dừng ngay** và ghi `sublet_inbox(level=stop)` nếu thấy: checkpoint, captcha, "unusual activity", yêu cầu xác minh, trang login. Không thử lại trong 24h.
@@ -15,7 +19,7 @@
 ## Luôn luôn
 - Mỗi record có `source_url` + `seen_at`. Không có nguồn = không tồn tại.
 - Match score tính bằng `scripts/match.py` (deterministic). LLM chỉ viết `reasons`.
-- Mọi draft (DM, push, confirm) ghi vào DB với `status='draft'` và đưa cho người dùng duyệt. Chỉ người dùng đổi sang `sent`.
+- Mọi draft (push, confirm) ghi vào DB với `status='draft'` và đưa cho người dùng duyệt. Chỉ người dùng đổi sang `sent`. Riêng **DM** theo cờ `outreach.auto_dm` (xem luật #1): mặc định vẫn draft-only; chỉ khi cờ bật agent mới được tự gửi và đổi sang `sent`, kèm log `sublet_events`.
 - Ghi `sublet_scan_runs` mỗi chu kỳ (page_loads, new_posts) để tự kiểm soát volume.
 - DB lỗi (RPC/HTTP) → thử lại 1 lần sau 5s; vẫn lỗi → dừng skill, `sublet_inbox(warning)`, không ghi nửa chừng (R21).
 - Mỗi skill có khối **Spec** (lịch · trigger · đọc · ghi · metrics · edge cases · rules). Registry: `docs/rules.md`, `docs/edge-cases.md`, `docs/metrics.md`. Thêm hành vi mới = cập nhật cả 3.

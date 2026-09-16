@@ -38,6 +38,9 @@ seeker_form:
   url: ""                  # link form seeker; dùng làm offer_link "apply via ..."
   csv_export_path: data/seekers_export.csv   # Tally → export CSV → seeker-intake đọc
 
+outreach:
+  auto_dm: false   # true = agent tự gửi DM khi draft đạt tiêu chuẩn, không hỏi lại từng tin (CLAUDE.md luật #1). Mặc định false — Kien tự bật.
+
 scam:
   flags:
     - deposit_before_viewing
