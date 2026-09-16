@@ -268,54 +268,61 @@ Một offering có thể khớp với nhiều seeker, và một seeker có thể
 nhiều offering — đây là hành vi **đúng, không phải bug**. Không giới hạn
 "mỗi seeker chỉ 1 offering tốt nhất"; Kien tự lọc/chọn từ danh sách đầy đủ.
 
-### Tín hiệu so khớp — unknown không phải mismatch
+> **Lịch sử quyết định (đêm 2026-09-16, đừng đảo ngược mà không hỏi lại
+> Kien):** bản đầu của Bước 3 yêu cầu **bắt buộc** có tín hiệu khu vực HOẶC
+> ngân sách mới được tạo candidate — Kien chỉ ra đây là lỗi thiết kế thật:
+> "if they not disclosed area, doesn't mean they don't match". Một phiên
+> khác sau đó thử sửa bằng cách bỏ hẳn `seen_at` khỏi tín hiệu/reasons; Kien
+> từ chối hướng đó ("không được"). Thiết kế **chốt cuối cùng** là bên dưới:
+> `seen_at` (cửa sổ 7 ngày) là **điều kiện chính** để tạo candidate — không
+> phải khu vực hay ngân sách. Khu vực/ngân sách chỉ **loại** khi có bằng
+> chứng mâu thuẫn thật (cả hai bên nêu rõ và lệch nhau), không bao giờ loại
+> vì thiếu dữ liệu.
 
+- **Thời điểm (`seen_at`) — điều kiện chính:** hai bên phải cách nhau
+  **≤ 7 ngày** (Kien gọi là "a week back", chốt sau khi cân nhắc 3/14/7 ngày)
+  mới được xét làm candidate. Đây là cổng chính, không phải tín hiệu phụ như
+  bản thiết kế cũ — luôn xuất hiện trong `reasons` (vd.
+  `"seen_at cách nhau 1 ngày (trong cửa sổ 7 ngày)"`), không bị coi là kém
+  quan trọng hơn khu vực/ngân sách.
 - **Khu vực:** trích tên khu Amsterdam xuất hiện trong `raw_text` (bỏ qua
-  `ring`/"trong vành đai"). Trùng khu = tín hiệu mạnh; khu liền kề theo bảng
-  cố định = tín hiệu vừa. Nếu một bên không nêu khu, ghi
-  `area_signal='unknown'`: không cộng điểm nhưng cũng **không trừ điểm và
-  không loại ứng viên**. Chỉ coi là conflict khi cả hai bên nêu khu cụ thể và
-  không có overlap/lân cận rõ ràng.
-- **Ngân sách/giá:** nếu cả hai bên có số tiền và giá offering ≤ ngân sách
-  seeker × 1.1 thì ghi `budget_signal='compatible'`; không dùng biên dưới để
-  loại một chỗ rẻ hơn ngân sách. Giá thấp có thể hoàn toàn phù hợp. Nếu giá
-  vượt ngân sách rõ ràng thì ghi `budget_signal='conflict'` và loại, trừ khi
-  seeker nói budget flexible. Nếu một bên không nêu giá/ngân sách, ghi
-  `budget_signal='unknown'`: không cộng cũng không trừ.
-- **Loại hình/sức chứa/thời gian:** chỉ loại khi raw text nêu mâu thuẫn rõ
-  (ví dụ offering chỉ 1 người nhưng seeker yêu cầu tối thiểu 2 người). Nếu
-  không đủ dữ liệu, ghi `unknown`, không suy diễn.
-- **`seen_at`:** chỉ là freshness/activity metadata (`activity_age_days`),
-  không phải tín hiệu tương thích và không được cộng vào `score`/`reasons`.
+  `ring`/"trong vành đai" — xem edge case bên dưới về vì sao). Trùng khu hoặc
+  khu liền kề theo bảng cố định = tín hiệu dương (+2), cộng vào `reasons`.
+  Một bên không nêu khu = **không loại, không suy diễn**, chỉ đơn giản không
+  có tín hiệu dương này. Cả hai bên nêu khu rõ ràng mà không trùng/không liền
+  kề = loại thẳng (đây là bằng chứng mâu thuẫn thật, không phải thiếu dữ
+  liệu).
+- **Ngân sách/giá:** dùng `pricing_tag`/`price_or_budget_eur` từ Bước 1.5.
+  Cả hai bên có số **và** `0.5 ≤ (giá offering / ngân sách seeker) ≤ 1.1` =
+  tín hiệu dương (+2). Biên dưới 0.5 **vẫn giữ** (xem "Edge case đã phát
+  hiện" — case Esteban/Samrawit), không phải điều Kien bảo bỏ; điều Kien từ
+  chối là việc bỏ `seen_at`, không phải biên ngân sách. Một bên không nêu số
+  = không loại, không suy diễn. Cả hai nêu số mà tỷ lệ ngoài [0.5, 1.1] =
+  loại thẳng.
 
-### Thang điểm `score` — chỉ cộng evidence dương
-
-`score` là điểm tham khảo, không phải phần trăm xác suất:
+### Thang điểm `score` — không có sàn tối thiểu, `seen_at` luôn +1
 
 | Tín hiệu | Điểm | Điều kiện |
 |---|---:|---|
-| Khu vực trùng | +2 | hai bên nêu cùng khu |
-| Khu vực liền kề | +1 | hai bên nêu khu lân cận |
-| Ngân sách/giá compatible | +2 | cả hai có số tiền và không vượt ngân sách |
-| Loại hình/sức chứa compatible | +1 | text xác nhận tương thích |
-| Thời gian compatible | +1 | ngày thuê/ở giao nhau |
+| Vượt qua cổng `seen_at` ≤7 ngày, không bị loại bởi khu vực/ngân sách | +1 | luôn cộng — đây là điều kiện để candidate tồn tại, không phải bonus |
+| Khu vực trùng/liền kề | +2 | bonus, không bắt buộc |
+| Ngân sách/giá trong khoảng [0.5, 1.1] | +2 | bonus, không bắt buộc |
 
-Unknown luôn = 0; không có điểm âm vì thiếu dữ liệu. Conflict rõ ràng là
-veto, không tạo candidate. Chỉ lưu candidate khi có ít nhất một tín hiệu
-dương và không có veto.
+Tối đa = 5 (cả ba). Không có sàn điểm tối thiểu để lưu — mọi cặp qua được cổng
+`seen_at` và không bị 2 loại trừ cứng (khu vực/ngân sách mâu thuẫn thật, hoặc
+cùng poster) đều được lưu, kể cả khi chỉ có điểm 1 (`confidence='weak'`).
+Đây là chủ đích: thà show nhiều để Kien tự lọc, còn hơn heuristic tự ý giấu
+một match thật chỉ vì trích được ít dữ liệu.
 
 ### Xếp hạng confidence
 
-- `high`: ít nhất hai tín hiệu tương thích dương và không có veto.
-- `medium`: một tín hiệu tương thích dương và các tín hiệu còn lại là
-  `unknown`, không có veto. Budget-only hoặc area-only đều thuộc nhóm này.
-- `low`: chỉ dùng khi raw text quá ngắn/mơ hồ hoặc tín hiệu dương yếu; **không
-  dùng `low` chỉ vì seeker/offering không khai báo khu vực**.
-
-Reasons phải phân biệt rõ `compatible`, `unknown` và `conflict`, ví dụ:
-`"budget compatible: €800 ≤ €1,300"`, `"area unknown: seeker không nêu khu
-vực — chưa kết luận mismatch"`, hoặc `"type conflict: seeker cần 2-bedroom,
-offering chỉ 1-bedroom"`. Không đưa `seen_at` vào lý do match.
+- `high`: có cả khu vực **và** ngân sách khớp (điểm 5).
+- `medium`: chỉ khu vực khớp (điểm 3).
+- `low`: chỉ ngân sách khớp (điểm 3).
+- `weak`: chỉ qua được cổng `seen_at`, không có bằng chứng khu vực lẫn ngân
+  sách (điểm 1) — vẫn là candidate hợp lệ, không phải nhiễu; gắn nhãn `weak`
+  để Kien biết đây là "chưa loại được, chưa có bằng chứng dương" chứ không
+  phải "đã xác nhận yếu".
 
 ### Ghi `sublet_insight_matches` (bảng riêng, KHÔNG phải `sublet_matches`)
 

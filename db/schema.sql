@@ -455,7 +455,7 @@ create table if not exists sublet_insight_matches (
   run_at timestamptz not null default now(),
   seeker_listing_id uuid not null references sublet_listings(id) on delete cascade,
   offering_listing_id uuid not null references sublet_listings(id) on delete cascade,
-  confidence text not null check (confidence in ('high','medium','low')),
+  confidence text not null check (confidence in ('high','medium','low','weak')),
   score int not null,
   reasons text[] not null default '{}',
   seeker_budget_eur int,
@@ -468,6 +468,12 @@ create table if not exists sublet_insight_matches (
 create index if not exists sublet_insight_matches_seeker_idx on sublet_insight_matches(seeker_listing_id);
 create index if not exists sublet_insight_matches_offering_idx on sublet_insight_matches(offering_listing_id);
 alter table sublet_insight_matches enable row level security;
+-- upgrade: 'weak' tier added 2026-09-16 (seen_at-gated candidates with no
+-- area/budget evidence either way -- Kien: don't drop a candidate just
+-- because area/budget wasn't disclosed).
+alter table sublet_insight_matches drop constraint if exists sublet_insight_matches_confidence_check;
+alter table sublet_insight_matches add constraint sublet_insight_matches_confidence_check
+  check (confidence in ('high','medium','low','weak'));
 
 create or replace view sublet_v_insight_matches_report as
   select im.id, im.run_at, im.confidence, im.score, im.reasons,
@@ -477,4 +483,4 @@ create or replace view sublet_v_insight_matches_report as
   from sublet_insight_matches im
   join sublet_listings sl on sl.id = im.seeker_listing_id
   join sublet_listings ol on ol.id = im.offering_listing_id
-  order by (case im.confidence when 'high' then 0 when 'medium' then 1 else 2 end), im.score desc;
+  order by (case im.confidence when 'high' then 0 when 'medium' then 1 when 'low' then 2 else 3 end), im.score desc;

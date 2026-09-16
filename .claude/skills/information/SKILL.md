@@ -34,6 +34,24 @@ Snapshot này được ghi ngày **2026-09-16**, sau lần resume raw-capture g�
   gắn với cron đã gỡ. `ops/run_skill.sh` vẫn nhận `validate-permalink` trong
   whitelist (hữu ích khi gọi tay/`claude -p` thủ công), chỉ phần lịch tự động
   20 phút là bị gỡ.
+- **Matching candidates (`sublet_insight_matches`, mới đêm 2026-09-16):** 61
+  listing group 1, 60 `validated` + 1 `inaccessible`; 35 listing genuinely
+  validated (loại 25 `bulk_unverified_override` qua
+  `sublet_v_link_needs_reverification`) + classified (19 `seeking_like`, 13
+  `offering_like`, 3 `other_like`). Tính ra **207 match candidate** trong DB:
+  0 `high`, 8 `medium` (khu vực khớp), 21 `low` (chỉ ngân sách khớp), 178
+  `weak` (chỉ qua cổng thời gian, không có bằng chứng khu vực/ngân sách).
+  Thiết kế đã qua vài vòng chỉnh với Kien ngay trong đêm — đọc kỹ
+  `analyze-insights/SKILL.md` mục "Bước 3" trước khi sửa lại logic này, đặc
+  biệt khối "Lịch sử quyết định" ghi rõ 2 điều **không được tự ý đảo
+  ngược**: (1) không bắt buộc phải có khu vực để tạo candidate (thiếu dữ liệu
+  ≠ loại), (2) `seen_at` (cửa sổ 7 ngày, không phải 14) là điều kiện chính để
+  tạo candidate, không phải chỉ là metadata phụ. Bảng `sublet_insight_matches`
+  đã thêm tier `confidence='weak'` vào constraint (`db/schema.sql`), view
+  `sublet_v_insight_matches_report` sort theo tier. Report Artifact:
+  https://claude.ai/artifact/AsLmrAyHjUzsRXx7YpgVdF (bản cũ hơn 207, cần
+  republish nếu muốn khớp số mới nhất — không tự ý coi link này là số liệu
+  runtime, luôn query lại DB).
 - Raw QA của group đang chạy có 57 listing URL duy nhất, 57 `context_captured` tương ứng 1–1, raw capture không phân tích (`kind=null`). Các link mới giữ share URL nếu chưa resolve và ghi method `facebook_copy_link`; timestamp/field không hiển thị vẫn giữ null và có missing fields; không suy luận dữ liệu không hiển thị.
 - Đợt backfill group activity cao nhất đang là run resumable `sublet_scan_runs.id=7`; chronological đã vượt boundary tại card **31/08 lúc 23:40**. DB ghi `posts_seen=66`, `new_listings=54`, `posts_verified=58`, `unresolved_cards=6`, `page_loads=4/4`, `boundary_reached=true`; `posts_14d_count` vẫn `null` và `posts_14d_complete=false` vì còn card unresolved/partial. Không chuyển group khi run này chưa hoàn tất.
 - Chín card mới đã được xử lý bằng browser panel qua Share → Sao chép liên kết và ghi checkpoint: Prince Rajput (2), Luana Ilídia, Jerry Meng, Ella Rule, HelpfulReindeer9448, Luis Miguel Remiro Pernia, Lia Proti và Michiel Weerts. Duplicate listing URL và one-to-one listing/context QA của group đang sạch; `context_captured` vẫn tách khỏi `detail_audit`.
@@ -105,7 +123,11 @@ Bộ sublet hiện có đúng **4 skills active**:
   vào `sublet_inbox`/`sublet_metrics`. Không ghi `kind`/`subtype`/`scam_score`
   chính thức (nhường cho `intent-analyze` khi được bật) và không re-đọc listing
   đã có event `insight_reviewed` (Kien: 2026-09-16, "chỉ analyze để chỉ ra
-  insight thôi, đừng analyze lại data đã analyze rồi").
+  insight thôi, đừng analyze lại data đã analyze rồi"). **Bước 3 (mới đêm
+  2026-09-16):** tính ứng viên matching seeker↔offering, ghi
+  `sublet_insight_matches` (bảng riêng, không phải `sublet_matches` chính
+  thức) — xem snapshot bullet riêng bên dưới và SKILL.md của skill này để biết
+  đầy đủ thiết kế/lịch sử quyết định.
 
 Không coi các skill sublet cũ đã xóa là dependency (ví dụ `intent-analyze`,
 `sublet-groups`, `sublet-backfill` — thư mục còn rỗng, không có `SKILL.md`,
