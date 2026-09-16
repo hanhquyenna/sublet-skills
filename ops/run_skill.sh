@@ -52,8 +52,41 @@ fi
 
 echo "$(date +%T) run $SKILL $ARGS" >> "$LOG"
 if [[ "$SKILL" == "backup" ]]; then zsh ops/backup.sh >> "$LOG" 2>&1; echo "$(date +%T) done backup" >> "$LOG"; exit 0; fi
+
+# Watchdog thủ công (máy này không có timeout/gtimeout sẵn). Nếu claude/codex treo
+# (chờ page load mãi, model kẹt...), lock ở dòng flock phía trên sẽ giữ mãi và mọi
+# tick cron sau chỉ thấy "locked" rồi bỏ qua vô thời hạn — không tự phục hồi.
+# Mặc định 900s (15') để luôn xong trước tick kế tiếp (1200s); đổi qua
+# SUBLET_SKILL_TIMEOUT nếu cần.
+TIMEOUT_SECS="${SUBLET_SKILL_TIMEOUT:-900}"
 case "$RUNNER" in
-  claude) claude -p "/$SKILL $ARGS" --permission-mode acceptEdits >> "$LOG" 2>&1 ;;
-  codex)  codex exec "Run the $SKILL skill. $ARGS" >> "$LOG" 2>&1 ;;
+  claude) CMD=(claude -p "/$SKILL $ARGS" --permission-mode acceptEdits) ;;
+  codex)  CMD=(codex exec "Run the $SKILL skill. $ARGS") ;;
 esac
-echo "$(date +%T) done $SKILL" >> "$LOG"
+"${CMD[@]}" >> "$LOG" 2>&1 &
+CPID=$!
+(
+  sleep "$TIMEOUT_SECS"
+  if kill -0 "$CPID" 2>/dev/null; then
+    echo "$(date +%T) TIMEOUT $SKILL sau ${TIMEOUT_SECS}s — gửi TERM" >> "$LOG"
+    kill -TERM "$CPID" 2>/dev/null
+    sleep 10
+    if kill -0 "$CPID" 2>/dev/null; then
+      echo "$(date +%T) TIMEOUT $SKILL vẫn sống — gửi KILL" >> "$LOG"
+      kill -KILL "$CPID" 2>/dev/null
+    fi
+  fi
+) &
+WATCHDOG=$!
+set +e
+wait "$CPID"
+STATUS=$?
+set -e
+kill "$WATCHDOG" 2>/dev/null || true
+wait "$WATCHDOG" 2>/dev/null || true
+
+if [[ $STATUS -ne 0 ]]; then
+  echo "$(date +%T) done $SKILL (exit=$STATUS — có thể bị timeout/kill)" >> "$LOG"
+else
+  echo "$(date +%T) done $SKILL" >> "$LOG"
+fi

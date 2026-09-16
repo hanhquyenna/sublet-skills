@@ -354,17 +354,29 @@ does not claim a new browser capture.
   bằng `capture_unresolved`, không đoán URL từ media/photo ID.
 - Nhãn “2 tuần”, `posts_seen`, hoặc việc hết time-box **không** chứng minh đã
   capture đủ 14 ngày.
-- Chỉ set `sublet_group_metrics.posts_14d_count`,
-  `posts_14d_complete=true`, `posts_14d_checked_at` khi đã qua boundary 14 ngày
-  và xử lý hết card trong window có link evidence; mọi card còn
-  `capture_unresolved` phải được ghi nhận đúng state trước khi complete. Raw
-  capture có thể kết thúc với queue `unvalidated`; chỉ sau khi
-  `validate-permalink` xử lý queue (terminal là `validated` hoặc xác nhận rõ
-  `inaccessible`) mới được chốt 14 ngày. `capture_unresolved` bảo đảm không mất
-  raw data nhưng không tự biến card đó thành verified.
-- Nếu feed virtualized, text vẫn collapsed, DB outage, browser reset hoặc có
-  unresolved cards: giữ count null/known-but-incomplete, giữ run mở hoặc stop
-  reason; không chuyển group.
+- **Ngưỡng "đủ để complete" (nới lỏng 2026-09-16 theo yêu cầu Kien):** group
+  active cỡ lớn (chục nghìn thành viên) gần như không bao giờ đạt 0 card
+  unresolved tuyệt đối vì bài mới dồn nhanh hơn tốc độ capture cho phép (≤4
+  page load/run). Được phép set `sublet_group_metrics.posts_14d_count`,
+  `posts_14d_complete=true`, `posts_14d_checked_at` khi đã qua boundary 14
+  ngày **và** số card còn `capture_unresolved` (chưa lấy được link evidence)
+  ≤5 **hoặc** ≤10% tổng số card verified trong window, lấy ngưỡng nào lớn
+  hơn. Ghi rõ số card còn unresolved vào `posts_14d_count`'s context/notes khi
+  chốt complete ở mức nới lỏng này (không claim "0 unresolved" nếu không
+  đúng).
+- **Bất kể ngưỡng trên, card unresolved (thiếu link) vẫn phải được scrape
+  raw data đầy đủ như bình thường — không được bỏ qua nội dung chỉ vì thiếu
+  link.** Mỗi card unresolved bắt buộc có event `capture_unresolved` với đủ
+  poster, timestamp/label, **toàn bộ raw text**, media, counters và
+  `card_fingerprint` (theo contract ở mục "Default feed-first hybrid
+  capture"/"Raw context contract v2" phía trên) — y hệt mức chi tiết của card
+  có link, chỉ khác là thiếu `post_url`/`post_id`. "Nới lỏng" chỉ áp dụng cho
+  việc **có link hay chưa**, không bao giờ áp dụng cho việc có capture raw
+  content hay không.
+- Nếu feed virtualized, text vẫn collapsed, DB outage, browser reset: giữ
+  count null/known-but-incomplete, giữ run mở hoặc stop reason; không chuyển
+  group. Card unresolved trong ngưỡng cho phép ở trên thì được complete bình
+  thường, không cần giữ run mở chỉ vì lý do này.
 - Chỉ khi `posts_14d_complete=true` mới thêm group vào `completed` và chuyển
   `current_index` sang group kế tiếp. Nếu group bị blocker, thêm vào `blocked`
   và giữ batch chưa complete.
