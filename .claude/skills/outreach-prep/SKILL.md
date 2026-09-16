@@ -58,10 +58,23 @@ tín hiệu để đáng hỏi lại; Kien có thể yêu cầu mở rộng sau)
 4. Nếu poster là `anonymous` (theo R31): chỉ tạo draft khi
    `anonymous_access_ready=true` (permalink đã validate xác nhận đúng bài);
    thiếu điều kiện này thì bỏ qua, liệt kê riêng.
-5. Chưa có draft nào trước đó cho listing này (`select 1 from sublet_messages
-   where entity_type='listing' and entity_id=<listing.id> and channel='fb_dm'
-   and template in ('availability_check_offering',
-   'availability_check_seeker')`) — tránh hỏi lại người đã được hỏi.
+5. Chưa có draft nào trước đó cho **listing này** (`select 1 from
+   sublet_messages where entity_type='listing' and entity_id=<listing.id>
+   and channel='fb_dm' and template in ('availability_check_offering',
+   'availability_check_seeker')`) — tránh tạo 2 draft cho cùng 1 bài.
+6. **Chưa từng nhắn cho người này qua bất kỳ listing nào khác** (kiểm theo
+   `poster_name`, không chỉ theo `listing_id`) — cùng 1 poster có thể có
+   nhiều bài khác nhau (không phải repost, không bị loại ở điều kiện 3) trở
+   thành candidate riêng biệt; nếu họ **đã có** message (`draft` hoặc `sent`)
+   từ lần chạy trước, **không** tạo thêm draft mới cho bài khác của họ, dù
+   bài đó match với seeker/offering khác. Lý do: nhắn 1 người 2 lần trong
+   cùng đợt outreach là làm phiền, không phải "thêm cơ hội". Dùng
+   `poster_name` dù biết đây là tín hiệu yếu (2 người trùng tên thật vẫn có
+   thể xảy ra, `data-engineer` đã ghi rõ "display_name giống nhau không đủ
+   để merge identity") — với outreach thì **thà bỏ sót 1 draft hiếm khi trùng
+   tên còn hơn nhắn phiền ai đó 2 lần**, ngược chiều với nguyên tắc
+   recall-first dùng cho trích xuất dữ liệu (đó là ưu tiên không bỏ sót dữ
+   liệu, không áp dụng cho hành động nhắm vào người thật).
 
 ```sql
 select distinct l.listing_id, l.poster_name, l.offer_or_need, l.source_url,
@@ -80,6 +93,12 @@ where l.link_validation_status = 'validated'
     where sm.entity_type = 'listing' and sm.entity_id = l.listing_id
       and sm.channel = 'fb_dm'
       and sm.template in ('availability_check_offering','availability_check_seeker')
+  )
+  and not exists (
+    -- điều kiện 6: người này (theo poster_name) chưa nhận message nào qua listing khác
+    select 1 from sublet_v_outreach_queue oq
+    where oq.poster_name = l.poster_name
+      and oq.template in ('availability_check_offering','availability_check_seeker')
   );
 ```
 
