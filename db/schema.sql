@@ -535,3 +535,30 @@ create or replace view sublet_v_listing_profile as
     order by e.id desc
     limit 1
   ) norm on true;
+
+-- ---------- outreach queue view (outreach-prep, 2026-09-16) ----------
+-- Gộp sublet_messages (draft/sent) + poster_name/source_url/profile_url để
+-- Kien nhìn 1 lần ra đủ ai/gửi gì/mở link nào, không phải tự JOIN 3 bảng.
+create or replace view sublet_v_outreach_queue as
+  select
+    sm.id as message_id,
+    sm.status,
+    sm.template,
+    sm.body,
+    sm.created_at,
+    sm.sent_at,
+    l.poster_name,
+    l.source_url,
+    l.offer_or_need,
+    ctx.payload->'poster'->>'profile_url' as poster_profile_url,
+    l.group_key
+  from sublet_messages sm
+  join sublet_v_listing_profile l on l.listing_id = sm.entity_id
+  left join lateral (
+    select e.payload
+    from sublet_events e
+    where e.entity_type = 'listing' and e.entity_id = l.listing_id and e.event = 'context_captured'
+    order by e.id desc limit 1
+  ) ctx on true
+  where sm.channel = 'fb_dm'
+  order by sm.status, sm.created_at;

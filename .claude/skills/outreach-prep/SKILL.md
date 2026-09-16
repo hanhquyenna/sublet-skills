@@ -126,22 +126,24 @@ Không tự động đổi status hàng loạt, không đoán đã gửi từ im
 Kien "có vẻ đang mở Messenger". Nếu Kien báo đã gửi nhiều tin cùng lúc, xử lý
 từng `message_id` một, xác nhận lại số lượng đã update.
 
-## Track "ai / gửi gì / lúc nào" — không cần bảng mới
+## Track "ai / gửi gì / lúc nào" — view `sublet_v_outreach_queue`, không cần bảng mới
 
-Đủ dữ liệu từ `sublet_messages` hiện có: `entity_id` (ai — join ngược
-`sublet_listings.poster_name`/`source_url`), `body`/`template` (gửi gì),
-`created_at` (lúc soạn draft), `sent_at` (lúc Kien xác nhận đã gửi). Query báo
-cáo:
+Đủ dữ liệu từ `sublet_messages` hiện có, gộp sẵn qua view
+`sublet_v_outreach_queue` (thêm 2026-09-16) — 1 dòng/message, có
+`message_id, status, template, body, created_at, sent_at, poster_name,
+source_url, poster_profile_url, offer_or_need, group_key`.
+`poster_profile_url` lấy từ event `context_captured` mới nhất — không phải
+lúc nào cũng có (Facebook không luôn lộ link profile trong feed); thiếu thì
+Kien mở `source_url` (bài gốc) để tìm người đăng, không phải lỗi thiếu dữ
+liệu.
 
 ```sql
-select sm.id, sm.status, sm.template, sm.created_at, sm.sent_at,
-       l.poster_name, l.source_url, l.offer_or_need
-from sublet_messages sm
-join sublet_v_listing_profile l on l.listing_id = sm.entity_id
-where sm.channel = 'fb_dm'
-  and sm.template in ('availability_check_offering','availability_check_seeker')
-order by sm.created_at desc;
+select * from sublet_v_outreach_queue where status='draft';
 ```
+
+Không tạo bảng "người sẽ DM" riêng — đúng nguyên tắc `data-engineer`
+("không cần tạo bảng người dùng mới mặc định, liên kết qua listing_id"); view
+đủ dùng ở quy mô hiện tại (chục draft/lần).
 
 ## Completion và edge cases
 
