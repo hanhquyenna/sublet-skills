@@ -5,10 +5,10 @@
 ## Không bao giờ
 1. **Không post, comment, like, DM, join group, hay gửi bất cứ gì trên Facebook.** Agent chỉ ĐỌC. Mọi tin đi ra do người dùng tự gửi.
 2. Không mở quá **4 page load Facebook mỗi chu kỳ** scan. Không mở từng group; đọc `facebook.com/groups/feed` và `/notifications`.
-3. Không chạy scan ngoài giờ trong `data/config.yaml` (`hours`). Không chạy khi máy vừa thức dậy dưới 2 phút.
+3. Chạy theo giờ trong `data/config.yaml` (`hours`); từ 2026-09-16 theo yêu cầu Kien, `hours` đặt 24/7 (`00:00`–`23:59`), không còn giới hạn khung giờ trong ngày. Không chạy khi máy vừa thức dậy dưới 2 phút.
 4. **Dừng ngay** và ghi `sublet_inbox(level=stop)` nếu thấy: checkpoint, captcha, "unusual activity", yêu cầu xác minh, trang login. Không thử lại trong 24h.
 5. Được đọc **public profile**, lịch sử public giới hạn của poster/commenter, và comment/reply gắn với post housing đã capture để lưu raw context. Chỉ đọc nội dung đang công khai; không vào DM, nội dung private/ẩn, friend list, album/ảnh, không suy luận thuộc tính nhạy cảm, và không tách riêng số điện thoại/email thành hồ sơ liên hệ. Không thao tác trên profile/comment.
-6. Mọi agent phải thao tác Facebook bằng **visible Chrome browser-panel automation của host**, đọc DOM/accessibility tree trước (Codex: ChatGPT in-app browser panel; Claude Code: Claude in Chrome; agent khác: Chrome-panel adapter tương đương). Đây là kênh Facebook duy nhất. Không dùng CLI/script scraper, web-fetch/HTTP/API, Selenium, headless browser, Chrome session khác hoặc cookie ở nơi khác; script chỉ được dùng cho DB/provenance.
+6. Mọi agent phải thao tác Facebook bằng **visible Chrome browser-panel automation của host**, đọc DOM/accessibility tree trước (Codex: ChatGPT in-app browser panel; Claude Code: Claude in Chrome; agent khác: Chrome-panel adapter tương đương). Đây là kênh Facebook duy nhất. Không dùng CLI/script scraper, web-fetch/HTTP/API, Selenium, headless browser, Chrome session khác hoặc cookie ở nơi khác; script chỉ được dùng cho DB/provenance, **và cho việc parse cục bộ output `read_page` đã lấy về** (`scripts/extract_cards.py` — không gọi thêm request nào tới Facebook, chỉ tách card từ text đã có sẵn để agent đỡ phải tự đọc bằng mắt; xem `sublet-scrape-14-groups/SKILL.md`).
 7. Không ghi outcome (signed / moved-in) nếu không có xác nhận từ subletter hoặc seeker. Không đoán.
 8. Không xếp hạng seeker theo quốc tịch, giới tính, tuổi, tôn giáo, hay bất kỳ tiêu chí phân biệt nào. Chỉ: ngày, ngân sách, khu vực, số người, registration, pets.
 
@@ -42,6 +42,11 @@ match, draft, viewing và outreach chưa nằm trong active skill scope.
   biệt `validated`, `inaccessible`, `needs_review`. Không scrape lại feed.
 - **Insight analysis** (`analyze-insights`): đọc-only trên dữ liệu đã capture,
   ước lượng thô offering/seeking/other, phát hiện trùng lặp/repost và pattern
-  rủi ro, tóm tắt vào `sublet_inbox`/`sublet_metrics`. Không ghi cột phân loại
-  chính thức trên `sublet_listings`, không mở Facebook, không re-đọc listing
-  đã có event `insight_reviewed`.
+  rủi ro, tóm tắt vào `sublet_inbox`/`sublet_metrics`. Cũng tính ứng viên
+  matching seeker↔offering (`sublet_insight_matches`, xem SKILL.md "Bước 3") —
+  chỉ trên listing đã `link_validation_status='validated'` **và** không nằm
+  trong `sublet_v_link_needs_reverification`. Không ghi cột phân loại chính
+  thức trên `sublet_listings`, không mở Facebook, không re-đọc listing đã có
+  event `insight_reviewed`, không đụng `sublet_seekers`/`sublet_matches`/
+  `sublet_messages` (khác `sublet_insight_matches`, bảng riêng chỉ mang tính
+  tham khảo).

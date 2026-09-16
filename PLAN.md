@@ -282,7 +282,7 @@ Server ~€0 (Supabase free, Mac của bạn). Chi phí duy nhất đáng kể l
 ### J3. Backlog — xếp theo (giá trị ÷ công), làm theo thứ tự
 | # | Việc | Công | Giá trị | Khi nào |
 |---|---|---|---|---|
-| 1 | **Post extractor bằng DOM/a11y** trong scan: tách từng post (poster, time, text, permalink) trước khi đưa LLM | 1–2h | Cắt 90% token scan, tăng độ chính xác permalink | Trước khi bật cron scan |
+| 1 | ✅ **Post extractor bằng DOM/a11y** (`scripts/extract_cards.py`, 2026-09-16): tách card từ output `read_page` bằng marker `"Hành động đối với bài viết này của <Poster>"` (ổn định qua cả layout có/không role `article` bọc post — bản đầu dùng role `article`/`dialog` đã test sai trên dữ liệu thật, xem SKILL.md). Test qua 2 mẫu thật (dialog 1-post, feed nhiều post lẫn comment) đều đúng. Là gợi ý cấu trúc, không thay verify link thật. | done | Cắt phần lớn token đọc feed, dùng ở Feed pass trong sublet-scrape-14-groups | done |
 | 2 | **Model routing**: intent-analyze + backfill → Haiku 4.5; draft/inbox/voice → Opus/Sonnet | 30' (config + 1 dòng trong skill) | ~10× rẻ phần phân loại | Cùng lúc với #1 |
 | 3 | **QA loop trên corpus thật** sau backfill group đầu (20 post, sửa doc §12, `--all`) | 1h với bạn | Edge case thật mà test giả không có | Ngay khi backfill xong |
 | 4 | **Seeker form → webhook** (Tally → Supabase REST insert trực tiếp) thay vì export CSV | 30' | Seeker vào pool tức thì, không cần chạy intake tay | Khi có form |

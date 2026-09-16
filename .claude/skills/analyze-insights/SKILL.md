@@ -26,18 +26,21 @@ tránh xung đột với pipeline chính thức khi nó được bật sau này.
   cho metadata bổ sung nếu cần, và event `insight_reviewed` cũ để biết listing
   nào đã xử lý).
 - **Ghi:** `sublet_events(event='insight_reviewed')` — một dòng mỗi listing xử
-  lý lần đầu; `sublet_inbox(level='info')` — snapshot tổng hợp mỗi lần có dữ
-  liệu mới; `sublet_metrics(workflow='analyze', metric='insight_*')` — số đếm,
-  upsert theo ngày; `sublet_ops_state(key='analyze_insights_state')` — cursor
-  run gần nhất.
+  lý lần đầu; `sublet_insight_matches` — ứng viên seeker↔offering (xem "Bước 3 —
+  matching candidates" bên dưới); `sublet_inbox(level='info')` — snapshot tổng
+  hợp mỗi lần có dữ liệu mới; `sublet_metrics(workflow='analyze',
+  metric='insight_*')` — số đếm, upsert theo ngày;
+  `sublet_ops_state(key='analyze_insights_state')` — cursor run gần nhất.
 - **Không ghi:** không đụng cột phân loại chính thức trên `sublet_listings`
-  (xem trên); không tạo `sublet_seekers`/`sublet_matches`/`sublet_messages`;
-  không gửi gì ra ngoài Facebook/kênh khác.
+  (xem trên); không tạo `sublet_seekers`/`sublet_matches`/`sublet_messages`
+  (khác `sublet_insight_matches` — bảng riêng, chỉ là tín hiệu tham khảo, xem
+  dưới); không gửi gì ra ngoài Facebook/kênh khác.
 - **Metrics tạo ra:** `insight_listings_total`, `insight_new_this_run`,
   `insight_offering_like`, `insight_seeking_like`, `insight_other_like`,
   `insight_duplicate_clusters`, `insight_duplicate_listings`,
   `insight_risk_flagged`, `insight_unique_posters`, `insight_queue_remaining`
-  (luôn 0 sau khi chạy xong vì mọi listing đều được ghi `insight_reviewed`).
+  (luôn 0 sau khi chạy xong vì mọi listing đều được ghi `insight_reviewed`),
+  `insight_match_candidates_high/medium/low`.
 - **Kết quả:** một bản tóm tắt trong `sublet_inbox` + số liệu trong
   `sublet_metrics`; không claim đây là phân loại chính thức, không tự động
   chuyển `listings.status`.
@@ -49,7 +52,12 @@ tránh xung đột với pipeline chính thức khi nó được bật sau này.
 - Không ghi `kind`/`subtype`/`poster_type`/`confidence`/`scam_score`/
   `scam_flags`/`deal_score`/`status`/`analyzed_at` lên `sublet_listings`.
 - Không tạo hay sửa `sublet_seekers`, `sublet_matches`, `sublet_messages`, và
-  không đề xuất outreach cho listing cụ thể nào.
+  không đề xuất outreach cho listing cụ thể nào. `sublet_insight_matches` là
+  bảng riêng biệt (xem "Bước 3") — không bao giờ ghi cùng ý nghĩa/quy trình với
+  `sublet_matches`.
+- Không tính match cho listing `link_validation_status<>'validated'` hoặc nằm
+  trong `sublet_v_link_needs_reverification` (validated giả, chưa mở link
+  thật) — xem "Bước 3".
 - Không re-đọc/re-chấm một listing đã có event `insight_reviewed`, trừ khi
   Kien yêu cầu rõ ràng chạy lại (ví dụ raw_text được cập nhật, hoặc Kien gõ
   "rescan"/"phân tích lại"). Không tự động rescan chỉ vì heuristic đổi.
@@ -182,6 +190,106 @@ Ghi vào `insight_risk_flags` (mảng text), mỗi flag độc lập, có thể 
 Không tự động gán những flag này vào `sublet_listings.scam_score` — chỉ đưa
 vào payload event và snapshot để Kien tham khảo; scam scoring chính thức có
 bảng cộng/trừ riêng trong `docs/intent-logic.md` khi pipeline đó được bật.
+
+## Bước 3 — matching candidates (validated-only)
+
+Sau khi mọi listing trong hàng đợi có `insight_kind_guess`, tính lại ứng viên
+khớp seeker↔offering trên **toàn bộ** dataset đã insight (không chỉ phần mới),
+cùng lý do (`duplicate cluster`) là phép đếm SQL rẻ tính lại toàn bộ. Đây vẫn
+là tín hiệu tham khảo — **không phải** `sublet_matches` chính thức, không tạo
+`sublet_seekers`, không tự outreach.
+
+### Input: chỉ listing đã "sạch" theo cả 2 điều kiện
+
+1. `link_validation_status='validated'` **và** không nằm trong
+   `sublet_v_link_needs_reverification` (tức không phải
+   `link_resolution_method='bulk_unverified_override'` — record được đánh dấu
+   validated mà chưa từng mở link thật). Lý do: matching dựa trên nội dung bài;
+   nếu bài chưa verify thật (có thể đã bị xoá/đổi/sai group) thì match dựa trên
+   nó là vô nghĩa hoặc sai.
+2. Có `insight_kind_guess` là `offering_like` hoặc `seeking_like` (bỏ
+   `other_like`) từ event `insight_reviewed` **mới nhất** của listing đó.
+
+```sql
+select l.id, l.poster_name, l.source_url, l.seen_at, l.raw_text,
+  (select e.payload->>'insight_kind_guess' from sublet_events e
+   where e.entity_type='listing' and e.entity_id=l.id and e.event='insight_reviewed'
+   order by e.id desc limit 1) as kind_guess
+from sublet_listings l
+where l.group_key = <group đang xử lý>
+  and l.link_validation_status = 'validated'
+  and l.id not in (select id from sublet_v_link_needs_reverification)
+```
+
+### Loại trừ cứng trước khi tính tín hiệu
+
+- **Không bao giờ khớp một poster với chính họ.** Nếu `seeker.poster_name`
+  trùng `offering.poster_name` (cùng người vừa đăng seeking vừa đăng offering,
+  hoặc 2 bản capture trùng của cùng 1 post), bỏ qua cặp đó ngay, không tính
+  điểm. Đây là điều kiện cứng theo yêu cầu Kien, áp dụng trước mọi tín hiệu
+  khu vực/ngân sách/thời điểm bên dưới.
+- `seeker.id == offering.id` không thể xảy ra do đã lọc theo `kind_guess`
+  khác nhau, nhưng vẫn kiểm tra phòng hờ nếu logic lọc thay đổi sau này.
+
+### Tín hiệu so khớp (mỗi seeker × mỗi offering, chỉ trong cùng group)
+
+- **Khu vực:** trích tên khu Amsterdam xuất hiện trong `raw_text` (danh sách
+  khu chuẩn, có thể mở rộng khi gặp khu mới). **Bỏ qua `"ring"`/"trong vành
+  đai"** làm tín hiệu khu vực — đây là cụm chỉ "trong vành đai A10", gần như
+  toàn bộ Amsterdam, không phải một khu cụ thể; giữ nó sẽ tạo match giả (khớp
+  bừa vì mọi nơi đều "trong ring"). Trùng tên khu = tín hiệu mạnh; khu liền kề
+  theo bảng lân cận cố định (vd. Amstelveen ~ Diemen ~ Venserpolder, Zuid ~
+  Zuidas ~ Oud-Zuid ~ De Pijp) = tín hiệu vừa. Một bên không nêu khu = không
+  tính là khớp cũng không tính là loại (bỏ qua tín hiệu này, không suy diễn).
+  Hai bên có nêu khu nhưng không trùng/không liền kề = loại thẳng, không đưa
+  vào danh sách ứng viên.
+- **Ngân sách/giá:** trích số tiền EUR trong text (dạng `€1.500`, `1500 eur`).
+  Seeker: lấy số cao nhất nêu (coi là trần ngân sách). Offering: lấy số thấp
+  nhất nêu (coi là giá thuê). Khớp khi `giá offering ≤ ngân sách seeker × 1.1`
+  (biên 10% cho sai số trích số/chi phí phát sinh nhỏ). Ngân sách hoặc giá
+  không trích được → bỏ qua tín hiệu này (không suy diễn số). Có cả hai mà giá
+  vượt ngân sách rõ ràng → loại thẳng.
+- **Thời điểm:** `seen_at` hai bên cách nhau ≤ 3 ngày → tín hiệu yếu bổ sung
+  ("cùng đợt hoạt động"). Không dùng riêng một mình để tạo ứng viên — chỉ cộng
+  điểm khi đã có ít nhất một tín hiệu khu vực hoặc ngân sách.
+
+### Xếp hạng confidence
+
+- `high`: có cả tín hiệu khu vực thật **và** ngân sách/giá khớp.
+- `medium`: có tín hiệu khu vực thật (có hoặc không có ngân sách).
+- `low`: chỉ có tín hiệu ngân sách/giá, không có bằng chứng khu vực nào cho
+  một hoặc cả hai bên.
+
+Không tạo ứng viên nếu không có ít nhất một trong hai tín hiệu khu vực/ngân
+sách (thời điểm một mình không đủ). Ghi rõ `reasons` bằng câu người đọc được
+(vd. `"cùng khu 'zuid'"`, `"ngân sách 3000 >= giá 1500"`), không chỉ số điểm.
+
+### Ghi `sublet_insight_matches` (bảng riêng, KHÔNG phải `sublet_matches`)
+
+```sql
+insert into sublet_insight_matches
+  (seeker_listing_id, offering_listing_id, confidence, score, reasons,
+   seeker_budget_eur, offering_price_eur, seeker_areas, offering_areas)
+values (...)
+on conflict (seeker_listing_id, offering_listing_id) do nothing;
+```
+
+`on conflict do nothing` giữ idempotent: chạy lại không tạo trùng cặp. Không
+cần xoá match cũ khi rerun — dữ liệu insight append/idempotent như phần còn
+lại của skill này. Đọc lại toàn bộ qua view
+`sublet_v_insight_matches_report` (join sẵn poster/URL 2 bên, sort theo
+confidence rồi score) khi cần dựng báo cáo.
+
+### Báo cáo cho Kien
+
+Khi Kien yêu cầu "làm báo cáo"/"flag ra bảng data": dựng từ
+`sublet_v_insight_matches_report`, cột tối thiểu — ngày chạy, seeker (tên +
+link `source_url`), offering (tên + link `source_url`), lý do khớp
+(`reasons`), confidence. Có thể xuất Artifact (bảng HTML) để Kien xem/chia sẻ
+dễ hơn dump JSON; nêu rõ đây là tín hiệu đọc-only, không phải danh sách đã xác
+nhận outreach. Nhóm `high` lên đầu; nếu `high` rỗng, nói thẳng thay vì im lặng
+bỏ qua tầng đó (dữ liệu 14 ngày/1 group ban đầu có thể chưa đủ để có cặp
+`high`).
 
 ## DB write contract
 

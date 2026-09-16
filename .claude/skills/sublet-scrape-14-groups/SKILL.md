@@ -123,7 +123,12 @@ Trước khi mở browser cho `current_group`, kiểm tra DB:
 1. **Feed pass:** sau mỗi chunk scroll, dùng DOM/a11y trong panel để enumerate
    từng card và lấy core fields (`post_id`/permalink nếu có, poster, timestamp,
    text, media metadata và counters). Dedupe theo permalink/text hash ngay tại
-   batch; không mở detail cho mọi post.
+   batch; không mở detail cho mọi post. **Không tự đọc bằng mắt output
+   `read_page` để tìm ranh giới card** — pipe output đó qua
+   `python3 scripts/extract_cards.py` để tách card trước (xem chi tiết dưới
+   "Post extractor"). Script chỉ là gợi ý cấu trúc tốc độ, không phải link
+   evidence đã xác minh; mọi rule capture/detail-gate/dedupe bên dưới vẫn áp
+   dụng nguyên vẹn cho output của nó.
 2. **Detail gate:** chỉ mở permalink riêng cho card thiếu permalink cần verify,
    text còn collapsed, comment/reply cần đọc, hoặc metadata quan trọng chỉ
    hiện ở detail. Giữ nguyên các giá trị feed đã có và merge các field detail
@@ -141,6 +146,48 @@ Trước khi mở browser cho `current_group`, kiểm tra DB:
    có đủ schema v2, mọi field không thấy có `missing_fields`, và comment có
    parent-post URL hợp lệ. Chỉ detail audit từng post mới cho coverage tương
    đương detail-first; hybrid không được quảng cáo là byte-identical.
+
+### Post extractor (`scripts/extract_cards.py`) — dùng ở Feed pass
+
+Lý do: trước script này, agent phải tự đọc toàn bộ output `read_page`
+(30-50K ký tự) bằng mắt để tìm ranh giới từng card — đây là nguồn token lớn
+nhất trong pipeline (xem PLAN.md mục J1/J3 #1). Script chạy hoàn toàn cục bộ
+trên text `read_page` đã lấy về, **không gọi thêm bất kỳ request nào tới
+Facebook**, nên không đổi gì về page-load budget hay rủi ro bị flag.
+
+Cách dùng:
+
+```sh
+python3 scripts/extract_cards.py < read_page_output.txt
+```
+
+Cách hoạt động: tách card theo marker `button "Hành động đối với bài viết này
+của <Poster>"` — quan sát thấy marker này ổn định ở cả 2 kiểu layout đã gặp
+(dialog xem 1 post lẫn feed nhiều post liền, có hoặc không có role `article`
+bọc ngoài mỗi post). **Không dùng role `article`/`dialog` làm ranh giới** —
+bản đầu tiên của script từng làm vậy và test trên dữ liệu thật cho thấy sai
+hoàn toàn (chỉ bắt được comment, bỏ sót toàn bộ post thật) vì Facebook không
+luôn bọc post bằng `article`.
+
+Mỗi card trả về gồm `poster_name`, `post_id` (nếu tìm được qua permalink trực
+tiếp hoặc qua parent path của comment), `timestamp_label`, `post_text_guess`,
+`reaction_count`, `comment_count`, `media_urls`, `missing_fields`,
+`confidence` (`high`/`medium`/`low`) và `needs_detail_gate` (true khi không
+tìm được `post_id` ở tầng feed — đúng lúc cần mở post riêng hoặc dùng
+Share→Copy link theo rule Detail gate ở trên, không được bỏ card).
+
+Giới hạn đã biết, không giấu:
+- Đây là **gợi ý cấu trúc**, không phải link evidence đã xác minh. Không được
+  ghi thẳng `post_id` của script vào `sublet_listings`/`context_captured` mà
+  bỏ qua bước lấy direct permalink hoặc Share→Copy link thật.
+- `post_text_guess` là suy đoán (chuỗi `generic`/`heading` dài nhất sau
+  marker, loại UI chrome) — vẫn có thể sai với post có cấu trúc lạ (post đã
+  edit nhiều lần, có poll, có nhiều ảnh). Card `confidence='low'` hoặc thiếu
+  `post_text_guess` vẫn cần agent tự đọc kỹ như trước khi có script.
+- Facebook đổi DOM theo thời điểm/AB test; script có thể cần cập nhật regex
+  khi gặp layout mới. Nếu script trả về `card_count=0` trên output có post
+  thật, đó là dấu hiệu layout đã đổi — báo cho Kien, không tự suy diễn dữ liệu
+  thiếu.
 
 ### Raw context contract v2
 
@@ -307,17 +354,31 @@ does not claim a new browser capture.
   bằng `capture_unresolved`, không đoán URL từ media/photo ID.
 - Nhãn “2 tuần”, `posts_seen`, hoặc việc hết time-box **không** chứng minh đã
   capture đủ 14 ngày.
-- Chỉ set `sublet_group_metrics.posts_14d_count`,
-  `posts_14d_complete=true`, `posts_14d_checked_at` khi đã qua boundary 14 ngày
-  và xử lý hết card trong window có link evidence; mọi card còn
-  `capture_unresolved` phải được ghi nhận đúng state trước khi complete. Raw
-  capture có thể kết thúc với queue `unvalidated`; chỉ sau khi
-  `validate-permalink` xử lý queue (terminal là `validated` hoặc xác nhận rõ
-  `inaccessible`) mới được chốt 14 ngày. `capture_unresolved` bảo đảm không mất
-  raw data nhưng không tự biến card đó thành verified.
-- Nếu feed virtualized, text vẫn collapsed, DB outage, browser reset hoặc có
-  unresolved cards: giữ count null/known-but-incomplete, giữ run mở hoặc stop
-  reason; không chuyển group.
+- **Số lượng card unresolved (thiếu link) không chặn completion** (nới lỏng
+  2026-09-16 theo yêu cầu Kien, thay cho ngưỡng ≤5/≤10% đặt ra trước đó cùng
+  ngày — bỏ hẳn, không dùng số ngưỡng nào nữa). Group active cỡ lớn (chục
+  nghìn thành viên) gần như không bao giờ đạt 0 card unresolved vì bài mới
+  dồn nhanh hơn tốc độ capture cho phép (≤4 page load/run); việc resolve link
+  là việc của `validate-permalink` (kể cả recovery), không phải điều kiện để
+  `sublet-scrape-14-groups` complete một group.
+- **Điều kiện complete thật sự chỉ còn hai vế: (1) đã qua boundary 14 ngày,
+  và (2) mọi card trong window đã có raw data đầy đủ** — card có link thì lưu
+  listing bình thường; card không có link vẫn bắt buộc lưu đủ raw qua event
+  `capture_unresolved` (poster, timestamp/label, **toàn bộ raw text**, media,
+  counters, `card_fingerprint`, theo đúng "Raw context contract v2" phía
+  trên) — y hệt mức chi tiết của card có link, chỉ khác thiếu
+  `post_url`/`post_id`. Link đợi validate-permalink xử lý sau, không đợi ở
+  bước này. Khi đạt (1)+(2), set `posts_14d_complete=true`,
+  `posts_14d_count`, `posts_14d_checked_at` và chuyển group bình thường dù
+  còn bao nhiêu card unresolved link.
+- Cái duy nhất **không được bỏ qua**: nội dung raw (text/poster/media/comment)
+  của mỗi card. "Chưa có link" được bỏ qua thoải mái ở bước này; "chưa có raw
+  data" thì không bao giờ được coi là complete.
+- Nếu feed virtualized, text vẫn collapsed, DB outage, browser reset: giữ
+  count null/known-but-incomplete, giữ run mở hoặc stop reason; không chuyển
+  group — đây là lý do khác (chưa capture được raw data), không liên quan số
+  lượng card thiếu link. Card thiếu link nhưng đã có raw data đầy đủ thì
+  không cần giữ run mở, được complete bình thường.
 - Chỉ khi `posts_14d_complete=true` mới thêm group vào `completed` và chuyển
   `current_index` sang group kế tiếp. Nếu group bị blocker, thêm vào `blocked`
   và giữ batch chưa complete.
