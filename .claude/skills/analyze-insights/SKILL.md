@@ -59,6 +59,10 @@ tránh xung đột với pipeline chính thức khi nó được bật sau này.
 - Không tính match cho listing `link_validation_status<>'validated'` hoặc nằm
   trong `sublet_v_link_needs_reverification` (validated giả, chưa mở link
   thật) — xem "Bước 3".
+- Với anonymous poster, chỉ tính insight match khi context có
+  `anonymous_poster=true`, `anonymous_access_ready=true` và permalink bài viết
+  đã validate. Nếu thiếu permalink usable, vẫn có thể thống kê raw insight
+  tổng quan nhưng không tạo candidate match cho listing đó.
 - Không re-đọc/re-chấm một listing đã có event `insight_reviewed`, trừ khi
   Kien yêu cầu rõ ràng chạy lại (ví dụ raw_text được cập nhật, hoặc Kien gõ
   "rescan"/"phân tích lại"). Không tự động rescan chỉ vì heuristic đổi.

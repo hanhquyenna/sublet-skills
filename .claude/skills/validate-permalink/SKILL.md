@@ -90,6 +90,10 @@ Với record đầu tiên trong queue:
    group đúng, poster khớp (anonymous có thể chỉ khớp trạng thái anonymous),
    và text/title hoặc media có đủ dấu hiệu khớp card raw. Một URL HTTP mở được
    nhưng dẫn sai group/sai post là `needs_review`, không phải validated.
+   Với anonymous poster, ngoài việc khớp group và nội dung, bắt buộc phải có
+   usable post permalink (`/posts/<id>/` hoặc `/permalink/<id>/`) được panel
+   xác nhận. Chỉ khi đó mới ghi `anonymous_access_ready=true` và coi card là
+   resolved; share URL còn nguyên nhưng chưa canonical/validated không đủ.
 4. Nếu Facebook hiển thị rõ nội dung không khả dụng vì post bị xóa, private,
    audience restriction hoặc không còn truy cập được, chạy **một recovery
    attempt** trước khi kết luận inaccessible (xem mục Recovery bên dưới).
@@ -182,6 +186,10 @@ không thể xác minh. Có thể lưu `redirect_url` riêng để audit, nhưng
 - Card chỉ có `capture_unresolved` event và không có listing/source URL không
   thuộc queue này. Không đánh dấu nó inaccessible; capture skill phải retry
   lấy link evidence sau.
+- Anonymous card không có permalink đã validate phải giữ cờ
+  `anonymous_poster=true`, `anonymous_post_permalink_required=true` và trạng
+  thái chưa resolved/`needs_review` tùy blocker. Không mở profile để tìm danh
+  tính và không dùng card đó làm nguồn outreach.
 - Nếu source URL trùng listing khác, không tạo listing mới. Ghi validation
   event cho entity hiện có; conflict canonical/content thì `needs_review`.
 - Recovery chỉ được tự thay link khi có đúng một ứng viên khớp group + poster/

@@ -98,6 +98,13 @@ Trước khi mở browser cho `current_group`, kiểm tra DB:
    `missing_fields` và `unresolved_reason='no_link_evidence'`. Event này giữ
    dữ liệu để retry capture; validator chỉ xử lý listing có `source_url`, không
    đánh dấu card không có URL là `inaccessible`.
+   Nếu poster là anonymous (`Anonymous participant`, `Người tham gia ẩn danh`,
+   hoặc Facebook thể hiện trạng thái ẩn danh nhưng không expose profile URL),
+   bắt buộc ghi `poster.visibility='anonymous'`, `anonymous_poster=true` và
+   `anonymous_post_permalink_required=true` trong context/notes. Không suy ra
+   danh tính từ comment, ảnh, media hay profile khác. Nếu anonymous card không
+   có direct permalink/share evidence thì giữ `capture_unresolved`; nếu có
+   share URL thì vẫn chỉ là evidence `unvalidated`, chưa phải access-ready.
 4. Lưu `sublet_listings`:
    `source='fb_feed'`, `group_key`, `source_url`, `poster_name`, full
    `raw_text`, `posted_at` chỉ khi absolute timestamp hiển thị rõ, `seen_at`,
@@ -280,6 +287,12 @@ hoặc 30 ngày mỗi poster/commenter. Lưu raw text, verified URL, absolute da
 nếu có, relative label nếu có và `visibility`. Không đọc DM/private content,
 friend list, album/ảnh riêng tư, không tách phone/email thành contact profile,
 không suy luận thuộc tính nhạy cảm.
+
+**Anonymous gate:** anonymous card phải có permalink bài viết được
+`validate-permalink` mở và xác nhận đúng group + đúng nội dung trước khi dùng
+cho profile follow-up, official analysis/matching hoặc outreach. Share URL chưa
+validate không đủ điều kiện; không có permalink thì không truy cập profile/post
+riêng, không DM và không đánh dấu anonymous là resolved.
 
 ### Raw capture checklist
 
