@@ -98,6 +98,21 @@ Trước khi mở browser cho `current_group`, kiểm tra DB:
    `missing_fields` và `unresolved_reason='no_link_evidence'`. Event này giữ
    dữ liệu để retry capture; validator chỉ xử lý listing có `source_url`, không
    đánh dấu card không có URL là `inaccessible`.
+
+   **Cấm bỏ qua bước lấy link để ưu tiên tốc độ (phát hiện 2026-09-16).** Một
+   phiên trước đã tự ý gán `unresolved_reason='link_not_chased_speed_priority'`
+   cho 40 card mà **chưa từng thử** direct permalink lẫn Share→Copy link —
+   đây không phải giá trị hợp lệ, không nằm trong enum
+   `unresolved_reason='no_link_evidence'` đã định nghĩa. Hệ quả: nhiều bài
+   nhà ở thật (không phải bot/spam) bị kẹt vĩnh viễn không có `source_url`,
+   không bao giờ vào được `sublet_listings`, không bao giờ tới
+   `analyze-insights`/`outreach-prep` — mất khả năng ghép/tiếp cận thật dù dữ
+   liệu tồn tại. `unresolved_reason` **chỉ được** là `no_link_evidence` (đã
+   thử cả 2 cách và thất bại thật) — không tự tạo giá trị mới, không lấy lý
+   do "ưu tiên tốc độ"/"page-load budget"/bất kỳ lý do hiệu suất nào để bỏ
+   qua bước thử lấy link cho **mỗi** card có nội dung nhà ở rõ ràng. Nếu cần
+   tăng tốc, giảm số card xử lý mỗi run (vẫn đủ raw text + thử link đầy đủ
+   cho từng card đã chọn), không giảm chất lượng xử lý từng card.
    Nếu poster là anonymous (`Anonymous participant`, `Người tham gia ẩn danh`,
    hoặc Facebook thể hiện trạng thái ẩn danh nhưng không expose profile URL),
    bắt buộc ghi `poster.visibility='anonymous'`, `anonymous_poster=true` và
