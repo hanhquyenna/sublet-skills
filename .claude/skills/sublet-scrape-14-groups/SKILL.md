@@ -376,8 +376,9 @@ does not claim a new browser capture.
   data" thì không bao giờ được coi là complete.
 - Nếu feed virtualized, text vẫn collapsed, DB outage, browser reset: giữ
   count null/known-but-incomplete, giữ run mở hoặc stop reason; không chuyển
-  group. Card unresolved trong ngưỡng cho phép ở trên thì được complete bình
-  thường, không cần giữ run mở chỉ vì lý do này.
+  group — đây là lý do khác (chưa capture được raw data), không liên quan số
+  lượng card thiếu link. Card thiếu link nhưng đã có raw data đầy đủ thì
+  không cần giữ run mở, được complete bình thường.
 - Chỉ khi `posts_14d_complete=true` mới thêm group vào `completed` và chuyển
   `current_index` sang group kế tiếp. Nếu group bị blocker, thêm vào `blocked`
   và giữ batch chưa complete.
