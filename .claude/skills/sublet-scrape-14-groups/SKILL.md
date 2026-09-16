@@ -300,6 +300,33 @@ event mới. Khi một card lấy được link evidence, tạo listing/context 
 thường, liên kết fingerprint trong payload và đánh dấu event unresolved đã
 resolved; không tạo bản sao.
 
+### Recovery nhanh cho card `capture_unresolved` cũ — dùng search-trong-group
+
+Thay vì cuộn chronological lại từ đầu group để tìm 1 card cụ thể (chậm, tốn
+nhiều page load), dùng tính năng **"Tìm kiếm trong nhóm này"** có sẵn trên mọi
+Facebook group (nút search icon trong panel group):
+
+1. Mở group, bấm nút search-trong-group.
+2. Gõ nguyên văn 1 cụm đặc trưng, ngắn (5–10 từ) từ `raw_text` đã capture
+   trong event `capture_unresolved` — càng đặc thù càng ít nhiễu kết quả.
+3. Nếu Facebook cho lọc, dùng **Posted By** (nhập/so khớp `poster.display_name`
+   đã capture) và **Date** để thu hẹp, không chỉ dựa vào text.
+4. Đối chiếu kết quả với `card_fingerprint` (poster + timestamp + text đã
+   chuẩn hoá) — chỉ nhận khi khớp rõ ràng, giống nguyên tắc recovery của
+   `validate-permalink` (không đoán khi có nhiều ứng viên).
+5. Bấm vào kết quả đúng để mở bài, lấy permalink từ URL hoặc Share → Sao chép
+   liên kết — vẫn tuân `unresolved_reason` chỉ được `no_link_evidence` nếu
+   sau cùng vẫn không tìm ra (không dùng lại reason cũ đã bị chặn ở DB).
+6. Khi tìm được, tạo `sublet_listings` + `context_captured` bình thường,
+   `link_validation_status='unvalidated'` như 1 card mới, liên kết
+   `card_fingerprint` để đánh dấu event `capture_unresolved` gốc đã resolved.
+
+Nhanh hơn cuộn hàng chục lần vì mỗi card thường chỉ tốn 2–3 thao tác (mở
+search → gõ → bấm kết quả) thay vì scroll dò từng đoạn thời gian. Vẫn tính
+vào page-load budget ≤4/run như bình thường; ưu tiên card có nội dung nhà ở
+rõ ràng (cá nhân thật) trước card dạng repost hàng loạt từ 1 tài khoản
+aggregator.
+
 Capture tất cả comment/reply công khai đang hiển thị, tối đa 100 mỗi post. Chỉ
 đọc public profile/activity trực tiếp gắn với post đã capture, tối đa 10 post
 hoặc 30 ngày mỗi poster/commenter. Lưu raw text, verified URL, absolute date
