@@ -178,6 +178,53 @@ find .claude/skills -mindepth 2 -maxdepth 2 -name SKILL.md -print | sort
 - `sublet_ops_state`/`sublet_jobs`: resumable batch/chunk progress.
 - `sublet_inbox`: cảnh báo và việc Kien cần biết; `sublet_metrics`: số đo báo cáo.
 
+#### Tổng quan toàn bộ 15 bảng `sublet_*` (row count snapshot 2026-09-16, luôn query lại)
+
+**Lưu ý quan trọng:** `sublet_groups.tier` (1/2/3) là **mức ưu tiên nhóm có sẵn
+trong DB từ trước** (dùng để chọn group nào đưa vào batch scrape), **không
+liên quan** đến số thứ tự "group 1, group 2, ... group 14" trong
+`scrape_14_groups_batch.group_keys` — đó chỉ là vị trí trong danh sách batch
+đang chạy. Một agent từng nhầm hai khái niệm này và kết luận sai rằng "tier 2
+chưa được scrape vì thiếu code" rồi đề xuất sửa `scripts/match.py` thành
+scraper CLI — **sai hoàn toàn**: `match.py` là script chấm điểm match
+(deterministic, R11), không phải scraper; và mọi scraping Facebook **chỉ được
+làm qua browser panel thủ công**, không bao giờ qua CLI/script (CLAUDE.md rule
+#6). Batch 14-group hiện tại chỉ chọn tier 1 và tier 3 (không có tier 2 nào)
+theo quyết định chủ động khi lập danh sách, không phải lỗi/thiếu sót.
+
+| Bảng | Row count | Mô tả ngắn |
+|---|---|---|
+| `sublet_groups` | 103 | Danh mục group Facebook đã discover: `key`, `url`, `tier` (ưu tiên chọn group), `joined`, `member_count`, `allows_sublet`, keywords/notes. |
+| `sublet_group_metrics` | 158 | Metric theo group theo thời điểm check: `posts_per_day`, `posts_14d_count`, `posts_14d_complete`, `posts_14d_checked_at`, `join_status`. **Có duplicate row cho vài group_key** (bug đã biết, task cleanup đã spawn) — khi query, ưu tiên row có `posts_14d_checked_at` mới nhất. |
+| `sublet_listings` | 95 | Listing đã resolve thành record có cấu trúc (thường sau `validate-permalink` hoặc `data-engineer` normalize): `source_url`, `group_key`, poster, `raw_text`, `link_validation_status`. |
+| `sublet_seekers` | 0 | Seeker profile — chưa dùng, thuộc scope matching/outreach tương lai. |
+| `sublet_matches` | 0 | Match chính thức seeker↔listing — chưa dùng; khác `sublet_insight_matches` (bảng tín hiệu đọc-only bên dưới). |
+| `sublet_viewings` | 0 | Lịch viewing — chưa dùng. |
+| `sublet_fees` | 0 | Phí dịch vụ (€49 khi move-in) — chưa dùng. |
+| `sublet_messages` | 12 | Draft tin nhắn/DM (`status='draft'` mặc định; chỉ Kien đổi `sent`, trừ khi `outreach.auto_dm=true` — xem CLAUDE.md #1). |
+| `sublet_events` | 958 | Event log provenance cho mọi hành động ghi nhận. Phân bố theo loại: `capture_unresolved` 433 (raw card không chase link, phổ biến nhất từ 2026-09-16 trở đi), `insight_reviewed` 198, `context_captured` 95, `listing_normalized` 95, `comment_reviewed` 61, `link_validated` 56, `detail_audit` 10, `capture_reconciled` 5, `group_joined_confirmed` 3, `link_inaccessible` 1, `capture_quality_cleanup` 1. |
+| `sublet_scan_runs` | 74 | Một row/run scrape (≤4 page load): `group_key`, `page_loads`, `posts_seen`, `new_listings`, `cursor`, `stopped_reason`. Dùng để tính R03 (≤350 page load/24h). |
+| `sublet_ops_state` | 12 | State máy resumable dạng key-value JSON, quan trọng nhất là `scrape_14_groups_batch` (group_keys, current_index, completed[], blocked[], current_progress). |
+| `sublet_inbox` | 7 | Cảnh báo/thông tin Kien cần đọc (level=stop/warning/info). |
+| `sublet_metrics` | 21 | Số đo báo cáo tổng hợp (không phải per-group, khác `sublet_group_metrics`). |
+| `sublet_jobs` | 0 | Job/chunk resumable khác `sublet_ops_state` — hiện chưa dùng. |
+| `sublet_insight_matches` | 537 | Bảng tín hiệu match seeker↔offering do `analyze-insights` Bước 3 tính ra, **không phải** `sublet_matches` chính thức; đọc kỹ "Lịch sử quyết định" trong `analyze-insights/SKILL.md` trước khi sửa logic. |
+
+**Tình trạng batch 14-group (2026-09-16, snapshot — query `scrape_14_groups_batch` để lấy số mới nhất):**
+6/14 group đã `posts_14d_complete=true` (group2 no-agencies-please: 199 record;
+group3 apartments-rent-share-sell: 73 record; group4 expats-netherlands: 50
+record; group5 housing-rooms-sublets-3396...: 32 `capture_unresolved`; group6
+woning-huren-in-amsterdam: 63 `capture_unresolved`; group7
+amsterdam-rooms-and-apartments (172K): 42 `capture_unresolved`). Group1
+(`amsterdam-housing-apartments-rooms-287563233830552`) là `blocked` (operator
+decision, 61 listings nhưng 6 card cũ chưa resolve, không phải FB chặn).
+Group8 (`apartments-for-rent-in-amsterdam-housing-rooms-studios-sublets-expats`,
+2.9K thành viên) đang dở, mới ~4/14 ngày, 8 event đã ghi — resume từ
+`current_progress` trong ops_state. Nhóm nhỏ này có nhiều dấu hiệu scam
+(ảnh watermark lạ, comment bị tắt, template giá €500-2000 lặp lại) và trùng
+với scam ring "Modern Studio and apartments" đã thấy ở group5 — xác nhận scam
+ring hoạt động xuyên nhiều group.
+
 ### Current scrape context
 
 Mục tiêu hiện tại là `/sublet-scrape-14-groups` rồi `/validate-permalink`, có

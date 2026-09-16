@@ -310,28 +310,62 @@ resolved; không tạo bản sao.
 
 Thay vì cuộn chronological lại từ đầu group để tìm 1 card cụ thể (chậm, tốn
 nhiều page load), dùng tính năng **"Tìm kiếm trong nhóm này"** có sẵn trên mọi
-Facebook group (nút search icon trong panel group):
+Facebook group.
 
-1. Mở group, bấm nút search-trong-group.
-2. Gõ nguyên văn 1 cụm đặc trưng, ngắn (5–10 từ) từ `raw_text` đã capture
-   trong event `capture_unresolved` — càng đặc thù càng ít nhiễu kết quả.
-3. Nếu Facebook cho lọc, dùng **Posted By** (nhập/so khớp `poster.display_name`
-   đã capture) và **Date** để thu hẹp, không chỉ dựa vào text.
-4. Đối chiếu kết quả với `card_fingerprint` (poster + timestamp + text đã
+**Cách ưu tiên (đã kiểm chứng 2026-09-16, nhanh và ổn định hơn hẳn) — điều
+hướng thẳng URL search của group:**
+
+```
+https://www.facebook.com/groups/<group-slug>/search/?q=<query đã URL-encode>
+```
+
+Query là 1 cụm đặc trưng, ngắn (5–10 từ) từ `raw_text` đã capture trong event
+`capture_unresolved` (không cần tên poster — tìm theo nội dung bài đăng đặc
+thù đủ chính xác). Điều hướng thẳng URL này bỏ qua toàn bộ thao tác click
+search-icon → gõ → chờ autocomplete → bấm gợi ý, vốn hay bị flaky (icon đổi vị
+trí sau mỗi lần điều hướng, `ref` từ `find()` có thể trỏ sai/stale giữa các
+lần gọi, autocomplete đôi khi không xuất hiện với tên riêng ít phổ biến hoặc
+cụm từ tiếng Hà Lan). Kết quả trả về ngay là danh sách bài viết khớp, y hệt
+kết quả từ hộp thoại search nhưng không cần tương tác UI nào.
+
+**Cách dự phòng (khi cách trên không ra kết quả, ví dụ nhóm private cần đúng
+context session):** dùng hộp thoại search-trong-group thủ công (nút search
+icon trong panel group) — gõ cụm từ, đợi autocomplete, bấm gợi ý (không bấm
+Enter, thường không submit query tự do nếu không có gợi ý khớp).
+
+Các bước chung cho cả 2 cách:
+
+1. Đối chiếu kết quả với `card_fingerprint` (poster + timestamp + text đã
    chuẩn hoá) — chỉ nhận khi khớp rõ ràng, giống nguyên tắc recovery của
-   `validate-permalink` (không đoán khi có nhiều ứng viên).
-5. Bấm vào kết quả đúng để mở bài, lấy permalink từ URL hoặc Share → Sao chép
-   liên kết — vẫn tuân `unresolved_reason` chỉ được `no_link_evidence` nếu
-   sau cùng vẫn không tìm ra (không dùng lại reason cũ đã bị chặn ở DB).
-6. Khi tìm được, tạo `sublet_listings` + `context_captured` bình thường,
-   `link_validation_status='unvalidated'` như 1 card mới, liên kết
-   `card_fingerprint` để đánh dấu event `capture_unresolved` gốc đã resolved.
+   `validate-permalink` (không đoán khi có nhiều ứng viên). Lưu ý: 1 poster có
+   thể có nhiều bài tương tự nhau trong cùng group (đã gặp thực tế) — đối
+   chiếu đúng theo fingerprint, không chỉ theo tên.
+2. Bấm vào timestamp của bài đúng (không bấm vào text tiêu đề) để mở modal
+   chi tiết, lấy permalink qua `window.location.href` — vẫn tuân
+   `unresolved_reason` chỉ được `no_link_evidence` nếu sau cùng vẫn không tìm
+   ra (không dùng lại reason cũ đã bị chặn ở DB).
+3. Xác minh lại group + poster qua `find("Bài viết của <tên>")` trước khi ghi
+   DB.
+4. Khi tìm được, tạo `sublet_listings` + `context_captured` bình thường,
+   `link_validation_status='validated'` (đã xác minh trực tiếp qua permalink
+   + poster match), liên kết `card_fingerprint`/note tham chiếu event
+   `capture_unresolved` id gốc.
 
-Nhanh hơn cuộn hàng chục lần vì mỗi card thường chỉ tốn 2–3 thao tác (mở
-search → gõ → bấm kết quả) thay vì scroll dò từng đoạn thời gian. Vẫn tính
-vào page-load budget ≤4/run như bình thường; ưu tiên card có nội dung nhà ở
-rõ ràng (cá nhân thật) trước card dạng repost hàng loạt từ 1 tài khoản
-aggregator.
+**Phát hiện quan trọng (2026-09-16):** nhiều card ghi `poster.display_name`
+là `"Anonymous participant"` trong `capture_unresolved` **không phải anonymous
+thật** — chỉ là lúc capture vội (bug `link_not_chased_speed_priority`) session
+cũ cũng bỏ qua luôn việc đọc tên poster dù tên **hiển thị công khai bình
+thường** trên bài viết (ví dụ: Feyza Olson, Georgina Korn, Valeria Cordeiro —
+cả 3 đều có tên rõ ràng khi mở lại bài, không phải case
+"Anonymous participant"/"Người tham gia ẩn danh" thật của Facebook). Khi
+recovery 1 card ghi anonymous, luôn mở lại bài viết thật để xác minh có đúng
+là anonymous case (Facebook tự gắn nhãn) hay chỉ là capture thiếu — đừng giữ
+nguyên nhãn anonymous nếu tên thật hiển thị rõ ràng khi kiểm tra lại.
+
+Nhanh hơn cuộn hàng chục lần vì mỗi card thường chỉ tốn 2–3 thao tác thay vì
+scroll dò từng đoạn thời gian. Vẫn tính vào page-load budget ≤4/run như bình
+thường; ưu tiên card có nội dung nhà ở rõ ràng (cá nhân thật) trước card dạng
+repost hàng loạt từ 1 tài khoản aggregator.
 
 Capture tất cả comment/reply công khai đang hiển thị, tối đa 100 mỗi post. Chỉ
 đọc public profile/activity trực tiếp gắn với post đã capture, tối đa 10 post
