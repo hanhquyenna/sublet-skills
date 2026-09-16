@@ -490,6 +490,9 @@ create or replace view sublet_v_insight_matches_report as
 -- state hiện tại vì là view (không phải bảng vật lý), không cần checkpoint.
 -- analyze-insights sở hữu ý nghĩa các cột suy ra (offer_or_need, pricing_tag,
 -- start_date...); view này chỉ join lại cho dễ query.
+-- drop trước vì đổi thứ tự cột (CREATE OR REPLACE VIEW không cho đổi thứ tự
+-- cột hiện có, chỉ cho thêm cột mới ở cuối)
+drop view if exists sublet_v_listing_profile;
 create or replace view sublet_v_listing_profile as
   select
     l.id as listing_id,
@@ -499,26 +502,36 @@ create or replace view sublet_v_listing_profile as
     l.seen_at,
     l.posted_at,
     l.link_validation_status,
-    latest.payload->>'insight_kind_guess' as offer_or_need,
-    latest.payload->>'insight_method' as insight_method,
-    (latest.payload->>'offering_score')::int as offering_score,
-    (latest.payload->>'seeking_score')::int as seeking_score,
-    latest.payload->>'pricing_tag' as pricing_tag,
-    (latest.payload->>'price_or_budget_eur')::int as budget_or_price_eur,
-    latest.payload->>'start_date' as start_date,
-    latest.payload->>'start_date_label' as start_date_label,
-    latest.payload->>'end_date' as end_date,
-    latest.payload->>'duration_label' as duration_label,
-    latest.payload->'risk_flags' as risk_flags,
-    latest.payload->>'duplicate_of' as duplicate_of,
-    (latest.payload->>'repost_same_poster')::boolean as repost_same_poster,
-    latest.payload->>'run_at' as insight_run_at,
+    insight.payload->>'insight_kind_guess' as offer_or_need,
+    insight.payload->>'insight_method' as insight_method,
+    (insight.payload->>'offering_score')::int as offering_score,
+    (insight.payload->>'seeking_score')::int as seeking_score,
+    insight.payload->>'pricing_tag' as pricing_tag,
+    (insight.payload->>'price_or_budget_eur')::int as budget_or_price_eur,
+    norm.payload->>'start_date' as start_date,
+    norm.payload->>'start_date_label' as start_date_label,
+    norm.payload->>'end_date' as end_date,
+    norm.payload->>'duration_label' as duration_label,
+    insight.payload->'risk_flags' as risk_flags,
+    insight.payload->>'duplicate_of' as duplicate_of,
+    (insight.payload->>'repost_same_poster')::boolean as repost_same_poster,
+    insight.payload->>'run_at' as insight_run_at,
+    norm.payload->>'normalized_at' as normalized_at,
     l.raw_text
   from sublet_listings l
+  -- offer_or_need/pricing/risk: owned by analyze-insights, event insight_reviewed
   left join lateral (
     select e.payload
     from sublet_events e
     where e.entity_type = 'listing' and e.entity_id = l.id and e.event = 'insight_reviewed'
     order by e.id desc
     limit 1
-  ) latest on true;
+  ) insight on true
+  -- start/end date, duration: owned by data-engineer, event listing_normalized
+  left join lateral (
+    select e.payload
+    from sublet_events e
+    where e.entity_type = 'listing' and e.entity_id = l.id and e.event = 'listing_normalized'
+    order by e.id desc
+    limit 1
+  ) norm on true;

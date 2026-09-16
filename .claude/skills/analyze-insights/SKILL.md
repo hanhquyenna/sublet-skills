@@ -313,88 +313,17 @@ bước trong `analyze-insights`, dùng chung code trích số với Bước 3, 
 queue/cursor/spec riêng. Tách skill chỉ đáng làm nếu có ≥2 skill khác cần dùng
 lại tag này độc lập với `analyze-insights`; hiện tại chưa có.
 
-### Bước 1.6 — trích `start_date`/`end_date`/`duration_label` (thêm 2026-09-16 theo yêu cầu Kien)
+### Bước 1.6 đã chuyển sang `data-engineer` (sửa 2026-09-16, đặt sai chỗ lúc đầu)
 
-Cùng tinh thần Bước 1.5: rẻ tiền, thuần regex trên `raw_text` đã có, ghi kèm
-event `insight_reviewed`, không phải skill/event riêng. Lý do thêm: để
-outreach sau này (skill `outreach-prep`, chưa kích hoạt) biết chính xác field
-nào còn thiếu để hỏi lại thay vì hỏi lại cái đã có trong bài, và để dữ liệu
-đủ khớp với schema "Per-user/entity normalized profile" đã tả trong
-`data-engineer/SKILL.md`.
-
-- `start_date`: ngày/tháng bắt đầu thuê nếu raw_text nêu rõ, chuẩn hoá ISO
-  (`YYYY-MM-DD`) khi có đủ ngày+tháng+năm suy luận được (năm không nêu → lấy
-  năm gần nhất về sau tính từ `seen_at`, giống rule cũ của
-  `sublet-scrape-14-groups` cho ước lượng timestamp); nếu chỉ có tháng
-  (`"available from October"`) thì để `start_date=null` và giữ nguyên câu
-  trong `start_date_label`. Nhận diện cả tiếng Anh (`available from`,
-  `from <ngày> <tháng>`, `move-in`) và tiếng Hà Lan (`vanaf`, `beschikbaar
-  vanaf`).
-- `end_date`: tương tự cho ngày kết thúc/hết hạn nếu nêu rõ (`until`, `tot`,
-  `t/m`); phần lớn bài sẽ không có, giữ `null` — **không suy ra** end_date từ
-  `start_date + duration` bằng cộng trừ ngày tháng thủ công (rủi ro sai lệch
-  khi duration mơ hồ như "vài tháng"); chỉ điền khi raw_text nêu ngày kết thúc
-  tường minh.
-- `duration_label`: giữ nguyên cụm chỉ thời hạn nếu có (`"6 months"`, `"1
-  year minimum"`, `"minimum stay of 1 year"`, `"4 maanden"`, `"ASAP"` không
-  tính là duration — đó là start timing, không phải thời hạn), không tự tính
-  ra số ngày; đây là field tham khảo dạng text, không phải số đã chuẩn hoá.
-- Thiếu bất kỳ field nào ở trên là `null`, không phải bằng chứng phủ định
-  (đúng nguyên tắc chung của dự án) — một listing `offering_like` không nêu
-  ngày vẫn hợp lệ để match theo khu vực/giá, chỉ không có tín hiệu ngày.
-
-Field mới không tham gia tính điểm Bước 3 (chưa thêm start/end date như một
-tín hiệu match) — mục đích hiện tại thuần là dữ liệu tham khảo cho
-outreach/data-engineer, tránh mở rộng logic scoring khi chưa có yêu cầu rõ.
-Nếu muốn dùng ngày làm tín hiệu loại trừ/cộng điểm ở Bước 3 sau này, đó là
-quyết định rule riêng cần hỏi Kien, không tự suy ra từ việc thêm field này.
-
-#### Quy tắc trích an toàn (rút ra khi build Bước 1.6, giữ để lần sau không lặp lại)
-
-Hai lỗi cụ thể đã gặp và cách sửa, ghi lại để không tái phạm khi mở rộng regex
-sau này:
-
-1. **Ngày 4 chữ số bị nuốt nhầm thành ngày-trong-tháng.** Regex `\d{1,2}` khớp
-   2 ký tự đầu của `"2026"` nếu không chặn — vd `"October 2026"` từng bị đọc
-   thành ngày 20 tháng 10. Sửa bằng negative lookahead `(?!\d)` ngay sau nhóm
-   ngày, đảm bảo không có chữ số nào theo sau.
-2. **Tuổi người bị nhầm thành thời hạn thuê.** `"35 years old"`,
-   `"22 jaar oud"` chứa đúng pattern `<số> years/jaar` mà duration cũng dùng.
-   Sửa bằng negative lookahead loại `<số> years/jaar` khi theo sau là
-   `old`/`oud` — **nhưng phải viết `(?!s?\s*(?:old|oud)\b)`, không phải
-   `(?!\s*(?:old|oud)\b)`**: thiếu `s?` khiến regex engine backtrack, tự bỏ
-   chữ `s` cuối (`years` → `year`) để né lookahead, vẫn khớp sai. Đây là lỗi
-   backtracking kinh điển — mọi negative lookahead chặn hậu tố số nhiều phải
-   tính luôn khả năng bên trong bị rút ngắn.
-3. **Suy năm sai lệch cho ngày gần `seen_at`.** Rule suy năm (year không nêu
-   → lấy năm gần nhất về sau) nếu áp dụng cứng nhắc (`candidate < seen_dt` →
-   +1 năm) sẽ đẩy nhầm 1 năm cho ngày chỉ cách `seen_at` vài ngày trong quá
-   khứ (vd. bài thấy ngày 15/9 nói "available from Sept 12" — chỉ lệch 3
-   ngày, vẫn hợp lý là năm hiện tại, không phải sang năm sau). Sửa bằng
-   ngưỡng khoan dung 60 ngày: chỉ +1 năm khi `seen_dt - candidate > 60 ngày`.
-
-#### Giới hạn đã biết — recall-first, không cố quét sạch mọi case (chốt 2026-09-16)
-
-Theo yêu cầu rõ của Kien: **thà trích nhầm còn hơn bỏ sót**, không viết thêm
-điều kiện ngữ cảnh (kiểu bắt buộc gần từ khoá "contract"/"minimum"/"huur") để
-ép độ chính xác cao hơn, vì làm vậy sẽ bỏ sót nhiều case hợp lệ không đứng
-gần từ khoá đó (ví dụ `"for 6 months"` đứng một mình). Chấp nhận các loại lọt
-lưới đã quan sát được, không chặn thêm bằng hard rule mới:
-
-- Tuổi kiểu liệt kê không có "old"/"oud" đi kèm ngay sau, ví dụ tiếng Hà Lan
-  `"21 en 22 jaar"` (hai người, không có "oud" lặp lại) hoặc `"Lisa 23 jaar
-  en..."` (nói tuổi rồi nối câu khác, không dừng ở "oud").
-- Thời gian cư trú/làm việc bị nhầm thời hạn thuê, ví dụ `"living here for
-  the last 4 years"`, `"been living in the Netherlands for over 3 years"`.
-
-Hai loại trên chỉ ảnh hưởng `duration_label` (text tham khảo, không chuẩn hoá,
-không tham gia scoring Bước 3) — không ảnh hưởng `start_date`/`end_date`
-(ngày tháng, có kiểm `(?!\d)` và cấu trúc ngày/tháng riêng, ít lẫn với tuổi
-hơn). Không tự thêm điều kiện ngữ cảnh để vá — nếu cần độ sạch cao hơn cho
-mục đích cụ thể (vd. outreach thật), đó là việc của **một bước
-validate/review riêng sau này** (tương tự quan hệ `sublet-scrape-14-groups` →
-`validate-permalink`: capture thô trước, làm sạch có mục tiêu rõ sau), không
-phải sửa regex trích thô này chặt hơn.
+Trích `start_date`/`end_date`/`duration_label` là **normalization** (parse
+ngày/thời hạn từ text đã biết), không phải heuristic ngữ nghĩa
+offering/seeking — thuộc ranh giới của `data-engineer` (mục "3. Normalize mà
+không làm mất raw": *"timezone-aware ISO timestamp khi có absolute
+timestamp"*), không phải `analyze-insights`. Xem chi tiết đầy đủ ở
+`data-engineer/SKILL.md` mục "Normalize thời điểm bắt đầu/kết thúc/thời hạn
+thuê". `analyze-insights` chỉ **đọc** 4 field đó (qua
+`sublet_v_listing_profile`) làm input tham khảo cho Bước 3 khi cần, không tự
+tính lại.
 
 ### Tín hiệu so khớp (mỗi seeker × mỗi offering, xuyên toàn bộ group)
 
@@ -512,23 +441,25 @@ ban đầu có thể chưa đủ để có cặp `high`).
   "repost_same_poster": false,
   "pricing_tag": "no_pricing",
   "price_or_budget_eur": null,
-  "start_date": null,
-  "start_date_label": null,
-  "end_date": null,
-  "duration_label": null,
   "run_at": "2026-09-16T09:00:00+02:00"
 }
 ```
 
-`pricing_tag`/`price_or_budget_eur` là 2 field từ Bước 1.5; `start_date`/
-`start_date_label`/`end_date`/`duration_label` là 4 field từ Bước 1.6 — bắt
-buộc có mặt trên mọi event mới, kể cả khi toàn bộ là `null`. Event cũ trước
-khi thêm các field này không bị sửa lại (append-only); chỉ backfill khi Kien
-yêu cầu rõ ràng (đã backfill 1 lần cho 95 listing hiện có ngày 2026-09-16,
-xem `sublet_ops_state.analyze_insights_state`).
+`pricing_tag`/`price_or_budget_eur` là 2 field từ Bước 1.5 — bắt buộc có mặt
+trên mọi event mới, kể cả khi `no_pricing`/`null`. Event cũ trước khi thêm 2
+field này không bị sửa lại (append-only); chỉ backfill nếu Kien yêu cầu rõ
+ràng.
 
 `entity_type='listing'`, `entity_id=<listing id>`, `event='insight_reviewed'`,
 `source_url=<listing.source_url>`.
+
+**Lưu ý lịch sử (2026-09-16):** 95 event `insight_reviewed` ghi trong ngày
+2026-09-16 có thêm 4 field `start_date`/`start_date_label`/`end_date`/
+`duration_label` do đặt sai chỗ lúc đầu (đã sửa, xem mục "Bước 1.6 đã chuyển
+sang data-engineer" phía trên). Không xoá/sửa các event cũ đó
+(append-only) — 4 field thừa trong payload cũ vô hại, chỉ là dữ liệu trùng
+lặp; nguồn đúng cho các field này từ giờ là event `listing_normalized` do
+`data-engineer` ghi, đọc qua `sublet_v_listing_profile`.
 
 ### Snapshot tổng hợp — chỉ ghi khi có ít nhất 1 listing mới trong run này
 

@@ -127,6 +127,81 @@ Không tách riêng email, phone, DM, friend list, album hay private profile th�
 customer record. Public profile URL chỉ giữ trong context của post/comment đã
 capture theo hard rules; không xây hồ sơ theo dõi người dùng.
 
+#### Normalize thời điểm bắt đầu/kết thúc/thời hạn thuê (`start_date`/`end_date`/`duration_label`)
+
+Thêm 2026-09-16 theo yêu cầu Kien, ban đầu đặt nhầm vào `analyze-insights` rồi
+chuyển về đây — đây là normalization (parse ngày/thời hạn từ text đã biết),
+không phải heuristic ngữ nghĩa offering/seeking. Rẻ tiền, thuần regex trên
+`raw_text` đã có trong `sublet_listings`, không cần Facebook/LLM đọc lại. Lý
+do làm: để outreach sau này (skill `outreach-prep` trong backlog PLAN.md,
+chưa viết/kích hoạt) biết field nào đã có trong bài để không hỏi lại, và để
+khớp schema "Per-user/entity normalized profile" ở mục C bên dưới.
+
+- `start_date`: ngày bắt đầu thuê nếu `raw_text` nêu đủ ngày+tháng, chuẩn hoá
+  ISO (`YYYY-MM-DD`); năm không nêu → lấy năm gần nhất về sau tính từ
+  `seen_at`, cùng nguyên tắc ước lượng timestamp của `sublet-scrape-14-groups`.
+  Chỉ có tháng (`"available from October"`) → `start_date=null`, giữ nguyên
+  câu trong `start_date_label`. Nhận diện EN (`available from`, `from <ngày>
+  <tháng>`, `move-in`) và NL (`vanaf`, `beschikbaar vanaf`).
+- `end_date`: tương tự cho ngày kết thúc (`until`, `tot`, `t/m`) nếu nêu rõ;
+  phần lớn sẽ `null`. **Không suy** end_date từ `start_date + duration`.
+- `duration_label`: giữ nguyên cụm chỉ thời hạn (`"6 months"`, `"minimum stay
+  of 1 year"`, `"4 maanden"`) dạng text, không tự tính ra số ngày.
+- Thiếu field nào là `null`, không phải bằng chứng phủ định (nguyên tắc chung
+  của dự án) — listing không nêu ngày vẫn hợp lệ để match theo khu vực/giá.
+
+**3 lỗi cụ thể đã gặp khi build, ghi lại để không tái phạm:**
+
+1. **Ngày 4 chữ số bị nuốt nhầm thành ngày-trong-tháng** — `\d{1,2}` khớp 2
+   ký tự đầu của `"2026"` nếu không chặn (`"October 2026"` từng đọc thành
+   ngày 20/10). Sửa bằng `(?!\d)` ngay sau nhóm ngày.
+2. **Tuổi người bị nhầm thành thời hạn thuê** — `"35 years old"`, `"22 jaar
+   oud"` khớp đúng pattern `<số> years/jaar` mà duration cũng dùng. Sửa bằng
+   negative lookahead loại khi theo sau là `old`/`oud` — **phải viết
+   `(?!s?\s*(?:old|oud)\b)`, không phải `(?!\s*(?:old|oud)\b)`**: thiếu `s?`
+   khiến regex backtrack, tự bỏ chữ `s` cuối (`years`→`year`) để né
+   lookahead, vẫn khớp sai. Mọi negative lookahead chặn hậu tố số nhiều phải
+   tính khả năng bên trong bị rút ngắn.
+3. **Suy năm sai lệch cho ngày gần `seen_at`** — bump `+1` năm cứng nhắc khi
+   `candidate < seen_dt` đẩy nhầm 1 năm cho ngày chỉ cách `seen_at` vài ngày
+   (vd. thấy 15/9, bài nói "from Sept 12" — lệch 3 ngày, vẫn hợp lý năm hiện
+   tại). Sửa bằng ngưỡng khoan dung 60 ngày: chỉ +1 năm khi
+   `seen_dt - candidate > 60 ngày`.
+
+**Giới hạn đã biết — recall-first, không sweeping hard rule để vá (chốt
+2026-09-16 theo yêu cầu Kien):** *"thà trích nhầm còn hơn bỏ sót"* — không
+thêm điều kiện ngữ cảnh (bắt buộc gần từ khoá "contract"/"minimum"/"huur") để
+ép sạch hơn, vì sẽ bỏ sót case hợp lệ đứng một mình (`"for 6 months"`). Chấp
+nhận các loại lọt lưới đã quan sát, chỉ ảnh hưởng `duration_label` (text tham
+khảo, không chuẩn hoá số): tuổi liệt kê không có "old"/"oud" đi kèm
+(`"21 en 22 jaar"`, `"Lisa 23 jaar en..."`), và thời gian cư trú/làm việc bị
+nhầm thời hạn thuê (`"living here for the last 4 years"`). Không tự thêm
+điều kiện ngữ cảnh để vá — cần độ sạch cao hơn cho mục đích cụ thể thì đó là
+việc của **một bước validate/review riêng sau này** (tương tự quan hệ
+`sublet-scrape-14-groups` → `validate-permalink`), không phải sửa regex trích
+thô này chặt hơn.
+
+**Event `listing_normalized`** (`entity_type='listing'`,
+`entity_id=<listing id>`, `source_url=<listing.source_url>`), ghi ngay sau
+khi xử lý xong 1 listing, tách biệt với `insight_reviewed` của
+`analyze-insights`:
+
+```json
+{
+  "normalize_contract_version": 1,
+  "start_date": null,
+  "start_date_label": null,
+  "end_date": null,
+  "duration_label": null,
+  "normalized_at": "2026-09-16T09:00:00+02:00"
+}
+```
+
+Backfill 1 lần cho 95 listing hiện có ngày 2026-09-16 (xem
+`sublet_ops_state.analyze_insights_state` cho cursor cũ trước khi tách; cursor
+riêng cho data-engineer chưa cần thiết ở quy mô hiện tại — mọi listing đã
+backfill, không có queue đang mở).
+
 ### 4. Ghi idempotent và checkpoint
 
 Mỗi batch:
@@ -233,18 +308,18 @@ URL. Chỉ gộp hai record thành một actor khi có định danh public rõ r
 không mâu thuẫn; `display_name` giống nhau không đủ để merge.
 
 **Đã dựng 2026-09-16: view `sublet_v_listing_profile`** — bản normalized đầu
-tiên theo listing (chưa gộp actor xuyên listing, chỉ join 1-1 tới event
-`insight_reviewed` mới nhất của mỗi listing qua `left join lateral`). Cột:
-`listing_id, group_key, poster_name, source_url, seen_at, posted_at,
-link_validation_status, offer_or_need (=insight_kind_guess), insight_method,
-offering_score, seeking_score, pricing_tag, budget_or_price_eur, start_date,
-start_date_label, end_date, duration_label, risk_flags, duplicate_of,
-repost_same_poster, insight_run_at, raw_text`. Đây là view (không phải bảng
-vật lý) nên luôn phản ánh event mới nhất, không cần refresh/checkpoint riêng.
-`analyze-insights` sở hữu ý nghĩa các cột suy ra từ heuristic (`offer_or_need`,
-`pricing_tag`, `start_date`...); view này chỉ join lại cho dễ query, không tự
-tính lại hay đổi logic. Dùng view này thay vì tự viết correlated subquery vào
-`sublet_events` mỗi lần cần các field trên.
+tiên theo listing (chưa gộp actor xuyên listing), join **2 nguồn event khác
+chủ sở hữu** qua `left join lateral`: event `insight_reviewed` mới nhất
+(`analyze-insights` sở hữu — cho `offer_or_need`, `insight_method`,
+`offering_score`, `seeking_score`, `pricing_tag`, `budget_or_price_eur`,
+`risk_flags`, `duplicate_of`, `repost_same_poster`) và event
+`listing_normalized` mới nhất (`data-engineer` sở hữu — cho `start_date`,
+`start_date_label`, `end_date`, `duration_label`, `normalized_at`, xem mục
+"Normalize thời điểm..." phía trên). Không gộp 2 loại field này vào chung 1
+event — mỗi skill ghi event riêng, view chỉ join lại cho dễ query. Đây là view
+(không phải bảng vật lý) nên luôn phản ánh event mới nhất, không cần
+refresh/checkpoint riêng. Dùng view này thay vì tự viết correlated subquery
+vào `sublet_events` mỗi lần cần các field trên.
 
 Absence rule: actor không có post trong corpus hiện tại, không có public
 activity, profile URL hoặc comment **không được** gán là `no_offering`,
