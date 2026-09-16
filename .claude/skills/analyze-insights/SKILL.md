@@ -310,16 +310,43 @@ rất lệch (ngân sách cao bất thường + không có khu vực) — nếu 
 này thêm tín hiệu số khác (m², số phòng...), luôn cân nhắc cả 2 chiều, không
 chỉ 1 chiều "đủ điều kiện tối thiểu".
 
+### Thang điểm `score` — tối đa 5, tối thiểu 2 để được lưu
+
+`score` là tổng cộng dồn của 3 tín hiệu độc lập, **không phải** phần trăm hay
+đã chuẩn hoá:
+
+| Tín hiệu | Điểm | Điều kiện |
+|---|---|---|
+| Khu vực (trùng hoặc liền kề) | +2 | `area_signal` có giá trị (không phải `None`/`False`) |
+| Ngân sách/giá hợp lệ | +2 | cả 2 bên có số tiền **và** `0.5 ≤ tỷ lệ ≤ 1.1` |
+| Thời điểm (`seen_at` cách ≤3 ngày) | +1 | luôn cộng thêm nếu đúng; **không tự đứng một mình** — không tạo được ứng viên nếu đây là tín hiệu duy nhất |
+
+- **Tối đa = 5** (khu vực + ngân sách + thời điểm cùng đạt) → luôn ứng với
+  `confidence='high'`.
+- **Tối thiểu để lưu vào `sublet_insight_matches` = 2** (có khu vực HOẶC ngân
+  sách, có thể không có thời điểm). Dưới 2 điểm → loại, không insert.
+- **score=3** phổ biến nhất trong dữ liệu group 1 hiện tại (29/29 record đêm
+  2026-09-16) — nghĩa là mọi cặp hiện có chỉ đạt 1 trong 2 tín hiệu chính
+  (khu vực hoặc ngân sách) cộng thời điểm; **chưa có cặp nào đạt 4-5** vì chưa
+  có seeker nào vừa nêu khu vực vừa nêu ngân sách khớp cùng 1 offering trong
+  dataset 14 ngày/1 group này. Đây là phản ánh thật của dữ liệu, không phải
+  giới hạn của công thức.
+
 ### Xếp hạng confidence
 
-- `high`: có cả tín hiệu khu vực thật **và** ngân sách/giá khớp.
-- `medium`: có tín hiệu khu vực thật (có hoặc không có ngân sách).
+- `high`: có cả tín hiệu khu vực thật **và** ngân sách/giá khớp (score 4-5).
+- `medium`: có tín hiệu khu vực thật, có hoặc không có ngân sách (score 2-3).
 - `low`: chỉ có tín hiệu ngân sách/giá, không có bằng chứng khu vực nào cho
-  một hoặc cả hai bên.
+  một hoặc cả hai bên (score 2-3).
+
+Hai record cùng `score=3` có thể khác `confidence` tuỳ tín hiệu nào tạo ra nó
+(khu vực+thời điểm = `medium`; ngân sách+thời điểm = `low`) — không suy ra
+confidence chỉ từ con số `score`, phải nhìn `reasons` đi kèm.
 
 Không tạo ứng viên nếu không có ít nhất một trong hai tín hiệu khu vực/ngân
 sách (thời điểm một mình không đủ). Ghi rõ `reasons` bằng câu người đọc được
-(vd. `"cùng khu 'zuid'"`, `"ngân sách 3000 >= giá 1500"`), không chỉ số điểm.
+(vd. `"cùng khu 'zuid'"`, `"ngân sách 3000 >= giá 1500 (tỷ lệ 0.50)"`), không
+chỉ số điểm.
 
 ### Ghi `sublet_insight_matches` (bảng riêng, KHÔNG phải `sublet_matches`)
 
