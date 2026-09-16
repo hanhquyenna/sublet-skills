@@ -22,6 +22,20 @@ semantic đã được chốt.
   `sublet_listings.kind`, `status`, `scam_score` hay các cột semantic chính thức.
   Candidate heuristic vẫn nằm riêng ở `sublet_insight_matches`.
 
+## Fast default (90% useful output)
+
+Mặc định chỉ normalize các field đủ để triage và approach mọi post:
+`offer_or_need` (`offering|seeking|both|unknown`), `post_time`, `start_time`,
+`end_time`, `budget_or_price_eur`, và `area`. Luôn giữ `source_url`, `raw_text`,
+`evidence_status` và `extraction_quality` để audit. Các field chi tiết như room
+type, deposit, bills, furnishing, registration, pets, occupancy, poster
+constraints, scam flags và public activity chỉ lấy nếu đã có sẵn trong raw hoặc
+Kien yêu cầu enrichment; không làm chậm batch chỉ để lấp chúng.
+
+Thiếu field không phải lý do loại record: để `null`/`unknown`/`partial`, giữ
+trong approach/review pool. Data-engineer không quyết định gửi DM; nó chỉ bảo
+đảm không có record bị mất vì thiếu budget, area hoặc ngày.
+
 ## Spec
 
 - **Trigger:** Kien gọi `/data-engineer`, hoặc một skill khác cần ingest,
@@ -225,29 +239,21 @@ hoặc `unknown`, giữ trong review pool và chỉ loại khi có evidence cont
 rõ ràng hoặc hard rule khác. “Thà nhầm còn hơn bỏ sót” là ưu tiên recall của
 lớp data này.
 
-Schema logic tối thiểu:
+Schema logic mặc định:
 
 ```json
 {
   "entity_id": "<listing-or-event-id>",
   "actor_role": "offering | seeking | unknown",
-  "actor_label": "public display name or Anonymous participant",
-  "actor_profile_url": null,
-  "visibility": "public | anonymous | partial | unknown",
   "offer_or_need": "offering | seeking | both | unknown",
-  "budget_eur": null,
-  "price_eur": null,
-  "location": [],
-  "move_in_date": null,
-  "start_date": null,
-  "end_date": null,
-  "duration": null,
-  "requirements": [],
-  "occupancy_or_people": null,
-  "registration_need": "yes | no | unknown",
-  "pets": "yes | no | unknown",
+  "post_time": null,
+  "post_time_label": null,
+  "start_time": null,
+  "end_time": null,
+  "budget_or_price_eur": null,
+  "area": [],
   "evidence": [
-    {"field": "budget_eur", "source_url": "...", "raw_text": "..."}
+    {"field": "budget_or_price_eur", "source_url": "...", "raw_text": "..."}
   ],
   "extraction_quality": "complete | partial | unknown",
   "evidence_status": "observed | partial | not_observed | unknown"
@@ -256,25 +262,19 @@ Schema logic tối thiểu:
 
 Field semantics:
 
-- `actor_role`/`offer_or_need`: `offering` nếu evidence cho thấy người đó có
-  chỗ; `seeking` nếu evidence cho thấy người đó cần chỗ; `both` chỉ khi hai
-  hướng đều xuất hiện trong evidence. Không suy ra role từ tên, ảnh,
-  nationality hay comment ngắn không đủ ngữ cảnh.
-- `budget_eur` là ngân sách seeker; `price_eur` là giá của offering. Giữ
-  `pricing_tag`, currency gốc và câu raw đi kèm; không đặt giá bằng 0 khi
-  không có giá.
-- `location` là các khu vực/postcode được nêu; giữ cả canonical value và raw
-  phrase nếu normalize. Không nêu location = `[]`/`unknown`, không phải
-  “location mismatch”.
-- `move_in_date` là ngày seeker muốn chuyển vào; `start_date` là ngày offering
-  bắt đầu có chỗ. `end_date` là ngày kết thúc nếu có. Không dùng
-  `seen_at`/`commented_at` làm một trong các ngày này.
-- `duration` giữ nguyên cách nói (“3 months”, “short stay”) và chỉ thêm ngày
-  tính được khi evidence đủ rõ; không tự bịa năm hoặc timezone.
-- `requirements` là yêu cầu được viết trong raw text, ví dụ registration,
-  furnished, private room, students/couples/pets, viewing availability. Giữ
-  nguyên constraint nhạy cảm nếu cần audit nhưng không biến nó thành tiêu chí
-  phân biệt hay ranking người.
+- `actor_role`/`offer_or_need`: chỉ gán khi raw text có evidence trực tiếp;
+  `both` chỉ khi cả hai hướng cùng xuất hiện. Không suy ra từ tên, ảnh,
+  nationality hay comment rời rạc.
+- `post_time` là timestamp tuyệt đối của post nếu Facebook expose; nếu chỉ có
+  relative label thì giữ ở `post_time_label` và để `post_time=null`. Không dùng
+  `seen_at` thay cho thời gian đăng.
+- `start_time`/`end_time` là ngày hoặc mốc bắt đầu/kết thúc được viết trong
+  post; thiếu hoặc mơ hồ thì `null`, không tự bịa năm/timezone.
+- `budget_or_price_eur` là số tiền duy nhất được nêu rõ; giữ câu raw và loại
+  (`budget` hay `price`) trong evidence. Không có số tiền là `null`, không phải
+  zero.
+- `area` là các khu vực/postcode được nêu. Không có area là `[]`/`unknown`,
+  không phải location mismatch.
 
 Mỗi extracted field phải truy ngược được về `source_url`/event và có quality
 hoặc uncertainty. Nếu hai bài của cùng public actor mâu thuẫn, giữ cả hai
