@@ -58,6 +58,13 @@ tín hiệu để đáng hỏi lại; Kien có thể yêu cầu mở rộng sau)
 4. Nếu poster là `anonymous` (theo R31): chỉ tạo draft khi
    `anonymous_access_ready=true` (permalink đã validate xác nhận đúng bài);
    thiếu điều kiện này thì bỏ qua, liệt kê riêng.
+4b. **`poster_name` khác `null`.** Khác trường hợp "anonymous" ở trên (FB tự
+   hiển thị "Anonymous participant" — có nhãn rõ ràng), đây là case capture
+   không lấy được tên ai cả (vd bài spam không rõ nguồn). Không tạo draft vì
+   không có ai để bấm Message — draft đó vô dụng, không phải "gửi rồi chờ
+   xử lý sau". Hiện có 1 listing như vậy trong DB (`a55d3238`, may đã bị loại
+   sẵn vì `kind_guess='other_like'`) — rule này phòng trường hợp sau này 1
+   bài `poster_name=null` bị phân loại `offering`/`seeking` và lọt vào match.
 5. Chưa có draft nào trước đó cho **listing này** (`select 1 from
    sublet_messages where entity_type='listing' and entity_id=<listing.id>
    and channel='fb_dm' and template in ('availability_check_offering',
@@ -86,6 +93,7 @@ from (
 ) m
 join sublet_v_listing_profile l on l.listing_id = m.listing_id
 where l.link_validation_status = 'validated'
+  and l.poster_name is not null
   and l.duplicate_of is null
   and (l.risk_flags is null or jsonb_array_length(l.risk_flags) = 0)
   and not exists (
