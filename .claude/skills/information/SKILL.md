@@ -52,6 +52,12 @@ Snapshot này được ghi ngày **2026-09-16**, sau lần resume raw-capture g�
   https://claude.ai/artifact/AsLmrAyHjUzsRXx7YpgVdF (bản cũ hơn 207, cần
   republish nếu muốn khớp số mới nhất — không tự ý coi link này là số liệu
   runtime, luôn query lại DB).
+- **Recall-first matching rule (chốt 2026-09-16):** không có post/public
+  activity/comment/profile link hoặc thiếu field không có nghĩa là actor không
+  có offering, seeker intent hay không phù hợp. Giữ `unknown`/`partial` trong
+  review pool; chỉ hard-exclude khi có contradiction rõ ràng hoặc hard rule
+  khác. Ưu tiên false positive hơn false negative; không đảo ngược rule này
+  chỉ vì corpus capture hiện tại chưa đủ.
 - Raw QA của group đang chạy có 57 listing URL duy nhất, 57 `context_captured` tương ứng 1–1, raw capture không phân tích (`kind=null`). Các link mới giữ share URL nếu chưa resolve và ghi method `facebook_copy_link`; timestamp/field không hiển thị vẫn giữ null và có missing fields; không suy luận dữ liệu không hiển thị.
 - Đợt backfill group activity cao nhất đang là run resumable `sublet_scan_runs.id=7`; chronological đã vượt boundary tại card **31/08 lúc 23:40**. DB ghi `posts_seen=66`, `new_listings=54`, `posts_verified=58`, `unresolved_cards=6`, `page_loads=4/4`, `boundary_reached=true`; `posts_14d_count` vẫn `null` và `posts_14d_complete=false` vì còn card unresolved/partial. Không chuyển group khi run này chưa hoàn tất.
 - Chín card mới đã được xử lý bằng browser panel qua Share → Sao chép liên kết và ghi checkpoint: Prince Rajput (2), Luana Ilídia, Jerry Meng, Ella Rule, HelpfulReindeer9448, Luis Miguel Remiro Pernia, Lia Proti và Michiel Weerts. Duplicate listing URL và one-to-one listing/context QA của group đang sạch; `context_captured` vẫn tách khỏi `detail_audit`.

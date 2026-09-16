@@ -148,6 +148,7 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | E125 | Public comment/reaction bị hiểu thành conversion | lưu như observed behavior; không suy ra intent, consent, reply hay rejection nếu chưa có evidence first-party | data-engineer | manual |
 | E126 | Hai event có thời điểm khác nhau | tách `occurred_at`, `observed_at`, `created_at`; không dùng `seen_at` làm move-in/start date | data-engineer | manual |
 | E127 | Thay đổi heuristic matching | full recompute `sublet_insight_matches`, ghi run/provenance và giữ event cũ; không sửa lẻ score/reasons | data-engineer, analyze-insights | manual |
+| E128 | Actor không có post/public activity/comment/profile link trong corpus | giữ `unknown`/`partial` trong review pool; không gán không có nhu cầu/offer hoặc không match; chỉ loại khi có contradiction rõ ràng | data-engineer, analyze-insights | manual |
 
 ## Coverage
 - Có test tự động: nhóm C (intent) — 100 case.

@@ -64,6 +64,11 @@ logic data engineering thành một heuristic mới trong `analyze-insights`.
 - Không tính match cho listing `link_validation_status<>'validated'` hoặc nằm
   trong `sublet_v_link_needs_reverification` (validated giả, chưa mở link
   thật) — xem "Bước 3".
+- Không coi việc actor không có post trong corpus, không có public activity,
+  không có comment, hoặc thiếu profile link/field là bằng chứng phủ định. Các
+  trường hợp này là `unknown`/`partial` và phải được giữ cho review hoặc lần
+  capture sau; không gán `no_offering`, `no_seeking`, `inactive` hay
+  `not_a_match`. `other_like` do thiếu evidence không phải negative intent.
 - Với anonymous poster, chỉ tính insight match khi context có
   `anonymous_poster=true`, `anonymous_access_ready=true` và permalink bài viết
   đã validate. Nếu thiếu permalink usable, vẫn có thể thống kê raw insight
@@ -218,7 +223,10 @@ là tín hiệu tham khảo — **không phải** `sublet_matches` chính thức
    nếu bài chưa verify thật (có thể đã bị xoá/đổi/sai group) thì match dựa trên
    nó là vô nghĩa hoặc sai.
 2. Có `insight_kind_guess` là `offering_like` hoặc `seeking_like` (bỏ
-   `other_like`) từ event `insight_reviewed` **mới nhất** của listing đó.
+   `other_like` chỉ khỏi phép ghép hiện tại, **không** coi là negative intent)
+   từ event `insight_reviewed` **mới nhất** của listing đó. Listing `other_like`
+   vì raw text thiếu/truncated phải giữ trong unknown/review pool, không xoá
+   hay đánh dấu không phù hợp.
 
 ```sql
 select l.id, l.poster_name, l.source_url, l.seen_at, l.raw_text,

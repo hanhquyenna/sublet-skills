@@ -52,7 +52,10 @@ semantic đã được chốt.
    nếu không có timezone/bằng chứng đủ rõ.
 4. Thiếu dữ liệu là `NULL`, `unknown`, `[]` hoặc `false` đúng theo contract;
    không biến missing thành `0`, `no` hoặc mismatch. `false` chỉ dùng khi đã
-   quan sát và xác nhận điều kiện false.
+   quan sát và xác nhận điều kiện false. **Không có bài post/public
+   activity/comment không có nghĩa là actor không có nhu cầu, không có
+   offering hoặc không phù hợp.** Giữ actor/entity trong pool
+   `unknown`/`needs_review`; ưu tiên false positive hơn false negative.
 5. Mọi event mới có provenance: `source_url`, `source`, `source_surface`,
    `scan_run_id`/`job_id` nếu có, `page_load` nếu có, `captured_at`/`observed_at`
    và contract version phù hợp. Legacy event thiếu key được audit là
@@ -215,6 +218,13 @@ mới mặc định; ưu tiên liên kết qua `listing_id`, `event.entity_id` v
 URL. Chỉ gộp hai record thành một actor khi có định danh public rõ ràng và
 không mâu thuẫn; `display_name` giống nhau không đủ để merge.
 
+Absence rule: actor không có post trong corpus hiện tại, không có public
+activity, profile URL hoặc comment **không được** gán là `no_offering`,
+`no_seeking`, `inactive` hay `not_a_match`. Đánh dấu `evidence_status='not_observed'`
+hoặc `unknown`, giữ trong review pool và chỉ loại khi có evidence contradiction
+rõ ràng hoặc hard rule khác. “Thà nhầm còn hơn bỏ sót” là ưu tiên recall của
+lớp data này.
+
 Schema logic tối thiểu:
 
 ```json
@@ -239,7 +249,8 @@ Schema logic tối thiểu:
   "evidence": [
     {"field": "budget_eur", "source_url": "...", "raw_text": "..."}
   ],
-  "extraction_quality": "complete | partial | unknown"
+  "extraction_quality": "complete | partial | unknown",
+  "evidence_status": "observed | partial | not_observed | unknown"
 }
 ```
 
