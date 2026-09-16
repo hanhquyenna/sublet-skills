@@ -354,25 +354,26 @@ does not claim a new browser capture.
   bằng `capture_unresolved`, không đoán URL từ media/photo ID.
 - Nhãn “2 tuần”, `posts_seen`, hoặc việc hết time-box **không** chứng minh đã
   capture đủ 14 ngày.
-- **Ngưỡng "đủ để complete" (nới lỏng 2026-09-16 theo yêu cầu Kien):** group
-  active cỡ lớn (chục nghìn thành viên) gần như không bao giờ đạt 0 card
-  unresolved tuyệt đối vì bài mới dồn nhanh hơn tốc độ capture cho phép (≤4
-  page load/run). Được phép set `sublet_group_metrics.posts_14d_count`,
-  `posts_14d_complete=true`, `posts_14d_checked_at` khi đã qua boundary 14
-  ngày **và** số card còn `capture_unresolved` (chưa lấy được link evidence)
-  ≤5 **hoặc** ≤10% tổng số card verified trong window, lấy ngưỡng nào lớn
-  hơn. Ghi rõ số card còn unresolved vào `posts_14d_count`'s context/notes khi
-  chốt complete ở mức nới lỏng này (không claim "0 unresolved" nếu không
-  đúng).
-- **Bất kể ngưỡng trên, card unresolved (thiếu link) vẫn phải được scrape
-  raw data đầy đủ như bình thường — không được bỏ qua nội dung chỉ vì thiếu
-  link.** Mỗi card unresolved bắt buộc có event `capture_unresolved` với đủ
-  poster, timestamp/label, **toàn bộ raw text**, media, counters và
-  `card_fingerprint` (theo contract ở mục "Default feed-first hybrid
-  capture"/"Raw context contract v2" phía trên) — y hệt mức chi tiết của card
-  có link, chỉ khác là thiếu `post_url`/`post_id`. "Nới lỏng" chỉ áp dụng cho
-  việc **có link hay chưa**, không bao giờ áp dụng cho việc có capture raw
-  content hay không.
+- **Số lượng card unresolved (thiếu link) không chặn completion** (nới lỏng
+  2026-09-16 theo yêu cầu Kien, thay cho ngưỡng ≤5/≤10% đặt ra trước đó cùng
+  ngày — bỏ hẳn, không dùng số ngưỡng nào nữa). Group active cỡ lớn (chục
+  nghìn thành viên) gần như không bao giờ đạt 0 card unresolved vì bài mới
+  dồn nhanh hơn tốc độ capture cho phép (≤4 page load/run); việc resolve link
+  là việc của `validate-permalink` (kể cả recovery), không phải điều kiện để
+  `sublet-scrape-14-groups` complete một group.
+- **Điều kiện complete thật sự chỉ còn hai vế: (1) đã qua boundary 14 ngày,
+  và (2) mọi card trong window đã có raw data đầy đủ** — card có link thì lưu
+  listing bình thường; card không có link vẫn bắt buộc lưu đủ raw qua event
+  `capture_unresolved` (poster, timestamp/label, **toàn bộ raw text**, media,
+  counters, `card_fingerprint`, theo đúng "Raw context contract v2" phía
+  trên) — y hệt mức chi tiết của card có link, chỉ khác thiếu
+  `post_url`/`post_id`. Link đợi validate-permalink xử lý sau, không đợi ở
+  bước này. Khi đạt (1)+(2), set `posts_14d_complete=true`,
+  `posts_14d_count`, `posts_14d_checked_at` và chuyển group bình thường dù
+  còn bao nhiêu card unresolved link.
+- Cái duy nhất **không được bỏ qua**: nội dung raw (text/poster/media/comment)
+  của mỗi card. "Chưa có link" được bỏ qua thoải mái ở bước này; "chưa có raw
+  data" thì không bao giờ được coi là complete.
 - Nếu feed virtualized, text vẫn collapsed, DB outage, browser reset: giữ
   count null/known-but-incomplete, giữ run mở hoặc stop reason; không chuyển
   group. Card unresolved trong ngưỡng cho phép ở trên thì được complete bình
