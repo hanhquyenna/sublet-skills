@@ -429,3 +429,18 @@ create unique index if not exists sublet_jobs_open_uq on sublet_jobs(job_type, c
 drop trigger if exists sublet_jobs_touch on sublet_jobs;
 create trigger sublet_jobs_touch before update on sublet_jobs for each row execute function sublet_touch();
 alter table sublet_jobs enable row level security;
+
+-- ---------- audit: phân biệt validated thật (browser-verified) vs bulk-override chưa mở link ----------
+create or replace view sublet_v_link_needs_reverification as
+  select l.id, l.poster_name, l.group_key, l.source_url, l.link_validated_at,
+         e.payload->>'link_resolution_method' as link_resolution_method,
+         e.payload->>'note' as note
+  from sublet_listings l
+  join lateral (
+    select payload from sublet_events e
+    where e.entity_type='listing' and e.entity_id=l.id and e.event='link_validated'
+    order by e.id desc limit 1
+  ) e on true
+  where l.link_validation_status = 'validated'
+    and e.payload->>'link_resolution_method' = 'bulk_unverified_override'
+  order by l.link_validated_at;
