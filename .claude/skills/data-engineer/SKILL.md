@@ -232,6 +232,20 @@ mới mặc định; ưu tiên liên kết qua `listing_id`, `event.entity_id` v
 URL. Chỉ gộp hai record thành một actor khi có định danh public rõ ràng và
 không mâu thuẫn; `display_name` giống nhau không đủ để merge.
 
+**Đã dựng 2026-09-16: view `sublet_v_listing_profile`** — bản normalized đầu
+tiên theo listing (chưa gộp actor xuyên listing, chỉ join 1-1 tới event
+`insight_reviewed` mới nhất của mỗi listing qua `left join lateral`). Cột:
+`listing_id, group_key, poster_name, source_url, seen_at, posted_at,
+link_validation_status, offer_or_need (=insight_kind_guess), insight_method,
+offering_score, seeking_score, pricing_tag, budget_or_price_eur, start_date,
+start_date_label, end_date, duration_label, risk_flags, duplicate_of,
+repost_same_poster, insight_run_at, raw_text`. Đây là view (không phải bảng
+vật lý) nên luôn phản ánh event mới nhất, không cần refresh/checkpoint riêng.
+`analyze-insights` sở hữu ý nghĩa các cột suy ra từ heuristic (`offer_or_need`,
+`pricing_tag`, `start_date`...); view này chỉ join lại cho dễ query, không tự
+tính lại hay đổi logic. Dùng view này thay vì tự viết correlated subquery vào
+`sublet_events` mỗi lần cần các field trên.
+
 Absence rule: actor không có post trong corpus hiện tại, không có public
 activity, profile URL hoặc comment **không được** gán là `no_offering`,
 `no_seeking`, `inactive` hay `not_a_match`. Đánh dấu `evidence_status='not_observed'`

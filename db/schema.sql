@@ -484,3 +484,41 @@ create or replace view sublet_v_insight_matches_report as
   join sublet_listings sl on sl.id = im.seeker_listing_id
   join sublet_listings ol on ol.id = im.offering_listing_id
   order by (case im.confidence when 'high' then 0 when 'medium' then 1 when 'low' then 2 else 3 end), im.score desc;
+
+-- ---------- normalized per-listing profile (data-engineer, 2026-09-16) ----------
+-- Join tới event insight_reviewed mới nhất của mỗi listing; luôn phản ánh
+-- state hiện tại vì là view (không phải bảng vật lý), không cần checkpoint.
+-- analyze-insights sở hữu ý nghĩa các cột suy ra (offer_or_need, pricing_tag,
+-- start_date...); view này chỉ join lại cho dễ query.
+create or replace view sublet_v_listing_profile as
+  select
+    l.id as listing_id,
+    l.group_key,
+    l.poster_name,
+    l.source_url,
+    l.seen_at,
+    l.posted_at,
+    l.link_validation_status,
+    latest.payload->>'insight_kind_guess' as offer_or_need,
+    latest.payload->>'insight_method' as insight_method,
+    (latest.payload->>'offering_score')::int as offering_score,
+    (latest.payload->>'seeking_score')::int as seeking_score,
+    latest.payload->>'pricing_tag' as pricing_tag,
+    (latest.payload->>'price_or_budget_eur')::int as budget_or_price_eur,
+    latest.payload->>'start_date' as start_date,
+    latest.payload->>'start_date_label' as start_date_label,
+    latest.payload->>'end_date' as end_date,
+    latest.payload->>'duration_label' as duration_label,
+    latest.payload->'risk_flags' as risk_flags,
+    latest.payload->>'duplicate_of' as duplicate_of,
+    (latest.payload->>'repost_same_poster')::boolean as repost_same_poster,
+    latest.payload->>'run_at' as insight_run_at,
+    l.raw_text
+  from sublet_listings l
+  left join lateral (
+    select e.payload
+    from sublet_events e
+    where e.entity_type = 'listing' and e.entity_id = l.id and e.event = 'insight_reviewed'
+    order by e.id desc
+    limit 1
+  ) latest on true;
