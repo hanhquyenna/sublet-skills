@@ -444,3 +444,37 @@ create or replace view sublet_v_link_needs_reverification as
   where l.link_validation_status = 'validated'
     and e.payload->>'link_resolution_method' = 'bulk_unverified_override'
   order by l.link_validated_at;
+
+-- ---------- insight matching candidates (analyze-insights, NOT the official sublet_matches pipeline) ----------
+-- Read-only signal from analyze-insights: candidate seeker<->offering pairs among
+-- genuinely-validated + classified listings. Distinct from sublet_matches/sublet_seekers
+-- (official outreach pipeline, out of active scope) so this never gets confused with a
+-- committed match or drives outreach on its own.
+create table if not exists sublet_insight_matches (
+  id bigserial primary key,
+  run_at timestamptz not null default now(),
+  seeker_listing_id uuid not null references sublet_listings(id) on delete cascade,
+  offering_listing_id uuid not null references sublet_listings(id) on delete cascade,
+  confidence text not null check (confidence in ('high','medium','low')),
+  score int not null,
+  reasons text[] not null default '{}',
+  seeker_budget_eur int,
+  offering_price_eur int,
+  seeker_areas text[] not null default '{}',
+  offering_areas text[] not null default '{}',
+  created_at timestamptz not null default now(),
+  unique (seeker_listing_id, offering_listing_id)
+);
+create index if not exists sublet_insight_matches_seeker_idx on sublet_insight_matches(seeker_listing_id);
+create index if not exists sublet_insight_matches_offering_idx on sublet_insight_matches(offering_listing_id);
+alter table sublet_insight_matches enable row level security;
+
+create or replace view sublet_v_insight_matches_report as
+  select im.id, im.run_at, im.confidence, im.score, im.reasons,
+         sl.poster_name as seeker_poster, sl.source_url as seeker_url,
+         ol.poster_name as offering_poster, ol.source_url as offering_url,
+         im.seeker_budget_eur, im.offering_price_eur, im.seeker_areas, im.offering_areas
+  from sublet_insight_matches im
+  join sublet_listings sl on sl.id = im.seeker_listing_id
+  join sublet_listings ol on ol.id = im.offering_listing_id
+  order by (case im.confidence when 'high' then 0 when 'medium' then 1 else 2 end), im.score desc;

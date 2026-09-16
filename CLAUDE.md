@@ -42,6 +42,11 @@ match, draft, viewing và outreach chưa nằm trong active skill scope.
   biệt `validated`, `inaccessible`, `needs_review`. Không scrape lại feed.
 - **Insight analysis** (`analyze-insights`): đọc-only trên dữ liệu đã capture,
   ước lượng thô offering/seeking/other, phát hiện trùng lặp/repost và pattern
-  rủi ro, tóm tắt vào `sublet_inbox`/`sublet_metrics`. Không ghi cột phân loại
-  chính thức trên `sublet_listings`, không mở Facebook, không re-đọc listing
-  đã có event `insight_reviewed`.
+  rủi ro, tóm tắt vào `sublet_inbox`/`sublet_metrics`. Cũng tính ứng viên
+  matching seeker↔offering (`sublet_insight_matches`, xem SKILL.md "Bước 3") —
+  chỉ trên listing đã `link_validation_status='validated'` **và** không nằm
+  trong `sublet_v_link_needs_reverification`. Không ghi cột phân loại chính
+  thức trên `sublet_listings`, không mở Facebook, không re-đọc listing đã có
+  event `insight_reviewed`, không đụng `sublet_seekers`/`sublet_matches`/
+  `sublet_messages` (khác `sublet_insight_matches`, bảng riêng chỉ mang tính
+  tham khảo).
