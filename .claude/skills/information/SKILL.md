@@ -166,6 +166,12 @@ comment/reply public đang thấy, commenter/profile/comment URL, timestamp tuy�
 public activity giới hạn. Event mới phải có `capture_contract_version=2`,
 `capture_quality`, `scan_run_id`, `page_load`, `source_surface` và đầy đủ
 `null`/`[]`/`false` keys. Không phân tích intent trong capture.
+Anonymous poster (`Anonymous participant`/`Người tham gia ẩn danh` hoặc trạng
+thái ẩn danh không có profile URL) phải giữ nguyên label và được flag
+`anonymous_poster=true`; không đoán danh tính. Card anonymous chỉ
+`anonymous_access_ready=true` sau khi có usable post permalink đã validate
+thật; share URL chưa validate hoặc card không có link không được dùng cho
+profile follow-up, matching hay outreach.
 
 ### Cách tiếp tục ở session sau
 
