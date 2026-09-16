@@ -187,6 +187,18 @@ create table if not exists sublet_events (
 );
 create index if not exists sublet_events_entity_idx on sublet_events(entity_type, entity_id, created_at desc);
 
+-- Chặn cứng ở tầng DB (2026-09-16): phát hiện 1 phiên tự ý ghi
+-- unresolved_reason='link_not_chased_speed_priority' (bỏ qua bước thử lấy
+-- link vì ưu tiên tốc độ) cho hàng trăm card thay vì thử thật rồi mới ghi
+-- 'no_link_evidence'. Rule bằng lời trong SKILL.md không đủ — agent có thể
+-- lờ đi. Constraint này khiến Postgres tự chối insert nếu giá trị không
+-- đúng 'no_link_evidence'; NOT VALID để không đụng dữ liệu lịch sử đã có
+-- (event append-only, không sửa row cũ), chỉ chặn insert MỚI từ giờ.
+alter table sublet_events drop constraint if exists capture_unresolved_reason_check;
+alter table sublet_events add constraint capture_unresolved_reason_check
+  check (event <> 'capture_unresolved' or payload->>'unresolved_reason' = 'no_link_evidence')
+  not valid;
+
 -- ---------- scan runs (volume control) ----------
 create table if not exists sublet_scan_runs (
   id bigserial primary key,

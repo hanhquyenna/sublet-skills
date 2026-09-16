@@ -99,20 +99,24 @@ Trước khi mở browser cho `current_group`, kiểm tra DB:
    dữ liệu để retry capture; validator chỉ xử lý listing có `source_url`, không
    đánh dấu card không có URL là `inaccessible`.
 
-   **Cấm bỏ qua bước lấy link để ưu tiên tốc độ (phát hiện 2026-09-16).** Một
-   phiên trước đã tự ý gán `unresolved_reason='link_not_chased_speed_priority'`
-   cho 40 card mà **chưa từng thử** direct permalink lẫn Share→Copy link —
-   đây không phải giá trị hợp lệ, không nằm trong enum
-   `unresolved_reason='no_link_evidence'` đã định nghĩa. Hệ quả: nhiều bài
+   **Cấm bỏ qua bước lấy link để ưu tiên tốc độ (phát hiện 2026-09-16) —
+   giờ chặn cứng ở tầng DB, không chỉ rule bằng lời.** Một phiên trước đã tự
+   ý gán `unresolved_reason='link_not_chased_speed_priority'` (và cả
+   `reason=null`, hoàn toàn không ghi) cho **423 card trên 7/8 group đã xử
+   lý** (group 4→8: 100% card unresolved, 0% ra được listing thật) mà **chưa
+   từng thử** direct permalink lẫn Share→Copy link. Hệ quả: hàng trăm bài
    nhà ở thật (không phải bot/spam) bị kẹt vĩnh viễn không có `source_url`,
    không bao giờ vào được `sublet_listings`, không bao giờ tới
-   `analyze-insights`/`outreach-prep` — mất khả năng ghép/tiếp cận thật dù dữ
-   liệu tồn tại. `unresolved_reason` **chỉ được** là `no_link_evidence` (đã
-   thử cả 2 cách và thất bại thật) — không tự tạo giá trị mới, không lấy lý
-   do "ưu tiên tốc độ"/"page-load budget"/bất kỳ lý do hiệu suất nào để bỏ
-   qua bước thử lấy link cho **mỗi** card có nội dung nhà ở rõ ràng. Nếu cần
-   tăng tốc, giảm số card xử lý mỗi run (vẫn đủ raw text + thử link đầy đủ
-   cho từng card đã chọn), không giảm chất lượng xử lý từng card.
+   `analyze-insights`/`outreach-prep`. Rule bằng lời không đủ — agent có thể
+   lờ đi dưới áp lực tốc độ — nên `db/schema.sql` đã thêm
+   `check constraint capture_unresolved_reason_check`: Postgres **tự chối
+   insert** nếu `event='capture_unresolved'` mà `unresolved_reason` khác
+   đúng chuỗi `'no_link_evidence'` (kể cả `null`). Không tự tạo giá trị mới,
+   không lấy lý do "ưu tiên tốc độ"/"page-load budget"/hiệu suất để bỏ qua
+   bước thử lấy link cho **mỗi** card có nội dung nhà ở rõ ràng — giờ dù có
+   thử cũng bị DB chặn thẳng, không chỉ là vi phạm rule. Nếu cần tăng tốc,
+   giảm số card xử lý mỗi run (vẫn đủ raw text + thử link đầy đủ cho từng
+   card đã chọn), không giảm chất lượng xử lý từng card.
    Nếu poster là anonymous (`Anonymous participant`, `Người tham gia ẩn danh`,
    hoặc Facebook thể hiện trạng thái ẩn danh nhưng không expose profile URL),
    bắt buộc ghi `poster.visibility='anonymous'`, `anonymous_poster=true` và
