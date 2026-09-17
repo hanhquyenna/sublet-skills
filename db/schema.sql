@@ -659,8 +659,36 @@ select
     when (batch.v ->> 'current_group') = g.key then 'partial'
     when (c.listings_with_permalink + c.unresolved_no_permalink) > 0 then 'partial_untracked'
     else 'not_started'
-  end as scrape_status
+  end as scrape_status,
+  -- % post đã resolve permalink trên TỔNG post đã capture (context_captured +
+  -- capture_unresolved), KHÔNG phải trên sublet_listings — sửa bug 2026-09-17:
+  -- 1 view khác (sublet_group_dashboard, tạo tay qua Supabase AI, không theo
+  -- convention sublet_v_*) tính % trên chỉ sublet_listings làm mẫu số, nhưng
+  -- listings vốn CHỈ chứa post ĐÃ có permalink -> % luôn ra ~100%, sai hoàn
+  -- toàn (vd woning-huren thực tế mới resolve 14% lại báo 100%). NULL khi
+  -- chưa capture gì (không có mẫu số).
+  case
+    when (c.listings_with_permalink + c.unresolved_no_permalink) = 0 then null
+    else round(100.0 * c.listings_with_permalink / (c.listings_with_permalink + c.unresolved_no_permalink), 1)
+  end as pct_resolved,
+  -- true khi group còn đang scrape dở (chưa complete/blocked) -> tổng post
+  -- capture vẫn còn tăng tiếp, pct_resolved ở trên chỉ là ước tính tạm thời
+  -- tại thời điểm query, không phải con số cuối cùng. Không được coi 2 số
+  -- này là chính xác cho tới khi scrape_status='complete'/'complete_blocked'.
+  case
+    when batch.v is null then
+      (c.listings_with_permalink + c.unresolved_no_permalink) = 0
+    when (batch.v -> 'completed') @> to_jsonb(g.key::text) then false
+    when (batch.v -> 'blocked') @> to_jsonb(g.key::text) then false
+    else true
+  end as pct_resolved_is_estimate
 from sublet_groups g
 left join counts c on c.group_key = g.key
 left join metrics m on m.group_key = g.key
 left join batch on true;
+
+-- sublet_group_dashboard (không tiền tố v_, tạo tay qua Supabase AI 2026-09-17,
+-- công thức % sai như ghi chú ở trên) — giữ tên này làm alias trỏ về view
+-- chuẩn để không vỡ tab/query cũ đã mở trong Supabase, thay vì xoá thẳng.
+drop view if exists sublet_group_dashboard;
+create view sublet_group_dashboard as select * from sublet_v_group_dashboard;
