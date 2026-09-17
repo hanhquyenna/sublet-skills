@@ -581,7 +581,7 @@ create or replace view sublet_v_outreach_queue as
 -- tại) — không hardcode danh sách group, tự cập nhật khi ops_state đổi.
 -- 'partial_untracked' = có dữ liệu capture nhưng group không (còn) nằm trong
 -- batch 14-group hiện tại (vd batch cũ đã kết thúc/đổi danh sách).
-create or replace view sublet_v_group_dashboard as
+create or replace view dashboardkien_group as
 with batch as (
   select value::jsonb as v from sublet_ops_state where key = 'scrape_14_groups_batch'
 ),
@@ -655,46 +655,14 @@ left join counts c on c.group_key = g.key
 left join metrics m on m.group_key = g.key
 left join batch on true;
 
--- sublet_group_dashboard (không tiền tố v_, tạo tay qua Supabase AI 2026-09-17,
--- công thức % sai như ghi chú ở trên) — giữ tên này làm alias trỏ về view
--- chuẩn để không vỡ tab/query cũ đã mở trong Supabase, thay vì xoá thẳng.
+-- 2026-09-17: đổi tên sublet_v_group_dashboard -> dashboardkien_group theo
+-- yêu cầu Kien. Alias sublet_group_dashboard (tạo tay qua Supabase AI, công
+-- thức % sai như ghi chú ở trên) đã bị xoá hẳn cùng lúc, không giữ nữa.
 drop view if exists sublet_group_dashboard;
-create view sublet_group_dashboard as select * from sublet_v_group_dashboard;
 
--- ---------- poster identity view (2026-09-17, theo yêu cầu Kien) ----------
--- 1 dòng/post, gộp theo poster_name: link bài, text gốc, intent (offering/
--- seeking/other), subtype, area/giá/ngày nếu intent-analyze đã trích được.
--- Thay thế nhu cầu "matching" đã bị xoá — đây chỉ là hồ sơ đọc, không ghép
--- cặp seeker↔offering. 1 poster có nhiều bài (khác group hoặc lặp lại) sẽ
--- ra nhiều dòng cùng poster_name, sort theo bài mới nhất trước.
-create or replace view sublet_v_poster_identity as
-select
-  l.poster_name,
-  l.poster_type,
-  l.id as listing_id,
-  l.group_key,
-  l.source_url as post_link,
-  l.raw_text as post_text,
-  l.kind as intent,
-  l.subtype,
-  l.confidence,
-  l.area,
-  l.rent_eur,
-  l.available_from,
-  l.available_to,
-  l.registration_allowed,
-  l.poster_constraints,
-  l.link_validation_status,
-  l.canonical_id,
-  l.seen_at,
-  l.analyzed_at
-from sublet_listings l
-where l.poster_name is not null
-order by l.poster_name, l.seen_at desc;
-
--- ---------- outreach priority + poster identity update (2026-09-17) ----------
--- Priority ranking sống ở view riêng (sublet_v_outreach_priority) để logic
--- chỉ viết 1 nơi; sublet_v_poster_identity join vào để lộ cột outreach_order
+-- ---------- outreach priority (2026-09-17) ----------
+-- Priority ranking sống ở view riêng để logic chỉ viết 1 nơi;
+-- dashboardkien_outreach (bên dưới) join vào để lộ cột outreach_order
 -- (1,2,3... liên tục, chỉ cho người CHƯA outreach) + has_outreached (theo
 -- poster_name, không chỉ theo 1 bài — khớp rule "không nhắn 1 người 2 lần").
 -- Cả 2 đều là VIEW thường (không materialized) -> live, tự tính lại mỗi query.
@@ -732,7 +700,14 @@ select
   ) as priority_rank
 from base;
 
-create or replace view sublet_v_poster_identity as
+-- ---------- dashboardkien_outreach (đổi tên từ sublet_v_poster_identity, 2026-09-17) ----------
+-- 1 dòng/post, gộp theo poster_name: link bài, text gốc, intent (offering/
+-- seeking/other), subtype, area/giá/ngày nếu intent-analyze đã trích được,
+-- cùng has_outreached + outreach_order. Thay thế nhu cầu "matching" đã bị
+-- xoá — đây chỉ là hồ sơ đọc, không ghép cặp seeker↔offering. 1 poster có
+-- nhiều bài (khác group hoặc lặp lại) sẽ ra nhiều dòng cùng poster_name,
+-- sort theo bài mới nhất trước.
+create or replace view dashboardkien_outreach as
 select
   l.poster_name, l.poster_type, l.id as listing_id, l.group_key,
   l.source_url as post_link, l.raw_text as post_text, l.kind as intent,
