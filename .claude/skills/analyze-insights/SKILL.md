@@ -208,9 +208,35 @@ bảng cộng/trừ riêng trong `docs/intent-logic.md` khi pipeline đó đư�
 
 ## Bước 3 — matching candidates (validated-only)
 
-Sau khi mọi listing trong hàng đợi có `insight_kind_guess`, tính lại ứng viên
-khớp seeker↔offering trên **toàn bộ** dataset đã insight (không chỉ phần mới),
-cùng lý do (`duplicate cluster`) là phép đếm SQL rẻ tính lại toàn bộ. Đây vẫn
+> **Đổi nguồn dữ liệu đầu vào (2026-09-17, Kien duyệt kiến trúc):** trước đây
+> Bước 3 lấy `kind_guess`/khu vực/giá từ `insight_kind_guess` trong event
+> `insight_reviewed` — heuristic riêng của chính `analyze-insights` (Bước 1/2
+> ở trên), chỉ chạy thủ công và mới xử lý 198 event/~49 listing. Trong khi đó
+> pipeline chính thức `intent-analyze` (xem `docs/intent-logic.md`) đã phân
+> loại **882 listing** thẳng vào `sublet_listings.kind`/`.area`/`.rent_eur`
+> theo rule đầy đủ hơn nhiều — nhưng Bước 3 cũ không bao giờ đọc các cột đó,
+> nên gần như toàn bộ dữ liệu đã phân loại chính thức bị bỏ phí, matching chỉ
+> chạy trên phần nhỏ. Kien chọn phương án hợp nhất 2 pipeline (thay vì chạy
+> lại Bước 1/2 riêng cho phần backlog): Bước 3 giờ đọc trực tiếp
+> `sublet_listings.kind`/`.area`/`.rent_eur` (cột của `intent-analyze`) thay
+> vì `insight_kind_guess`/`insight_reviewed`. `kind='offering'` tương đương
+> `insight_kind_guess='offering_like'` cũ, `kind='seeking'` tương đương
+> `seeking_like`, `kind='other'` tương đương `other_like` (vẫn loại khỏi pool,
+> vẫn không coi là negative intent). `canonical_id` (cột `sublet_listings`,
+> "cùng 1 listing đăng ở nhiều group → trỏ về bản đầu") thay cho
+> `duplicate_of` cũ trong event `insight_reviewed` — cùng ý nghĩa, chỉ khác
+> nơi lưu. `sublet_listings.area`/`.rent_eur` đã chuẩn hoá theo
+> `docs/intent-logic.md` §11 (area map về danh sách chuẩn, `rent_eur` với
+> `kind='seeking'` chính là ngân sách tối đa — đúng ý nghĩa
+> `price_or_budget_eur` cũ) nên dùng thẳng, không cần trích lại từ `raw_text`.
+> Vì đổi **nguồn input** của chấm điểm, đây là thay đổi buộc **tính lại toàn
+> bộ** (xem "Ghi `sublet_insight_matches`" bên dưới) — không phải chạy tiếp
+> incremental trên 545 dòng cũ. Bước 1.5 (`pricing_tag`/`price_or_budget_eur`)
+> vẫn giữ nguyên cho mục đích riêng của nó (đọc-only, không phân biệt
+> offering/seeking chính thức), nhưng Bước 3 không còn phụ thuộc nó nữa.
+
+Tính lại ứng viên khớp seeker↔offering trên **toàn bộ** listing đã
+`intent-analyze` phân loại (không chỉ phần mới) mỗi lần chạy Bước 3. Đây vẫn
 là tín hiệu tham khảo — **không phải** `sublet_matches` chính thức, không tạo
 `sublet_seekers`, không tự outreach.
 
@@ -222,37 +248,30 @@ là tín hiệu tham khảo — **không phải** `sublet_matches` chính thức
    validated mà chưa từng mở link thật). Lý do: matching dựa trên nội dung bài;
    nếu bài chưa verify thật (có thể đã bị xoá/đổi/sai group) thì match dựa trên
    nó là vô nghĩa hoặc sai.
-2. Có `insight_kind_guess` là `offering_like` hoặc `seeking_like` (bỏ
-   `other_like` chỉ khỏi phép ghép hiện tại, **không** coi là negative intent)
-   từ event `insight_reviewed` **mới nhất** của listing đó. Listing `other_like`
-   vì raw text thiếu/truncated phải giữ trong unknown/review pool, không xoá
-   hay đánh dấu không phù hợp.
+2. `sublet_listings.kind` là `offering` hoặc `seeking` (bỏ `other` chỉ khỏi
+   phép ghép hiện tại, **không** coi là negative intent). Listing `kind is
+   null` (chưa qua `intent-analyze`) hoặc `kind='other'` phải giữ trong
+   unknown/review pool, không xoá hay đánh dấu không phù hợp.
 3. **Không phải bản repost/duplicate** (nới rộng 2026-09-16, xem quyết định
-   cross-group bên dưới): loại listing có `duplicate_of` khác `null` trong
-   event `insight_reviewed` mới nhất — chỉ giữ lại bản gốc (id được các bản
-   khác trỏ `duplicate_of` tới) trong pool matching. Lý do: một người đăng
-   cùng 1 bài ở nhiều group (`repost_same_poster=true`) không phải N cơ hội
-   khác nhau; nếu không lọc, bỏ giới hạn group ở bước dưới sẽ nhân bản 1 match
-   thật thành N match giả theo số group họ đăng. Cặp `duplicate_across_posters`
-   (hai người khác nhau, text giống hệt — thường là spam network) **không**
-   bị loại ở đây vì đó là 2 identity khác nhau, không phải cùng 1 bài; rủi ro
-   của case đó đã được nêu ở `risk_flags`, không phải việc của bước lọc này.
+   cross-group bên dưới): loại listing có `canonical_id` khác `null` — chỉ
+   giữ lại bản gốc (id được các bản khác trỏ `canonical_id` tới) trong pool
+   matching. Lý do: một người đăng cùng 1 bài ở nhiều group không phải N cơ
+   hội khác nhau; nếu không lọc, bỏ giới hạn group ở bước dưới sẽ nhân bản 1
+   match thật thành N match giả theo số group họ đăng. Trùng text nhưng khác
+   `poster_name` (spam network khác identity) **không** bị loại ở đây; rủi ro
+   của case đó là việc của `risk_flags` (`analyze-insights` Bước "Risk/scam
+   heuristic"), không phải việc của bước lọc này.
 
 ```sql
 select l.id, l.poster_name, l.source_url, l.seen_at, l.raw_text, l.group_key,
-  (select e.payload->>'insight_kind_guess' from sublet_events e
-   where e.entity_type='listing' and e.entity_id=l.id and e.event='insight_reviewed'
-   order by e.id desc limit 1) as kind_guess,
-  (select e.payload->>'duplicate_of' from sublet_events e
-   where e.entity_type='listing' and e.entity_id=l.id and e.event='insight_reviewed'
-   order by e.id desc limit 1) as duplicate_of
+  l.kind, l.area, l.rent_eur, l.canonical_id
 from sublet_listings l
 where l.link_validation_status = 'validated'
   and l.id not in (select id from sublet_v_link_needs_reverification)
+  and l.kind in ('offering', 'seeking')
+  and l.canonical_id is null
 ```
 
-Lọc `duplicate_of is null` ở tầng ứng dụng (hoặc thêm `and not exists (...)`
-tương đương) sau khi lấy kết quả trên, trước khi tách seeker/offering.
 **Không còn điều kiện `group_key = <group đang xử lý>`** — xem "Cross-group
 matching" ngay dưới đây.
 
@@ -281,9 +300,9 @@ trên phải chạy **trước khi** bỏ giới hạn group, nếu không 1 off
   điểm. Đây là điều kiện cứng theo yêu cầu Kien, áp dụng trước mọi tín hiệu
   khu vực/ngân sách/thời điểm bên dưới, và áp dụng xuyên group (so sánh
   `poster_name`, không so `group_key`).
-- `seeker.id == offering.id` không thể xảy ra do đã lọc theo `kind_guess`
-  khác nhau, nhưng vẫn kiểm tra phòng hờ nếu logic lọc thay đổi sau này.
-- Bản repost/duplicate (`duplicate_of` khác null) đã bị loại khỏi pool ở bước
+- `seeker.id == offering.id` không thể xảy ra do đã lọc theo `kind` khác
+  nhau, nhưng vẫn kiểm tra phòng hờ nếu logic lọc thay đổi sau này.
+- Bản repost/duplicate (`canonical_id` khác null) đã bị loại khỏi pool ở bước
   Input trên; không cần lọc lại ở đây, nhưng nếu code thay đổi khiến bản
   duplicate lọt vào, áp dụng lại điều kiện đó trước khi tính điểm.
 
@@ -348,20 +367,26 @@ nhiều offering — đây là hành vi **đúng, không phải bug**. Không gi
   bản thiết kế cũ — luôn xuất hiện trong `reasons` (vd.
   `"seen_at cách nhau 1 ngày (trong cửa sổ 7 ngày)"`), không bị coi là kém
   quan trọng hơn khu vực/ngân sách.
-- **Khu vực:** trích tên khu Amsterdam xuất hiện trong `raw_text` (bỏ qua
-  `ring`/"trong vành đai" — xem edge case bên dưới về vì sao). Trùng khu hoặc
-  khu liền kề theo bảng cố định = tín hiệu dương (+2), cộng vào `reasons`.
-  Một bên không nêu khu = **không loại, không suy diễn**, chỉ đơn giản không
-  có tín hiệu dương này. Cả hai bên nêu khu rõ ràng mà không trùng/không liền
-  kề = loại thẳng (đây là bằng chứng mâu thuẫn thật, không phải thiếu dữ
+- **Khu vực:** dùng `sublet_listings.area` (đã chuẩn hoá về danh sách khu
+  chuẩn bởi `intent-analyze`, xem `docs/intent-logic.md` §11 — đổi 2026-09-17
+  từ việc tự trích tên khu trong `raw_text`; cùng ý nghĩa, chỉ khác nguồn:
+  giờ đọc cột đã chuẩn hoá sẵn thay vì tự regex lại). Trùng khu hoặc khu liền
+  kề theo bảng cố định = tín hiệu dương (+2), cộng vào `reasons`. Một bên
+  không có `area` (null) = **không loại, không suy diễn**, chỉ đơn giản không
+  có tín hiệu dương này. Cả hai bên có `area` rõ ràng mà không trùng/không
+  liền kề = loại thẳng (đây là bằng chứng mâu thuẫn thật, không phải thiếu dữ
   liệu).
-- **Ngân sách/giá:** dùng `pricing_tag`/`price_or_budget_eur` từ Bước 1.5.
-  Cả hai bên có số **và** `0.5 ≤ (giá offering / ngân sách seeker) ≤ 1.1` =
-  tín hiệu dương (+2). Biên dưới 0.5 **vẫn giữ** (xem "Edge case đã phát
-  hiện" — case Esteban/Samrawit), không phải điều Kien bảo bỏ; điều Kien từ
-  chối là việc bỏ `seen_at`, không phải biên ngân sách. Một bên không nêu số
-  = không loại, không suy diễn. Cả hai nêu số mà tỷ lệ ngoài [0.5, 1.1] =
-  loại thẳng.
+- **Ngân sách/giá:** dùng `sublet_listings.rent_eur` (đổi 2026-09-17 từ
+  `pricing_tag`/`price_or_budget_eur` của Bước 1.5 — cùng ý nghĩa, nguồn
+  chính xác hơn: `intent-analyze` đã chuẩn hoá theo `docs/intent-logic.md`
+  §11, và với `kind='seeking'` thì `rent_eur` chính là ngân sách tối đa, đúng
+  ý nghĩa cũ của `price_or_budget_eur` cho seeker). Cả hai bên có số **và**
+  `0.5 ≤ (giá offering / ngân sách seeker) ≤ 1.1` = tín hiệu dương (+2). Biên
+  dưới 0.5 **vẫn giữ** (xem "Edge case đã phát hiện" — case
+  Esteban/Samrawit), không phải điều Kien bảo bỏ; điều Kien từ chối là việc
+  bỏ `seen_at`, không phải biên ngân sách. Một bên không có `rent_eur` (null)
+  = không loại, không suy diễn. Cả hai có `rent_eur` mà tỷ lệ ngoài [0.5, 1.1]
+  = loại thẳng.
 
 ### Thang điểm `score` — không có sàn tối thiểu, `seen_at` luôn +1
 
