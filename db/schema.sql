@@ -494,46 +494,6 @@ create or replace view sublet_v_link_needs_reverification as
     and e.payload->>'link_resolution_method' = 'bulk_unverified_override'
   order by l.link_validated_at;
 
--- ---------- insight matching candidates (analyze-insights, NOT the official sublet_matches pipeline) ----------
--- Read-only signal from analyze-insights: candidate seeker<->offering pairs among
--- genuinely-validated + classified listings. Distinct from sublet_matches/sublet_seekers
--- (official outreach pipeline, out of active scope) so this never gets confused with a
--- committed match or drives outreach on its own.
-create table if not exists sublet_insight_matches (
-  id bigserial primary key,
-  run_at timestamptz not null default now(),
-  seeker_listing_id uuid not null references sublet_listings(id) on delete cascade,
-  offering_listing_id uuid not null references sublet_listings(id) on delete cascade,
-  confidence text not null check (confidence in ('high','medium','low','weak')),
-  score int not null,
-  reasons text[] not null default '{}',
-  seeker_budget_eur int,
-  offering_price_eur int,
-  seeker_areas text[] not null default '{}',
-  offering_areas text[] not null default '{}',
-  created_at timestamptz not null default now(),
-  unique (seeker_listing_id, offering_listing_id)
-);
-create index if not exists sublet_insight_matches_seeker_idx on sublet_insight_matches(seeker_listing_id);
-create index if not exists sublet_insight_matches_offering_idx on sublet_insight_matches(offering_listing_id);
-alter table sublet_insight_matches enable row level security;
--- upgrade: 'weak' tier added 2026-09-16 (seen_at-gated candidates with no
--- area/budget evidence either way -- Kien: don't drop a candidate just
--- because area/budget wasn't disclosed).
-alter table sublet_insight_matches drop constraint if exists sublet_insight_matches_confidence_check;
-alter table sublet_insight_matches add constraint sublet_insight_matches_confidence_check
-  check (confidence in ('high','medium','low','weak'));
-
-create or replace view sublet_v_insight_matches_report as
-  select im.id, im.run_at, im.confidence, im.score, im.reasons,
-         sl.poster_name as seeker_poster, sl.source_url as seeker_url,
-         ol.poster_name as offering_poster, ol.source_url as offering_url,
-         im.seeker_budget_eur, im.offering_price_eur, im.seeker_areas, im.offering_areas
-  from sublet_insight_matches im
-  join sublet_listings sl on sl.id = im.seeker_listing_id
-  join sublet_listings ol on ol.id = im.offering_listing_id
-  order by (case im.confidence when 'high' then 0 when 'medium' then 1 when 'low' then 2 else 3 end), im.score desc;
-
 -- ---------- normalized per-listing profile (data-engineer, 2026-09-16) ----------
 -- Join tới event insight_reviewed mới nhất của mỗi listing; luôn phản ánh
 -- state hiện tại vì là view (không phải bảng vật lý), không cần checkpoint.
@@ -700,3 +660,34 @@ left join batch on true;
 -- chuẩn để không vỡ tab/query cũ đã mở trong Supabase, thay vì xoá thẳng.
 drop view if exists sublet_group_dashboard;
 create view sublet_group_dashboard as select * from sublet_v_group_dashboard;
+
+-- ---------- poster identity view (2026-09-17, theo yêu cầu Kien) ----------
+-- 1 dòng/post, gộp theo poster_name: link bài, text gốc, intent (offering/
+-- seeking/other), subtype, area/giá/ngày nếu intent-analyze đã trích được.
+-- Thay thế nhu cầu "matching" đã bị xoá — đây chỉ là hồ sơ đọc, không ghép
+-- cặp seeker↔offering. 1 poster có nhiều bài (khác group hoặc lặp lại) sẽ
+-- ra nhiều dòng cùng poster_name, sort theo bài mới nhất trước.
+create or replace view sublet_v_poster_identity as
+select
+  l.poster_name,
+  l.poster_type,
+  l.id as listing_id,
+  l.group_key,
+  l.source_url as post_link,
+  l.raw_text as post_text,
+  l.kind as intent,
+  l.subtype,
+  l.confidence,
+  l.area,
+  l.rent_eur,
+  l.available_from,
+  l.available_to,
+  l.registration_allowed,
+  l.poster_constraints,
+  l.link_validation_status,
+  l.canonical_id,
+  l.seen_at,
+  l.analyzed_at
+from sublet_listings l
+where l.poster_name is not null
+order by l.poster_name, l.seen_at desc;
