@@ -715,6 +715,13 @@ from base;
 -- quyết. Không dùng cột `notes` để lưu vì intent-analyze đã tái sử dụng cột
 -- đó cho mục đích khác (needs_full_read/dedup) — tính scam_flag ngay trong
 -- view để không đụng notes và luôn phản ánh dữ liệu mới nhất.
+-- 2026-09-17 (Kien): thêm message1 — nội dung tin nhắn đầu tiên tính sẵn
+-- ngay trong view theo đúng bảng kind×language đã chốt trong
+-- outreach-prep/SKILL.md (mục "Template"). Mục đích: outreach-prep chỉ cần
+-- đọc field này ra dùng thẳng, không phải tự chạy lại logic chọn template
+-- mỗi lần — giữ nguyên văn 4 câu đã duyệt, không tự diễn giải thêm ở đây.
+-- Ngôn ngữ khác en/nl (hoặc null) mặc định về bản tiếng Anh, đúng quy tắc
+-- đã ghi trong SKILL.md.
 create or replace view dashboardkien_outreach as
 select
   l.poster_name, l.poster_type, l.id as listing_id, l.group_key,
@@ -722,6 +729,14 @@ select
   l.subtype, l.confidence, l.area, l.rent_eur, l.available_from, l.available_to,
   l.registration_allowed, l.poster_constraints, l.link_validation_status,
   l.canonical_id, l.seen_at, l.analyzed_at,
+  l.language,
+  case
+    when l.kind = 'offering' and l.language = 'nl' then 'Hoi! Ik zag je bericht, is de plek nog beschikbaar?'
+    when l.kind = 'offering' then 'Hi! I saw your post, is the place still available?'
+    when l.kind = 'seeking' and l.language = 'nl' then 'Hey! Ik zag je bericht, ben je nog op zoek naar een plek?'
+    when l.kind = 'seeking' then 'Hey! I saw your post, are you still looking for a place?'
+    else null
+  end as message1,
   (l.raw_text ~* '€\s?[0-9]{3,4}\s*[|–-]\s*€'
     or l.raw_text ~* 't\.me/|wa\.me/|telegram|whatsapp'
     or l.raw_text ~* 'luceguemon06') as scam_flag,
