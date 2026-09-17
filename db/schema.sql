@@ -707,6 +707,14 @@ from base;
 -- xoá — đây chỉ là hồ sơ đọc, không ghép cặp seeker↔offering. 1 poster có
 -- nhiều bài (khác group hoặc lặp lại) sẽ ra nhiều dòng cùng poster_name,
 -- sort theo bài mới nhất trước.
+-- 2026-09-17 (Kien): chỉ giữ poster_type='individual' (loại company/anonymous
+-- luôn khỏi view này — không phải đối tượng outreach cá nhân). Thêm
+-- scam_flag: regex sống trên raw_text (2 giá €X-€Y kiểu dấu |/–/-, hoặc
+-- t.me/wa.me/telegram/whatsapp, hoặc email scam ring đã biết
+-- "luceguemon06") — CHỈ đánh dấu, không loại khỏi outreach_order, để Kien tự
+-- quyết. Không dùng cột `notes` để lưu vì intent-analyze đã tái sử dụng cột
+-- đó cho mục đích khác (needs_full_read/dedup) — tính scam_flag ngay trong
+-- view để không đụng notes và luôn phản ánh dữ liệu mới nhất.
 create or replace view dashboardkien_outreach as
 select
   l.poster_name, l.poster_type, l.id as listing_id, l.group_key,
@@ -714,6 +722,9 @@ select
   l.subtype, l.confidence, l.area, l.rent_eur, l.available_from, l.available_to,
   l.registration_allowed, l.poster_constraints, l.link_validation_status,
   l.canonical_id, l.seen_at, l.analyzed_at,
+  (l.raw_text ~* '€\s?[0-9]{3,4}\s*[|–-]\s*€'
+    or l.raw_text ~* 't\.me/|wa\.me/|telegram|whatsapp'
+    or l.raw_text ~* 'luceguemon06') as scam_flag,
   exists (
     select 1 from sublet_messages sm
     where sm.status = 'sent' and sm.entity_type = 'listing'
@@ -723,4 +734,5 @@ select
 from sublet_listings l
 left join sublet_v_outreach_priority op on op.listing_id = l.id
 where l.poster_name is not null
+  and l.poster_type = 'individual'
 order by l.poster_name, l.seen_at desc;
