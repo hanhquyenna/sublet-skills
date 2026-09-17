@@ -1,25 +1,33 @@
 ---
 name: outreach-prep
-description: "Draft availability-check DMs (never sent by the agent) for offering/seeking listings that have a match candidate, save them to sublet_messages as status='draft', and track who was contacted, with what message, and when Kien marks it sent. Use with /outreach-prep."
+description: "Draft availability-check DMs (never sent by the agent) for qualifying individual offering/seeking listings, save them to sublet_messages as status='draft', and track who was contacted, with what message, and when Kien marks it sent. Use with /outreach-prep."
 ---
 
 # outreach-prep
 
-Skill này soạn **draft** tin nhắn hỏi lại "còn không/vẫn tìm không" cho các
-listing có match candidate — **không bao giờ gửi**. Agent chỉ đọc Facebook để
-lấy context (đã có sẵn trong DB, không cần mở Facebook lại ở skill này), ghi
-draft vào `sublet_messages`, và track trạng thái gửi khi Kien tự báo đã gửi.
+Skill này soạn **draft** tin nhắn hỏi lại "còn không/vẫn tìm không" cho từng
+listing đủ điều kiện — **không bao giờ gửi**. Agent chỉ đọc Facebook để lấy
+context (đã có sẵn trong DB, không cần mở Facebook lại ở skill này), ghi draft
+vào `sublet_messages`, và track trạng thái gửi khi Kien tự báo đã gửi.
+
+**2026-09-17 — bỏ bước matching (Kien quyết định):** trước đây skill này lấy
+candidate từ `sublet_insight_matches` (seeker↔offering pairing). Bảng đó đã bị
+xoá hoàn toàn (169,012 dòng, phần lớn `weak`-tier — data bloat không tương
+xứng giá trị). Giờ mỗi listing `offering`/`seeking` genuinely-validated đủ
+điều kiện tự nó là 1 candidate — không cần ghép cặp với listing nào khác.
 
 ## Spec
 
-- **Trigger:** Kien gọi tay `/outreach-prep`, thường sau khi `analyze-insights`
-  đã có match candidate mới.
-- **Đọc:** `sublet_insight_matches` (qua `sublet_v_insight_matches_report`),
-  `sublet_v_listing_profile`, `sublet_messages` (để biết listing nào đã có
-  draft, tránh trùng).
+- **Trigger:** Kien gọi tay `/outreach-prep`, thường sau khi `intent-analyze`
+  đã classify thêm listing mới.
+- **Đọc:** `sublet_listings` (kind/area/link_validation_status/poster_name/
+  canonical_id), `sublet_v_listing_profile` (risk_flags/language),
+  `sublet_v_link_needs_reverification`, `sublet_messages`/
+  `sublet_v_outreach_queue` (để biết listing/poster nào đã có draft, tránh
+  trùng).
 - **Ghi:** `sublet_messages` (`status='draft'`, một dòng mỗi listing lần đầu
   cần draft); không ghi gì khác. Không tạo `sublet_seekers`/`sublet_matches`
-  chính thức (khác `sublet_insight_matches`).
+  chính thức.
 - **Không bao giờ:** không mở Facebook, không click Send/Message trên bất kỳ
   giao diện nào, không tự đổi `status` sang `sent` — chỉ Kien đổi (qua lệnh
   `/outreach-prep sent <message_id>` hoặc Kien tự update).
@@ -42,68 +50,63 @@ draft vào `sublet_messages`, và track trạng thái gửi khi Kien tự báo �
 
 ## Input: listing nào được tạo draft
 
-Chỉ tạo draft cho listing xuất hiện trong `sublet_insight_matches` với
-`confidence` là `high`, `medium` hoặc `low` (bỏ `weak` — quá nhiều, chưa đủ
-tín hiệu để đáng hỏi lại; Kien có thể yêu cầu mở rộng sau). Với mỗi listing
-(cả 2 phía seeker và offering đều có thể được draft), áp thêm điều kiện:
+Không còn bước ghép cặp seeker↔offering nào cả — mỗi listing `offering`/
+`seeking` genuinely-validated, đủ điều kiện dưới đây, tự nó là 1 candidate độc
+lập cho draft "còn không/vẫn tìm không". Điều kiện:
 
-1. `link_validation_status='validated'` và không nằm trong
-   `sublet_v_link_needs_reverification` (đã đảm bảo vì input là
-   `sublet_insight_matches`, nhưng verify lại ở query).
-2. Không có `risk_flags` (rỗng) trên listing đó — có risk flag thì **không**
+1. `kind in ('offering','seeking')` (`intent-analyze` đã phân loại; `kind is
+   null` hoặc `kind='other'` chưa/không đủ điều kiện).
+2. `link_validation_status='validated'` **và** không nằm trong
+   `sublet_v_link_needs_reverification` (loại `link_resolution_method=
+   'bulk_unverified_override'` — validated giả, chưa mở link thật).
+3. `poster_name is not null` — không có ai để bấm Message thì draft vô dụng.
+4. `canonical_id is null` (không phải bản repost/duplicate — chỉ giữ bản gốc
+   trong pool).
+5. Không có `risk_flags` (rỗng) trên listing đó — có risk flag thì **không**
    tạo draft, liệt kê riêng cho Kien tự quyết (đặc biệt
    `community_warning`/`prepay_before_viewing`/`off_platform_redirect`/
    `duplicate_across_posters`: không bao giờ tự động draft).
-3. `duplicate_of is null` (không phải bản repost).
-4. Nếu poster là `anonymous` (theo R31): chỉ tạo draft khi
-   `anonymous_access_ready=true` (permalink đã validate xác nhận đúng bài);
-   thiếu điều kiện này thì bỏ qua, liệt kê riêng.
-4b. **`poster_name` khác `null`.** Khác trường hợp "anonymous" ở trên (FB tự
-   hiển thị "Anonymous participant" — có nhãn rõ ràng), đây là case capture
-   không lấy được tên ai cả (vd bài spam không rõ nguồn). Không tạo draft vì
-   không có ai để bấm Message — draft đó vô dụng, không phải "gửi rồi chờ
-   xử lý sau". Hiện có 1 listing như vậy trong DB (`a55d3238`, may đã bị loại
-   sẵn vì `kind_guess='other_like'`) — rule này phòng trường hợp sau này 1
-   bài `poster_name=null` bị phân loại `offering`/`seeking` và lọt vào match.
-5. Chưa có draft nào trước đó cho **listing này** (`select 1 from
+6. Chưa có draft nào trước đó cho **listing này** (`select 1 from
    sublet_messages where entity_type='listing' and entity_id=<listing.id>
    and channel='fb_dm' and template in ('availability_check_offering',
    'availability_check_seeker')`) — tránh tạo 2 draft cho cùng 1 bài.
-6. **Chưa từng nhắn cho người này qua bất kỳ listing nào khác** (kiểm theo
+7. **Chưa từng nhắn cho người này qua bất kỳ listing nào khác** (kiểm theo
    `poster_name`, không chỉ theo `listing_id`) — cùng 1 poster có thể có
-   nhiều bài khác nhau (không phải repost, không bị loại ở điều kiện 3) trở
-   thành candidate riêng biệt; nếu họ **đã có** message (`draft` hoặc `sent`)
-   từ lần chạy trước, **không** tạo thêm draft mới cho bài khác của họ, dù
-   bài đó match với seeker/offering khác. Lý do: nhắn 1 người 2 lần trong
-   cùng đợt outreach là làm phiền, không phải "thêm cơ hội". Dùng
-   `poster_name` dù biết đây là tín hiệu yếu (2 người trùng tên thật vẫn có
-   thể xảy ra, `data-engineer` đã ghi rõ "display_name giống nhau không đủ
-   để merge identity") — với outreach thì **thà bỏ sót 1 draft hiếm khi trùng
-   tên còn hơn nhắn phiền ai đó 2 lần**, ngược chiều với nguyên tắc
-   recall-first dùng cho trích xuất dữ liệu (đó là ưu tiên không bỏ sót dữ
-   liệu, không áp dụng cho hành động nhắm vào người thật).
+   nhiều bài khác nhau (không phải repost, không bị loại ở điều kiện 4); nếu
+   họ **đã có** message (`draft` hoặc `sent`) từ lần chạy trước, **không** tạo
+   thêm draft mới cho bài khác của họ. Lý do: nhắn 1 người 2 lần trong cùng
+   đợt outreach là làm phiền, không phải "thêm cơ hội". Dùng `poster_name` dù
+   biết đây là tín hiệu yếu (2 người trùng tên thật vẫn có thể xảy ra,
+   `data-engineer` đã ghi rõ "display_name giống nhau không đủ để merge
+   identity") — với outreach thì **thà bỏ sót 1 draft hiếm khi trùng tên còn
+   hơn nhắn phiền ai đó 2 lần**, ngược chiều với nguyên tắc recall-first dùng
+   cho trích xuất dữ liệu (đó là ưu tiên không bỏ sót dữ liệu, không áp dụng
+   cho hành động nhắm vào người thật). **Rule này giữ nguyên vẹn từ thiết kế
+   cũ, không đổi khi bỏ bước matching.**
+
+Anonymous poster (theo R31): chỉ tạo draft khi `anonymous_access_ready=true`
+(permalink đã validate xác nhận đúng bài); thiếu điều kiện này thì bỏ qua,
+liệt kê riêng.
 
 ```sql
-select distinct l.listing_id, l.poster_name, l.offer_or_need, l.source_url,
-       l.risk_flags, l.duplicate_of, l.language
-from (
-  select seeker_listing_id as listing_id from sublet_insight_matches where confidence in ('high','medium','low')
-  union
-  select offering_listing_id as listing_id from sublet_insight_matches where confidence in ('high','medium','low')
-) m
-join sublet_v_listing_profile l on l.listing_id = m.listing_id
-where l.link_validation_status = 'validated'
+select l.id as listing_id, l.poster_name, l.kind, l.source_url, l.language,
+       prof.risk_flags
+from sublet_listings l
+left join sublet_v_listing_profile prof on prof.listing_id = l.id
+where l.kind in ('offering','seeking')
+  and l.link_validation_status = 'validated'
+  and l.id not in (select id from sublet_v_link_needs_reverification)
   and l.poster_name is not null
-  and l.duplicate_of is null
-  and (l.risk_flags is null or jsonb_array_length(l.risk_flags) = 0)
+  and l.canonical_id is null
+  and (prof.risk_flags is null or jsonb_array_length(prof.risk_flags) = 0)
   and not exists (
     select 1 from sublet_messages sm
-    where sm.entity_type = 'listing' and sm.entity_id = l.listing_id
+    where sm.entity_type = 'listing' and sm.entity_id = l.id
       and sm.channel = 'fb_dm'
       and sm.template in ('availability_check_offering','availability_check_seeker')
   )
   and not exists (
-    -- điều kiện 6: người này (theo poster_name) chưa nhận message nào qua listing khác
+    -- điều kiện 7: người này (theo poster_name) chưa nhận message nào qua listing khác
     select 1 from sublet_v_outreach_queue oq
     where oq.poster_name = l.poster_name
       and oq.template in ('availability_check_offering','availability_check_seeker')

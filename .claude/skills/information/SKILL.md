@@ -37,24 +37,13 @@ Snapshot này được ghi ngày **2026-09-16**, sau lần resume raw-capture g�
   gắn với cron đã gỡ. `ops/run_skill.sh` vẫn nhận `validate-permalink` trong
   whitelist (hữu ích khi gọi tay/`claude -p` thủ công), chỉ phần lịch tự động
   20 phút là bị gỡ.
-- **Matching candidates (`sublet_insight_matches`, mới đêm 2026-09-16):** 61
-  listing group 1, 60 `validated` + 1 `inaccessible`; 35 listing genuinely
-  validated (loại 25 `bulk_unverified_override` qua
-  `sublet_v_link_needs_reverification`) + classified (19 `seeking_like`, 13
-  `offering_like`, 3 `other_like`). Tính ra **207 match candidate** trong DB:
-  0 `high`, 8 `medium` (khu vực khớp), 21 `low` (chỉ ngân sách khớp), 178
-  `weak` (chỉ qua cổng thời gian, không có bằng chứng khu vực/ngân sách).
-  Thiết kế đã qua vài vòng chỉnh với Kien ngay trong đêm — đọc kỹ
-  `analyze-insights/SKILL.md` mục "Bước 3" trước khi sửa lại logic này, đặc
-  biệt khối "Lịch sử quyết định" ghi rõ 2 điều **không được tự ý đảo
-  ngược**: (1) không bắt buộc phải có khu vực để tạo candidate (thiếu dữ liệu
-  ≠ loại), (2) `seen_at` (cửa sổ 7 ngày, không phải 14) là điều kiện chính để
-  tạo candidate, không phải chỉ là metadata phụ. Bảng `sublet_insight_matches`
-  đã thêm tier `confidence='weak'` vào constraint (`db/schema.sql`), view
-  `sublet_v_insight_matches_report` sort theo tier. Report Artifact:
-  https://claude.ai/artifact/AsLmrAyHjUzsRXx7YpgVdF (bản cũ hơn 207, cần
-  republish nếu muốn khớp số mới nhất — không tự ý coi link này là số liệu
-  runtime, luôn query lại DB).
+- **Matching removed (2026-09-17):** seeker↔offering matching
+  (`sublet_insight_matches`, từng thêm đêm 2026-09-16) đã bị Kien quyết định
+  bỏ hẳn — bảng phình lên 169,012 dòng (152,501 `weak`-tier, do lỗi thiết kế
+  combinatorial ở scale lớn) mà không tương xứng giá trị. Bảng và view liên
+  quan (`sublet_v_insight_matches_report`) đã bị drop khỏi DB và schema; xem
+  ghi chú tương ứng trong `analyze-insights/SKILL.md`. `outreach-prep` giờ
+  nguồn candidate trực tiếp từ `sublet_listings`, không qua bước matching nào.
 - **Recall-first matching rule (chốt 2026-09-16):** không có post/public
   activity/comment/profile link hoặc thiếu field không có nghĩa là actor không
   có offering, seeker intent hay không phù hợp. Giữ `unknown`/`partial` trong
@@ -132,11 +121,9 @@ Bộ sublet hiện có đúng **5 skills active**:
   vào `sublet_inbox`/`sublet_metrics`. Không ghi `kind`/`subtype`/`scam_score`
   chính thức (nhường cho `intent-analyze` khi được bật) và không re-đọc listing
   đã có event `insight_reviewed` (Kien: 2026-09-16, "chỉ analyze để chỉ ra
-  insight thôi, đừng analyze lại data đã analyze rồi"). **Bước 3 (mới đêm
-  2026-09-16):** tính ứng viên matching seeker↔offering, ghi
-  `sublet_insight_matches` (bảng riêng, không phải `sublet_matches` chính
-  thức) — xem snapshot bullet riêng bên dưới và SKILL.md của skill này để biết
-  đầy đủ thiết kế/lịch sử quyết định.
+  insight thôi, đừng analyze lại data đã analyze rồi"). Bước matching
+  seeker↔offering (`sublet_insight_matches`) đã bị **xoá bỏ hoàn toàn
+  2026-09-17** theo quyết định của Kien — không còn trong scope skill này.
 - `data-engineer` — DB-only normalization, provenance, dedupe, data-quality,
   checkpoint, customer-behavior events và aggregate/report; không browse
   Facebook, không tự phân loại semantic hay outreach.
@@ -198,7 +185,7 @@ theo quyết định chủ động khi lập danh sách, không phải lỗi/thi
 | `sublet_group_metrics` | 158 | Metric theo group theo thời điểm check: `posts_per_day`, `posts_14d_count`, `posts_14d_complete`, `posts_14d_checked_at`, `join_status`. **Có duplicate row cho vài group_key** (bug đã biết, task cleanup đã spawn) — khi query, ưu tiên row có `posts_14d_checked_at` mới nhất. |
 | `sublet_listings` | 95 | Listing đã resolve thành record có cấu trúc (thường sau `validate-permalink` hoặc `data-engineer` normalize): `source_url`, `group_key`, poster, `raw_text`, `link_validation_status`. |
 | `sublet_seekers` | 0 | Seeker profile — chưa dùng, thuộc scope matching/outreach tương lai. |
-| `sublet_matches` | 0 | Match chính thức seeker↔listing — chưa dùng; khác `sublet_insight_matches` (bảng tín hiệu đọc-only bên dưới). |
+| `sublet_matches` | 0 | Match chính thức seeker↔listing — chưa dùng. |
 | `sublet_viewings` | 0 | Lịch viewing — chưa dùng. |
 | `sublet_fees` | 0 | Phí dịch vụ (€49 khi move-in) — chưa dùng. |
 | `sublet_messages` | 12 | Draft tin nhắn/DM (`status='draft'` mặc định; chỉ Kien đổi `sent`, trừ khi `outreach.auto_dm=true` — xem CLAUDE.md #1). |
@@ -208,7 +195,6 @@ theo quyết định chủ động khi lập danh sách, không phải lỗi/thi
 | `sublet_inbox` | 7 | Cảnh báo/thông tin Kien cần đọc (level=stop/warning/info). |
 | `sublet_metrics` | 21 | Số đo báo cáo tổng hợp (không phải per-group, khác `sublet_group_metrics`). |
 | `sublet_jobs` | 0 | Job/chunk resumable khác `sublet_ops_state` — hiện chưa dùng. |
-| `sublet_insight_matches` | 537 | Bảng tín hiệu match seeker↔offering do `analyze-insights` Bước 3 tính ra, **không phải** `sublet_matches` chính thức; đọc kỹ "Lịch sử quyết định" trong `analyze-insights/SKILL.md` trước khi sửa logic. |
 
 **Tình trạng batch 14-group (2026-09-16, snapshot — query `scrape_14_groups_batch` để lấy số mới nhất):**
 6/14 group đã `posts_14d_complete=true` (group2 no-agencies-please: 199 record;
@@ -253,10 +239,7 @@ thái ẩn danh không có profile URL) phải giữ nguyên label và được 
 `anonymous_poster=true`; không đoán danh tính. Card anonymous chỉ
 `anonymous_access_ready=true` sau khi có usable post permalink đã validate
 thật; share URL chưa validate hoặc card không có link không được dùng cho
-profile follow-up, matching hay outreach.
-Insight matches là bảng tín hiệu đọc-only; nếu heuristic matching thay đổi,
-toàn bộ bảng phải được recompute từ đầu. Không dùng score/reasons của run cũ
-cho outreach và không sửa lẻ từng cặp.
+profile follow-up hay outreach.
 
 ### Cách tiếp tục ở session sau
 
@@ -323,8 +306,8 @@ Giới hạn quan trọng: scrape tối đa 4 Facebook page loads/run và tối 
 Active flow là `information` → `sublet-scrape-14-groups` →
 `validate-permalink`, cộng `analyze-insights` chạy độc lập bất kỳ lúc nào sau
 capture. Capture xong thì validator xử lý queue link; `analyze-insights` chỉ
-tóm tắt insight đọc-only. Pipeline `intent-analyze` chính thức, matching,
-messaging và outreach chưa thuộc scope hiện tại.
+tóm tắt insight đọc-only. Pipeline `intent-analyze` chính thức, messaging và
+outreach chưa thuộc scope hiện tại.
 
 - Capture chỉ lưu post thô với `source_url` + `seen_at`, chưa tự phân loại và
   chưa mở link để resolve. Share URL là evidence hợp lệ nhưng bắt đầu ở trạng

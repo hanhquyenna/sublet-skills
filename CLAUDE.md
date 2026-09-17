@@ -56,14 +56,13 @@ draft, viewing và outreach chưa nằm trong active skill scope.
   biệt `validated`, `inaccessible`, `needs_review`. Không scrape lại feed.
 - **Insight analysis** (`analyze-insights`): đọc-only trên dữ liệu đã capture,
   ước lượng thô offering/seeking/other, phát hiện trùng lặp/repost và pattern
-  rủi ro, tóm tắt vào `sublet_inbox`/`sublet_metrics`. Cũng tính ứng viên
-  matching seeker↔offering (`sublet_insight_matches`, xem SKILL.md "Bước 3") —
-  chỉ trên listing đã `link_validation_status='validated'` **và** không nằm
-  trong `sublet_v_link_needs_reverification`. Không ghi cột phân loại chính
-  thức trên `sublet_listings`, không mở Facebook, không re-đọc listing đã có
-  event `insight_reviewed`, không đụng `sublet_seekers`/`sublet_matches`/
-  `sublet_messages` (khác `sublet_insight_matches`, bảng riêng chỉ mang tính
-  tham khảo).
+  rủi ro, tóm tắt vào `sublet_inbox`/`sublet_metrics`. Không ghi cột phân loại
+  chính thức trên `sublet_listings`, không mở Facebook, không re-đọc listing
+  đã có event `insight_reviewed`, không đụng
+  `sublet_seekers`/`sublet_matches`/`sublet_messages`. Seeker↔offering
+  matching (`sublet_insight_matches`) đã bị **xoá bỏ hoàn toàn 2026-09-17**
+  theo quyết định của Kien (dữ liệu phình lên 169k dòng, phần lớn `weak`, mà
+  không tương xứng giá trị) — không còn tồn tại trong scope này.
 - **Data engineering** (`data-engineer`): DB-only normalization, provenance,
   dedupe, data-quality audits, idempotent checkpoints, customer-behavior event
   aggregates và reports. Không browse Facebook, không tự phân loại semantic,

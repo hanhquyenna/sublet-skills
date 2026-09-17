@@ -3,6 +3,12 @@ name: analyze-insights
 description: "Read-only insight pass over already-captured Facebook raw listings in Supabase: coarse offering/seeking/other split, duplicate/repost cluster detection, and risk/scam pattern flags, summarized into sublet_inbox + sublet_metrics. Never re-reads a listing already marked insight_reviewed. No Facebook/browser access — DB only. Use with /analyze-insights."
 ---
 
+**2026-09-17 — matching removed (Kien's explicit decision):** the old "Bước 3"
+seeker↔offering matching step and its table `sublet_insight_matches` are gone
+(dropped from DB and from this file). The table had ballooned to 169,012 rows
+(152,501 `weak`-tier) — data bloat with no proportionate value. This skill is
+read-only insight/signal summarization only, as described below.
+
 # analyze-insights
 
 Skill này đọc dữ liệu **đã có sẵn** trong `sublet_listings`/`sublet_events` và
@@ -30,23 +36,19 @@ logic data engineering thành một heuristic mới trong `analyze-insights`.
   cho metadata bổ sung nếu cần, và event `insight_reviewed` cũ để biết listing
   nào đã xử lý).
 - **Ghi:** `sublet_events(event='insight_reviewed')` — một dòng mỗi listing xử
-  lý lần đầu; `sublet_insight_matches` — ứng viên seeker↔offering (xem "Bước 3 —
-  matching candidates" bên dưới); `sublet_inbox(level='info')` — snapshot tổng
-  hợp mỗi lần có dữ liệu mới; `sublet_metrics(workflow='analyze',
-  metric='insight_*')` — số đếm, upsert theo ngày;
-  `sublet_ops_state(key='analyze_insights_state')` — cursor run gần nhất.
+  lý lần đầu; `sublet_inbox(level='info')` — snapshot tổng hợp mỗi lần có dữ
+  liệu mới; `sublet_metrics(workflow='analyze', metric='insight_*')` — số
+  đếm, upsert theo ngày; `sublet_ops_state(key='analyze_insights_state')` —
+  cursor run gần nhất.
 - **Không ghi:** không đụng cột phân loại chính thức trên `sublet_listings`
-  (xem trên); không tạo `sublet_seekers`/`sublet_matches`/`sublet_messages`
-  (khác `sublet_insight_matches` — bảng riêng, chỉ là tín hiệu tham khảo, xem
-  dưới); không gửi gì ra ngoài Facebook/kênh khác.
+  (xem trên); không tạo `sublet_seekers`/`sublet_matches`/`sublet_messages`;
+  không gửi gì ra ngoài Facebook/kênh khác.
 - **Metrics tạo ra:** `insight_listings_total`, `insight_new_this_run`,
   `insight_offering_like`, `insight_seeking_like`, `insight_other_like`,
   `insight_duplicate_clusters`, `insight_duplicate_listings`,
   `insight_risk_flagged`, `insight_unique_posters`, `insight_queue_remaining`
   (luôn 0 sau khi chạy xong vì mọi listing đều được ghi `insight_reviewed`),
-  `insight_match_candidates_high/medium/low/weak`, `insight_pricing_tagged`,
-  `insight_no_pricing`. The `weak` metric is required; do not collapse it into
-  `low` or omit it from the snapshot.
+  `insight_pricing_tagged`, `insight_no_pricing`.
 - **Kết quả:** một bản tóm tắt trong `sublet_inbox` + số liệu trong
   `sublet_metrics`; không claim đây là phân loại chính thức, không tự động
   chuyển `listings.status`.
@@ -58,21 +60,12 @@ logic data engineering thành một heuristic mới trong `analyze-insights`.
 - Không ghi `kind`/`subtype`/`poster_type`/`confidence`/`scam_score`/
   `scam_flags`/`deal_score`/`status`/`analyzed_at` lên `sublet_listings`.
 - Không tạo hay sửa `sublet_seekers`, `sublet_matches`, `sublet_messages`, và
-  không đề xuất outreach cho listing cụ thể nào. `sublet_insight_matches` là
-  bảng riêng biệt (xem "Bước 3") — không bao giờ ghi cùng ý nghĩa/quy trình với
-  `sublet_matches`.
-- Không tính match cho listing `link_validation_status<>'validated'` hoặc nằm
-  trong `sublet_v_link_needs_reverification` (validated giả, chưa mở link
-  thật) — xem "Bước 3".
+  không đề xuất outreach cho listing cụ thể nào.
 - Không coi việc actor không có post trong corpus, không có public activity,
   không có comment, hoặc thiếu profile link/field là bằng chứng phủ định. Các
   trường hợp này là `unknown`/`partial` và phải được giữ cho review hoặc lần
   capture sau; không gán `no_offering`, `no_seeking`, `inactive` hay
   `not_a_match`. `other_like` do thiếu evidence không phải negative intent.
-- Với anonymous poster, chỉ tính insight match khi context có
-  `anonymous_poster=true`, `anonymous_access_ready=true` và permalink bài viết
-  đã validate. Nếu thiếu permalink usable, vẫn có thể thống kê raw insight
-  tổng quan nhưng không tạo candidate match cho listing đó.
 - Không re-đọc/re-chấm một listing đã có event `insight_reviewed`, trừ khi
   Kien yêu cầu rõ ràng chạy lại (ví dụ raw_text được cập nhật, hoặc Kien gõ
   "rescan"/"phân tích lại"). Không tự động rescan chỉ vì heuristic đổi.
@@ -205,250 +198,6 @@ Ghi vào `insight_risk_flags` (mảng text), mỗi flag độc lập, có thể 
 Không tự động gán những flag này vào `sublet_listings.scam_score` — chỉ đưa
 vào payload event và snapshot để Kien tham khảo; scam scoring chính thức có
 bảng cộng/trừ riêng trong `docs/intent-logic.md` khi pipeline đó được bật.
-
-## Bước 3 — matching candidates (validated-only)
-
-> **Đổi nguồn dữ liệu đầu vào (2026-09-17, Kien duyệt kiến trúc):** trước đây
-> Bước 3 lấy `kind_guess`/khu vực/giá từ `insight_kind_guess` trong event
-> `insight_reviewed` — heuristic riêng của chính `analyze-insights` (Bước 1/2
-> ở trên), chỉ chạy thủ công và mới xử lý 198 event/~49 listing. Trong khi đó
-> pipeline chính thức `intent-analyze` (xem `docs/intent-logic.md`) đã phân
-> loại **882 listing** thẳng vào `sublet_listings.kind`/`.area`/`.rent_eur`
-> theo rule đầy đủ hơn nhiều — nhưng Bước 3 cũ không bao giờ đọc các cột đó,
-> nên gần như toàn bộ dữ liệu đã phân loại chính thức bị bỏ phí, matching chỉ
-> chạy trên phần nhỏ. Kien chọn phương án hợp nhất 2 pipeline (thay vì chạy
-> lại Bước 1/2 riêng cho phần backlog): Bước 3 giờ đọc trực tiếp
-> `sublet_listings.kind`/`.area`/`.rent_eur` (cột của `intent-analyze`) thay
-> vì `insight_kind_guess`/`insight_reviewed`. `kind='offering'` tương đương
-> `insight_kind_guess='offering_like'` cũ, `kind='seeking'` tương đương
-> `seeking_like`, `kind='other'` tương đương `other_like` (vẫn loại khỏi pool,
-> vẫn không coi là negative intent). `canonical_id` (cột `sublet_listings`,
-> "cùng 1 listing đăng ở nhiều group → trỏ về bản đầu") thay cho
-> `duplicate_of` cũ trong event `insight_reviewed` — cùng ý nghĩa, chỉ khác
-> nơi lưu. `sublet_listings.area`/`.rent_eur` đã chuẩn hoá theo
-> `docs/intent-logic.md` §11 (area map về danh sách chuẩn, `rent_eur` với
-> `kind='seeking'` chính là ngân sách tối đa — đúng ý nghĩa
-> `price_or_budget_eur` cũ) nên dùng thẳng, không cần trích lại từ `raw_text`.
-> Vì đổi **nguồn input** của chấm điểm, đây là thay đổi buộc **tính lại toàn
-> bộ** (xem "Ghi `sublet_insight_matches`" bên dưới) — không phải chạy tiếp
-> incremental trên 545 dòng cũ. Bước 1.5 (`pricing_tag`/`price_or_budget_eur`)
-> vẫn giữ nguyên cho mục đích riêng của nó (đọc-only, không phân biệt
-> offering/seeking chính thức), nhưng Bước 3 không còn phụ thuộc nó nữa.
-
-Tính lại ứng viên khớp seeker↔offering trên **toàn bộ** listing đã
-`intent-analyze` phân loại (không chỉ phần mới) mỗi lần chạy Bước 3. Đây vẫn
-là tín hiệu tham khảo — **không phải** `sublet_matches` chính thức, không tạo
-`sublet_seekers`, không tự outreach.
-
-### Input: chỉ listing đã "sạch" theo cả 3 điều kiện
-
-1. `link_validation_status='validated'` **và** không nằm trong
-   `sublet_v_link_needs_reverification` (tức không phải
-   `link_resolution_method='bulk_unverified_override'` — record được đánh dấu
-   validated mà chưa từng mở link thật). Lý do: matching dựa trên nội dung bài;
-   nếu bài chưa verify thật (có thể đã bị xoá/đổi/sai group) thì match dựa trên
-   nó là vô nghĩa hoặc sai.
-2. `sublet_listings.kind` là `offering` hoặc `seeking` (bỏ `other` chỉ khỏi
-   phép ghép hiện tại, **không** coi là negative intent). Listing `kind is
-   null` (chưa qua `intent-analyze`) hoặc `kind='other'` phải giữ trong
-   unknown/review pool, không xoá hay đánh dấu không phù hợp.
-3. **Không phải bản repost/duplicate** (nới rộng 2026-09-16, xem quyết định
-   cross-group bên dưới): loại listing có `canonical_id` khác `null` — chỉ
-   giữ lại bản gốc (id được các bản khác trỏ `canonical_id` tới) trong pool
-   matching. Lý do: một người đăng cùng 1 bài ở nhiều group không phải N cơ
-   hội khác nhau; nếu không lọc, bỏ giới hạn group ở bước dưới sẽ nhân bản 1
-   match thật thành N match giả theo số group họ đăng. Trùng text nhưng khác
-   `poster_name` (spam network khác identity) **không** bị loại ở đây; rủi ro
-   của case đó là việc của `risk_flags` (`analyze-insights` Bước "Risk/scam
-   heuristic"), không phải việc của bước lọc này.
-
-```sql
-select l.id, l.poster_name, l.source_url, l.seen_at, l.raw_text, l.group_key,
-  l.kind, l.area, l.rent_eur, l.canonical_id
-from sublet_listings l
-where l.link_validation_status = 'validated'
-  and l.id not in (select id from sublet_v_link_needs_reverification)
-  and l.kind in ('offering', 'seeking')
-  and l.canonical_id is null
-```
-
-**Không còn điều kiện `group_key = <group đang xử lý>`** — xem "Cross-group
-matching" ngay dưới đây.
-
-### Cross-group matching (đổi 2026-09-16 theo yêu cầu Kien)
-
-Bước 3 **không còn giới hạn trong 1 group**. Lý do: seeker/offering là 2 bài
-độc lập theo `listing_id`; người tìm nhà ở Amsterdam không quan tâm bài đăng ở
-group Facebook nào, nên giới hạn cùng-group trước đây là quyết định tuỳ tiện
-của thiết kế đầu, không phải rào cản dữ liệu thật. So khớp seeker × offering
-trên **toàn bộ** danh sách đã lọc (mọi group), miễn qua được loại trừ cứng và
-tín hiệu bên dưới. Đây không phải "identity resolution" — không cần gộp danh
-tính người dùng nào cả, chỉ cần so từng cặp `listing_id` độc lập; xem thêm
-`data-engineer/SKILL.md` mục "Per-user/entity normalized profile" về việc
-data-engineer **không** xây bảng khách hàng riêng và tại sao đó không phải
-điều kiện tiên quyết cho cross-group matching.
-
-Điều kiện tiên quyết bắt buộc đi kèm: lọc duplicate/repost ở điều kiện 3 phía
-trên phải chạy **trước khi** bỏ giới hạn group, nếu không 1 offering đăng lại
-ở nhiều group sẽ tạo nhiều match giả cho cùng 1 seeker.
-
-### Loại trừ cứng trước khi tính tín hiệu
-
-- **Không bao giờ khớp một poster với chính họ.** Nếu `seeker.poster_name`
-  trùng `offering.poster_name` (cùng người vừa đăng seeking vừa đăng offering,
-  hoặc 2 bản capture trùng của cùng 1 post), bỏ qua cặp đó ngay, không tính
-  điểm. Đây là điều kiện cứng theo yêu cầu Kien, áp dụng trước mọi tín hiệu
-  khu vực/ngân sách/thời điểm bên dưới, và áp dụng xuyên group (so sánh
-  `poster_name`, không so `group_key`).
-- `seeker.id == offering.id` không thể xảy ra do đã lọc theo `kind` khác
-  nhau, nhưng vẫn kiểm tra phòng hờ nếu logic lọc thay đổi sau này.
-- Bản repost/duplicate (`canonical_id` khác null) đã bị loại khỏi pool ở bước
-  Input trên; không cần lọc lại ở đây, nhưng nếu code thay đổi khiến bản
-  duplicate lọt vào, áp dụng lại điều kiện đó trước khi tính điểm.
-
-### Bước 1.5 — tag `pricing`/`no_pricing` (đi kèm classification, không phải skill riêng)
-
-Ngay sau khi có `insight_kind_guess` cho một listing, trích thêm 2 field và ghi
-cùng event `insight_reviewed` (không phải event riêng, không phải skill riêng
-— đây vẫn là 1 bước rẻ tiền, thuần regex trên `raw_text` đã có sẵn trong DB,
-không cần Facebook, không cần LLM đọc lại):
-
-- `pricing_tag`: `'pricing'` nếu trích được ít nhất 1 số tiền EUR hợp lệ
-  (200–5000, xem quy tắc trích bên dưới) trong `raw_text`; `'no_pricing'` nếu
-  không có số nào. Tag này cho biết ngay listing nào **không thể** dùng tín
-  hiệu ngân sách/giá ở Bước 3 (matching), tách bạch với `insight_kind_guess`
-  (một listing có thể là `seeking_like` + `no_pricing`, nghĩa là seeker chưa
-  nêu ngân sách — vẫn hợp lệ để match theo khu vực, chỉ không match được theo
-  giá).
-- `price_or_budget_eur`: số đã trích (ngân sách cao nhất với seeker, giá thấp
-  nhất với offering), hoặc `null` nếu `no_pricing`.
-
-Lý do tách thành tag rõ ràng thay vì để ẩn trong logic Bước 3: khi review lại
-kết quả matching, đếm nhanh được bao nhiêu % listing có giá (`select
-payload->>'pricing_tag', count(*) from sublet_events where
-event='insight_reviewed' group by 1`) mà không cần chạy lại phép trích. Đây
-**không phải** lý do để tách thành skill `/data-engineer` riêng — vẫn là 1
-bước trong `analyze-insights`, dùng chung code trích số với Bước 3, không có
-queue/cursor/spec riêng. Tách skill chỉ đáng làm nếu có ≥2 skill khác cần dùng
-lại tag này độc lập với `analyze-insights`; hiện tại chưa có.
-
-### Bước 1.6 đã chuyển sang `data-engineer` (sửa 2026-09-16, đặt sai chỗ lúc đầu)
-
-Trích `start_date`/`end_date`/`duration_label` là **normalization** (parse
-ngày/thời hạn từ text đã biết), không phải heuristic ngữ nghĩa
-offering/seeking — thuộc ranh giới của `data-engineer` (mục "3. Normalize mà
-không làm mất raw": *"timezone-aware ISO timestamp khi có absolute
-timestamp"*), không phải `analyze-insights`. Xem chi tiết đầy đủ ở
-`data-engineer/SKILL.md` mục "Normalize thời điểm bắt đầu/kết thúc/thời hạn
-thuê". `analyze-insights` chỉ **đọc** 4 field đó (qua
-`sublet_v_listing_profile`) làm input tham khảo cho Bước 3 khi cần, không tự
-tính lại.
-
-### Tín hiệu so khớp (mỗi seeker × mỗi offering, xuyên toàn bộ group)
-
-Một offering có thể khớp với nhiều seeker, và một seeker có thể khớp với
-nhiều offering — đây là hành vi **đúng, không phải bug**. Không giới hạn
-"mỗi seeker chỉ 1 offering tốt nhất"; Kien tự lọc/chọn từ danh sách đầy đủ.
-
-> **Lịch sử quyết định (đêm 2026-09-16, đừng đảo ngược mà không hỏi lại
-> Kien):** bản đầu của Bước 3 yêu cầu **bắt buộc** có tín hiệu khu vực HOẶC
-> ngân sách mới được tạo candidate — Kien chỉ ra đây là lỗi thiết kế thật:
-> "if they not disclosed area, doesn't mean they don't match". Một phiên
-> khác sau đó thử sửa bằng cách bỏ hẳn `seen_at` khỏi tín hiệu/reasons; Kien
-> từ chối hướng đó ("không được"). Thiết kế **chốt cuối cùng** là bên dưới:
-> `seen_at` (cửa sổ 7 ngày) là **điều kiện chính** để tạo candidate — không
-> phải khu vực hay ngân sách. Khu vực/ngân sách chỉ **loại** khi có bằng
-> chứng mâu thuẫn thật (cả hai bên nêu rõ và lệch nhau), không bao giờ loại
-> vì thiếu dữ liệu.
-
-- **Thời điểm (`seen_at`) — điều kiện chính:** hai bên phải cách nhau
-  **≤ 7 ngày** (Kien gọi là "a week back", chốt sau khi cân nhắc 3/14/7 ngày)
-  mới được xét làm candidate. Đây là cổng chính, không phải tín hiệu phụ như
-  bản thiết kế cũ — luôn xuất hiện trong `reasons` (vd.
-  `"seen_at cách nhau 1 ngày (trong cửa sổ 7 ngày)"`), không bị coi là kém
-  quan trọng hơn khu vực/ngân sách.
-- **Khu vực:** dùng `sublet_listings.area` (đã chuẩn hoá về danh sách khu
-  chuẩn bởi `intent-analyze`, xem `docs/intent-logic.md` §11 — đổi 2026-09-17
-  từ việc tự trích tên khu trong `raw_text`; cùng ý nghĩa, chỉ khác nguồn:
-  giờ đọc cột đã chuẩn hoá sẵn thay vì tự regex lại). Trùng khu hoặc khu liền
-  kề theo bảng cố định = tín hiệu dương (+2), cộng vào `reasons`. Một bên
-  không có `area` (null) = **không loại, không suy diễn**, chỉ đơn giản không
-  có tín hiệu dương này. Cả hai bên có `area` rõ ràng mà không trùng/không
-  liền kề = loại thẳng (đây là bằng chứng mâu thuẫn thật, không phải thiếu dữ
-  liệu).
-- **Ngân sách/giá:** dùng `sublet_listings.rent_eur` (đổi 2026-09-17 từ
-  `pricing_tag`/`price_or_budget_eur` của Bước 1.5 — cùng ý nghĩa, nguồn
-  chính xác hơn: `intent-analyze` đã chuẩn hoá theo `docs/intent-logic.md`
-  §11, và với `kind='seeking'` thì `rent_eur` chính là ngân sách tối đa, đúng
-  ý nghĩa cũ của `price_or_budget_eur` cho seeker). Cả hai bên có số **và**
-  `0.5 ≤ (giá offering / ngân sách seeker) ≤ 1.1` = tín hiệu dương (+2). Biên
-  dưới 0.5 **vẫn giữ** (xem "Edge case đã phát hiện" — case
-  Esteban/Samrawit), không phải điều Kien bảo bỏ; điều Kien từ chối là việc
-  bỏ `seen_at`, không phải biên ngân sách. Một bên không có `rent_eur` (null)
-  = không loại, không suy diễn. Cả hai có `rent_eur` mà tỷ lệ ngoài [0.5, 1.1]
-  = loại thẳng.
-
-### Thang điểm `score` — không có sàn tối thiểu, `seen_at` luôn +1
-
-| Tín hiệu | Điểm | Điều kiện |
-|---|---:|---|
-| Vượt qua cổng `seen_at` ≤7 ngày, không bị loại bởi khu vực/ngân sách | +1 | luôn cộng — đây là điều kiện để candidate tồn tại, không phải bonus |
-| Khu vực trùng/liền kề | +2 | bonus, không bắt buộc |
-| Ngân sách/giá trong khoảng [0.5, 1.1] | +2 | bonus, không bắt buộc |
-
-Tối đa = 5 (cả ba). Không có sàn điểm tối thiểu để lưu — mọi cặp qua được cổng
-`seen_at` và không bị 2 loại trừ cứng (khu vực/ngân sách mâu thuẫn thật, hoặc
-cùng poster) đều được lưu, kể cả khi chỉ có điểm 1 (`confidence='weak'`).
-Đây là chủ đích: thà show nhiều để Kien tự lọc, còn hơn heuristic tự ý giấu
-một match thật chỉ vì trích được ít dữ liệu.
-
-### Xếp hạng confidence
-
-- `high`: có cả khu vực **và** ngân sách khớp (điểm 5).
-- `medium`: chỉ khu vực khớp (điểm 3).
-- `low`: chỉ ngân sách khớp (điểm 3).
-- `weak`: chỉ qua được cổng `seen_at`, không có bằng chứng khu vực lẫn ngân
-  sách (điểm 1) — vẫn là candidate hợp lệ, không phải nhiễu; gắn nhãn `weak`
-  để Kien biết đây là "chưa loại được, chưa có bằng chứng dương" chứ không
-  phải "đã xác nhận yếu".
-
-### Ghi `sublet_insight_matches` (bảng riêng, KHÔNG phải `sublet_matches`)
-
-```sql
-insert into sublet_insight_matches
-  (seeker_listing_id, offering_listing_id, confidence, score, reasons,
-   seeker_budget_eur, offering_price_eur, seeker_areas, offering_areas)
-values (...)
-on conflict (seeker_listing_id, offering_listing_id) do nothing;
-```
-
-`on conflict do nothing` giữ idempotent cho **rerun thường** (có listing mới,
-logic tính điểm không đổi): chạy lại không tạo trùng cặp, không cần xoá gì.
-
-**Ngoại lệ — khi chính logic tính điểm/tín hiệu thay đổi** (vd. sửa ngưỡng,
-thêm/bớt tín hiệu, như case biên dưới 0.5 ở trên): `on conflict do nothing`
-sẽ giữ lại các cặp cũ sai theo logic cũ mà không xoá, vì cặp (seeker,
-offering) không đổi — chỉ điểm/lý do đổi. Trường hợp này phải
-`delete from sublet_insight_matches where id > 0` (RPC từ chối `delete`
-không có `where`) rồi tính và insert lại **toàn bộ** theo logic mới, không chỉ
-phần chênh lệch. Nêu rõ trong `sublet_inbox`/chat khi làm việc này là
-"tính lại toàn bộ do sửa logic", không phải "insight mới".
-
-Đọc lại toàn bộ qua view `sublet_v_insight_matches_report` (join sẵn
-poster/URL 2 bên, sort theo confidence rồi score) khi cần dựng báo cáo.
-
-### Báo cáo cho Kien
-
-Khi Kien yêu cầu "làm báo cáo"/"flag ra bảng data": dựng từ
-`sublet_v_insight_matches_report`, cột tối thiểu — ngày chạy, seeker (tên +
-link `source_url`), offering (tên + link `source_url`), nội dung raw của hai
-bài nếu có trong view/query, lý do khớp (`reasons`), score và confidence.
-Phải hiển thị đủ cả bốn tier `high`, `medium`, `low`, `weak`; không được bỏ
-`weak` chỉ vì tier này không có evidence khu vực/ngân sách. Có thể xuất Artifact
-(bảng HTML) để Kien xem/chia sẻ dễ hơn dump JSON; nêu rõ đây là tín hiệu
-đọc-only, không phải danh sách đã xác nhận outreach. Nhóm `high` lên đầu; nếu
-`high` rỗng, nói thẳng thay vì im lặng bỏ qua tầng đó (dữ liệu 14 ngày/1 group
-ban đầu có thể chưa đủ để có cặp `high`).
 
 ## DB write contract
 

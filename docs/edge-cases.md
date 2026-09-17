@@ -45,10 +45,10 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | # | Tình huống | Xử lý | Skill | Test |
 |---|---|---|---|---|
 | E30 | "Looking for someone to take my room" | đối tượng = người → offering | intent-analyze | 21 case |
-| E31 | Agency đăng listing cụ thể | offering + `poster_type=agency`, không DM | intent-analyze | c-agency ×5 |
+| E31 | Company đăng listing cụ thể | offering + `poster_type=company` (đổi tên từ `agency` 2026-09-17), không DM | intent-analyze | c-agency ×5 |
 | E32 | Fragment không rõ có/cần | other, low, needs_full_read | intent-analyze | c038 |
 | E33 | "EDIT: FOUND" | `status=dead`, không tạo seeker | intent-analyze | 7 case |
-| E34 | Đăng hộ bạn | `poster_type=proxy` | intent-analyze | 6 case |
+| E34 | Đăng hộ bạn | `poster_type=individual`, `notes='posted_on_behalf'` (đổi 2026-09-17, `proxy` không còn là enum riêng) | intent-analyze | 6 case |
 | E35 | Tiền trước khi gặp + nhắc registration | sàn scam 60, không trừ điểm | intent-analyze | c054 |
 | E36 | Seeker đề nghị trả trước (WU) | seeking, scam max 59, vẫn tạo seeker + flag | intent-analyze | c034 |
 | E37 | Giá/tuần, "end of Jan", "Oct–Jan", "ASAP" | ×4.33 làm tròn; cuối tháng; 1→cuối; ngày post | intent-analyze | 13 case |
@@ -147,7 +147,6 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | E124 | Actor có cả bài offering và seeking | `offer_or_need='both'` chỉ khi cả hai hướng có evidence; field nào không có evidence vẫn unknown | data-engineer | manual |
 | E125 | Public comment/reaction bị hiểu thành conversion | lưu như observed behavior; không suy ra intent, consent, reply hay rejection nếu chưa có evidence first-party | data-engineer | manual |
 | E126 | Hai event có thời điểm khác nhau | tách `occurred_at`, `observed_at`, `created_at`; không dùng `seen_at` làm move-in/start date | data-engineer | manual |
-| E127 | Thay đổi heuristic matching | full recompute `sublet_insight_matches`, ghi run/provenance và giữ event cũ; không sửa lẻ score/reasons | data-engineer, analyze-insights | manual |
 | E128 | Actor không có post/public activity/comment/profile link trong corpus | giữ `unknown`/`partial` trong review pool; không gán không có nhu cầu/offer hoặc không match; chỉ loại khi có contradiction rõ ràng | data-engineer, analyze-insights | manual |
 
 ## Coverage

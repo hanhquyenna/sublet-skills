@@ -1,10 +1,14 @@
 # Metrics catalogue — success metric của từng workflow, lưu ở `sublet_metrics` (1 dòng/ngày/metric)
 
 > **Active scope:** hiện đo raw capture/run progress của `sublet-scrape-14-groups`,
-> data quality/behavior aggregates của `data-engineer` và insight snapshot của
-> `analyze-insights` (hàng `insight_*` dưới đây, workflow `analyze`). Các metric
-> `intent-analyze` chính thức (analyzed_24h, offering_7d,
-> scam_high_rate, …), match, outreach và report bên dưới vẫn là historical/future
+> data quality/behavior aggregates của `data-engineer`, insight snapshot của
+> `analyze-insights` (hàng `insight_*` dưới đây, workflow `analyze`), và từ
+> 2026-09-17 `analyzed_24h`/`offering_7d`/`seeking_7d`/`other_7d` của
+> `intent-analyze`. `scam_high_rate`/`low_conf_rate`/`qa_kind_acc` **chưa có ý
+> nghĩa** — `intent-analyze` phiên bản hiện tại để `scam_score` mặc định
+> (chưa tính), nên `scam_high_rate` sẽ luôn đọc ra 0% (đừng đọc đó là "rule
+> quá lỏng", đơn giản là chưa chạy); bật lại 3 metric này khi scam scoring
+> được kích hoạt. Match, outreach và report bên dưới vẫn là historical/future
 > reference — chưa có skill nào ghi chúng.
 
 `sublet-report` tính và **insert** mỗi 18:00 (`day`, `workflow`, `metric`, `value`, `target`). Không tính lại từ đầu mỗi lần; xu hướng đọc từ bảng.
@@ -34,7 +38,6 @@
 | analyze | insight_risk_flagged | listings có ≥1 `insight_risk_flags` | theo dõi xu hướng, không phải scam_score | analyze-insights |
 | analyze | insight_unique_posters | distinct poster_name đã review | — | analyze-insights |
 | analyze | insight_queue_remaining | listings chưa có `insight_reviewed` | 0 sau khi run xong (không tính listing mới capture sau đó) | analyze-insights |
-| analyze | insight_match_candidates_high / _medium / _low / _weak | count theo confidence trong `sublet_insight_matches` | báo đủ 4 tier; không gộp `weak` vào `low` | analyze-insights, data-engineer |
 | data | rows_profiled | rows được profile trong dataset/window | báo cáo đủ phạm vi đã chọn | data-engineer |
 | data | rows_missing_required_evidence | rows thiếu `source_url` hoặc `seen_at` | 0 | data-engineer |
 | data | provenance_complete_rate | events có contract/source/run/page metadata cần thiết / events audited | 100% cho event mới | data-engineer |

@@ -34,10 +34,7 @@ luôn phải đọc cùng nhau trước khi kết luận bất kỳ điều gì 
   đầu xử lý; `sublet_inbox(level='info')` — snapshot khi có comment mới xử
   lý; `sublet_metrics(workflow='analyze', metric='comment_*')`.
 - **Không ghi:** không tạo `sublet_listings` mới cho commenter (họ không có
-  bài riêng), không ghi cột phân loại chính thức, không tạo
-  `sublet_insight_matches` cho commenter (matching cross-post/comment là
-  quyết định mở rộng riêng, ngoài scope v1 này — xem "Không làm ở v1" cuối
-  file), không mở Facebook.
+  bài riêng), không ghi cột phân loại chính thức, không mở Facebook.
 - **Metrics:** `comment_reviewed_total`, `comment_new_this_run`,
   `comment_has_signal`, `comment_no_signal`, `comment_insufficient_evidence`.
 - **Kết quả:** báo số comment đã xử lý, breakdown có/không có tín hiệu, danh
@@ -151,16 +148,10 @@ lưu comment lồng trong payload bài gốc), `event='comment_reviewed'`,
 Chỉ ghi khi có ≥1 comment mới xử lý trong run này. Liệt kê riêng các comment
 `comment_signal` khác `insufficient_evidence`/`other` (tức có tín hiệu thật)
 kèm: bài gốc nói gì, ai comment, comment nói gì, link (nếu có) — để Kien tự
-đọc, không tự động đưa vào matching.
+đọc.
 
 ## Không làm ở v1 (mở rộng sau nếu Kien yêu cầu)
 
-- **Không tạo `sublet_insight_matches` cho commenter.** Commenter không có
-  `listing_id` (không có bài riêng) nên không khớp được schema Bước 3 của
-  `analyze-insights` hiện tại. Muốn commenter thành candidate matching thật
-  cần quyết định thiết kế riêng (có thể cần 1 bảng nhẹ lưu "candidate từ
-  comment" tách khỏi `sublet_listings`) — đây là mở rộng scope mới, không tự
-  làm khi chưa được yêu cầu rõ.
 - Không tự động outreach/DM cho commenter dù `comment_signal` là gì.
 - Không đọc DM riêng, không đọc comment trên bài không phải housing post.
 

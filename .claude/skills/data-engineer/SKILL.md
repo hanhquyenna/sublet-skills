@@ -15,12 +15,14 @@ semantic đã được chốt.
 - `sublet-scrape-14-groups` và `validate-permalink` capture/verify bằng visible
   Chrome panel. `data-engineer` không mở Facebook, không dùng browser và không
   gọi HTTP/API để lấy dữ liệu Facebook.
-- `analyze-insights` sở hữu heuristic offering/seeking/other, duplicate/risk
-  insight và logic candidate matching. `data-engineer` sở hữu storage contract,
-  normalization, QA, aggregates, report views và checkpoint của các kết quả đó.
+- `analyze-insights` sở hữu heuristic offering/seeking/other và duplicate/risk
+  insight. `data-engineer` sở hữu storage contract, normalization, QA,
+  aggregates, report views và checkpoint của các kết quả đó.
 - Không tạo `sublet_matches` chính thức, không tự gửi outreach, không đổi
   `sublet_listings.kind`, `status`, `scam_score` hay các cột semantic chính thức.
-  Candidate heuristic vẫn nằm riêng ở `sublet_insight_matches`.
+- **2026-09-17:** seeker↔offering matching (`sublet_insight_matches`) đã bị
+  xoá bỏ hoàn toàn theo quyết định của Kien (data bloat, không tương xứng giá
+  trị) — không còn candidate heuristic nào trong scope dự án.
 
 ## Fast default (90% useful output)
 
@@ -241,14 +243,6 @@ Tính lại từ nguồn hiện tại, không cộng dồn thủ công. Mọi re
 - số raw rows, valid rows, duplicate rows, excluded rows;
 - link/source hoặc query để audit ngược.
 
-Report matching đọc từ `sublet_v_insight_matches_report`, phải giữ đủ
-`high`, `medium`, `low`, `weak`, score, reasons, source URL và raw post text
-nếu view/query có thể lấy. `weak` không được gộp vào `low` hoặc bị ẩn.
-
-Khi heuristic matching đổi, xoá/rebuild toàn bộ `sublet_insight_matches` theo
-đúng migration/run contract rồi ghi rõ “full recompute”; không upsert chắp vá
-để giữ score/reasons của logic cũ.
-
 ## Customer-behavior data model
 
 “Behavior” ở đây là hành vi quan sát được, không phải hồ sơ suy đoán. Dùng
@@ -400,19 +394,12 @@ select source_url, count(*)
 from sublet_listings
 group by source_url
 having count(*) > 1;
-
--- insight candidate tier distribution
-select confidence, count(*)
-from sublet_insight_matches
-group by confidence
-order by case confidence
-  when 'high' then 0 when 'medium' then 1 when 'low' then 2 else 3 end;
 ```
 
 For each failed check, classify `blocker`, `warning` or `unknown`; do not hide
 the issue by bulk-marking rows as verified. A row with no usable permalink can
 still preserve raw post/comment data, but cannot be treated as validated for
-anonymous access, matching or outreach.
+anonymous access or outreach.
 
 ## Do not do
 
@@ -432,7 +419,7 @@ anonymous access, matching or outreach.
 
 - Sau raw capture: `data-engineer` kiểm tra contract/provenance/duplicates;
   `validate-permalink` xử lý link queue.
-- Sau semantic insight: `analyze-insights` tạo/giải thích heuristic events và
-  `sublet_insight_matches`; `data-engineer` QA, aggregate và report.
+- Sau semantic insight: `analyze-insights` tạo/giải thích heuristic events;
+  `data-engineer` QA, aggregate và report.
 - Khi Kien bổ sung rule semantic mới vào `analyze-insights`, cập nhật data
   contract/metrics ở đây chỉ khi field, provenance hoặc aggregate thật sự đổi.
