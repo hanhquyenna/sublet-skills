@@ -677,6 +677,11 @@ with base as (
   from sublet_listings l
   left join sublet_v_listing_profile prof on prof.listing_id = l.id
   where l.kind in ('offering','seeking')
+    -- 2026-09-17 fix: phải lọc poster_type='individual' Ở ĐÂY, khớp đúng
+    -- filter của dashboardkien_outreach — nếu không, rank tính luôn cả
+    -- company/anonymous rồi mới bị lọc bỏ ở view ngoài, làm outreach_order
+    -- hiện ra không liên tục (có khoảng trống, vd nhảy từ 844 lên 877).
+    and l.poster_type = 'individual'
     and l.link_validation_status = 'validated'
     and l.canonical_id is null
     and l.poster_name is not null
