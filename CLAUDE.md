@@ -12,7 +12,12 @@
 3. Chạy theo giờ trong `data/config.yaml` (`hours`); từ 2026-09-16 theo yêu cầu Kien, `hours` đặt 24/7 (`00:00`–`23:59`), không còn giới hạn khung giờ trong ngày. Không chạy khi máy vừa thức dậy dưới 2 phút.
 4. **Dừng ngay** và ghi `sublet_inbox(level=stop)` nếu thấy: checkpoint, captcha, "unusual activity", yêu cầu xác minh, trang login. Không thử lại trong 24h.
 5. Được đọc **public profile**, lịch sử public giới hạn của poster/commenter, và comment/reply gắn với post housing đã capture để lưu raw context. Chỉ đọc nội dung đang công khai; không vào DM, nội dung private/ẩn, friend list, album/ảnh, không suy luận thuộc tính nhạy cảm, và không tách riêng số điện thoại/email thành hồ sơ liên hệ. Không thao tác trên profile/comment. Poster hiển thị là `Anonymous participant`/`Người tham gia ẩn danh` hoặc không có profile URL phải được flag là `anonymous`; giữ nguyên label, không đoán danh tính. Anonymous card chỉ access-ready khi có permalink bài viết đã validate thật.
-6. Mọi agent phải thao tác Facebook bằng **visible Chrome browser-panel automation của host**, đọc DOM/accessibility tree trước (Codex: ChatGPT in-app browser panel; Claude Code: Claude in Chrome; agent khác: Chrome-panel adapter tương đương). Đây là kênh Facebook duy nhất. Không dùng CLI/script scraper, web-fetch/HTTP/API, Selenium, headless browser, Chrome session khác hoặc cookie ở nơi khác; script chỉ được dùng cho DB/provenance, **và cho việc parse cục bộ output `read_page` đã lấy về** (`scripts/extract_cards.py` — không gọi thêm request nào tới Facebook, chỉ tách card từ text đã có sẵn để agent đỡ phải tự đọc bằng mắt; xem `sublet-scrape-14-groups/SKILL.md`).
+6. Mọi agent phải thao tác Facebook bằng **visible Chrome browser-panel automation của host**, đọc DOM/accessibility tree trước (Codex: ChatGPT in-app browser panel; Claude Code: Claude in Chrome; agent khác: Chrome-panel adapter tương đương). Đây là kênh Facebook duy nhất **cho capture chính thức** (ghi `sublet_listings`/`sublet_events` làm nguồn dữ liệu thật). Không dùng CLI/script scraper, web-fetch/HTTP/API, Selenium, headless browser, Chrome session khác hoặc cookie ở nơi khác; script chỉ được dùng cho DB/provenance, **và cho việc parse cục bộ output `read_page` đã lấy về** (`scripts/extract_cards.py` — không gọi thêm request nào tới Facebook, chỉ tách card từ text đã có sẵn để agent đỡ phải tự đọc bằng mắt; xem `sublet-scrape-14-groups/SKILL.md`).
+   - **Ngoại lệ hẹp, chỉ để test/so sánh (thêm 2026-09-17 theo yêu cầu Kien):** được phép chạy thử **duy nhất Apify Facebook Groups Scraper actor** (`apify/facebook-groups-scraper`), và chỉ để đánh giá chất lượng/tốc độ so với browser-panel — **không** dùng kết quả ghi vào `sublet_listings`/`sublet_events` làm dữ liệu chính thức (vi phạm nguyên tắc "mỗi record có `source_url` provenance qua browser thật"). Điều kiện bắt buộc mỗi lần chạy:
+     - Chỉ chạy trên group **đã capture xong hoàn chỉnh bằng browser-panel** (để so sánh, không phải để lấy dữ liệu mới).
+     - Kien phải tự bấm Start/duyệt chi phí trên Apify console mỗi lần (actor tính phí theo usage) — agent không tự động kích hoạt run tốn tiền.
+     - Kết quả chỉ dùng để viết báo cáo so sánh (coverage, tốc độ, độ chính xác) cho Kien đọc, không tự động import vào DB.
+     - Không mở rộng ngoại lệ này sang group chưa scrape, sang comment/profile data, hay sang bất kỳ actor Apify nào khác ngoài tên nêu trên.
 7. Không ghi outcome (signed / moved-in) nếu không có xác nhận từ subletter hoặc seeker. Không đoán.
 8. Không xếp hạng seeker theo quốc tịch, giới tính, tuổi, tôn giáo, hay bất kỳ tiêu chí phân biệt nào. Chỉ: ngày, ngân sách, khu vực, số người, registration, pets.
 
@@ -35,8 +40,10 @@
 trước, link validation sau). `data-engineer` là lớp DB-only để QA, normalize,
 aggregate và report; `analyze-insights` là bước đọc-only độc lập, có thể chạy
 bất kỳ lúc nào sau capture (không cần chờ validate xong) để tóm tắt insight cho
-Kien. Các bước match, draft, viewing và outreach chưa nằm trong active skill
-scope.
+Kien. `intent-analyze` (bật 2026-09-17) là pipeline phân loại chính thức, ghi
+thật `kind`/`subtype`/`poster_type`/... lên `sublet_listings` đã có
+`source_url`; scam/deal scoring vẫn để mặc định, chưa bật. Các bước match,
+draft, viewing và outreach chưa nằm trong active skill scope.
 
 ## Active scope
 - **Context** (`information`): onboarding, quyền agent, DB, state và cách tiếp tục.
@@ -59,3 +66,14 @@ scope.
   dedupe, data-quality audits, idempotent checkpoints, customer-behavior event
   aggregates và reports. Không browse Facebook, không tự phân loại semantic,
   không làm identity enrichment và không tự động outreach.
+- **Intent analysis** (`intent-analyze`, bật 2026-09-17): đọc
+  `sublet_v_analyze_queue` (listing đã có `source_url`, `kind is null`), ghi
+  thật `kind`/`subtype`/`poster_type`/`confidence`/`area`/`rent_eur`/
+  `available_from`/`available_to`/`registration_allowed`/`poster_constraints`/
+  `analyzed_at`... lên `sublet_listings` theo `docs/intent-logic.md`; tạo
+  `sublet_seekers` (không contact) cho seeking đủ điều kiện. `poster_type`
+  chỉ nhận `individual`/`company`/`anonymous`. `scam_score`/`scam_flags`/
+  `deal_score` **để mặc định, chưa tính** (Kien quyết định để sau). Không
+  classify `capture_unresolved` thiếu `source_url`, không đụng
+  `sublet_matches`/`sublet_messages`, không gọi `scripts/match.py`, không mở
+  Facebook.
