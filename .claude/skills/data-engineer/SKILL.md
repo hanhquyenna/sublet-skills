@@ -127,6 +127,20 @@ Không tách riêng email, phone, DM, friend list, album hay private profile th�
 customer record. Public profile URL chỉ giữ trong context của post/comment đã
 capture theo hard rules; không xây hồ sơ theo dõi người dùng.
 
+#### Normalize ngôn ngữ post (`sublet_listings.language`)
+
+Thêm 2026-09-17 theo yêu cầu Kien: detect ngôn ngữ từ `raw_text` bằng thư viện
+`langdetect` (Python, deterministic seed), ghi mã ISO 639-1 (`en`, `nl`, ...)
+vào cột `language`. Đây là normalize thuần cơ học (không phải judgment
+offering/seeking như `kind`), đúng phạm vi data-engineer. Text < 10 ký tự
+hoặc `langdetect` không nhận diện được → để `NULL`, không đoán. Backfill 1
+lần cho toàn bộ 1122 listing hiện có ngày 2026-09-17 (kết quả: 695 `en`, 401
+`nl`, rải rác `af`/`da`/`es`/`ar`/`de`/`fr`/`ro`/`cs`/`uk`/`pt`/`tr`, 1
+không detect được). Chạy tiếp cho listing mới: `where language is null`,
+cùng batch với các bước normalize khác ở Bước 3. Mục đích: cho phép Kien lọc
+theo ngôn ngữ khi review/outreach (vd ưu tiên đọc post tiếng Anh trước, hoặc
+biết trước cần dịch khi đọc post tiếng Hà Lan).
+
 #### Normalize thời điểm bắt đầu/kết thúc/thời hạn thuê (`start_date`/`end_date`/`duration_label`)
 
 Thêm 2026-09-16 theo yêu cầu Kien, ban đầu đặt nhầm vào `analyze-insights` rồi

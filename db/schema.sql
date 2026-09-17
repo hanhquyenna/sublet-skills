@@ -264,6 +264,13 @@ end $$;
 alter table sublet_listings drop constraint if exists sublet_listings_poster_type_check;
 alter table sublet_listings add constraint sublet_listings_poster_type_check
   check (poster_type in ('individual','company','anonymous'));
+-- language: ngôn ngữ post text, detect tự động bằng langdetect (python) từ
+-- raw_text — không phải judgment semantic, thuộc phạm vi data-engineer
+-- (mechanical/factual normalization). Backfill 1 lần cho toàn bộ listing hiện
+-- có ngày 2026-09-17 theo yêu cầu Kien; text quá ngắn (<10 ký tự) hoặc
+-- langdetect không nhận diện được thì để NULL, không đoán.
+alter table sublet_listings
+  add column if not exists language text;
 alter table sublet_seekers
   add column if not exists city text not null default 'Amsterdam',
   add column if not exists language text default 'en',
