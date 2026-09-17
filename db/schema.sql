@@ -54,7 +54,7 @@ create table if not exists sublet_listings (
   -- analyze (docs/intent-logic.md)
   kind text check (kind in ('offering','seeking','other')),
   subtype text check (subtype in ('sublet_whole','sublet_room','takeover','roommate','swap','short_stay','long_term','seek_sublet','seek_room','seek_group')),
-  poster_type text check (poster_type in ('individual','proxy','agency')),
+  poster_type text check (poster_type in ('individual','company','anonymous')),
   confidence text check (confidence in ('high','medium','low')),
   area text,
   room_type text check (room_type in ('room','studio','apartment','other')),
@@ -258,6 +258,12 @@ do $$ begin
     alter table sublet_listings add column text_hash text generated always as (md5(lower(regexp_replace(raw_text, '\s+', ' ', 'g')))) stored;
   end if;
 end $$;
+-- poster_type enum đổi từ (individual/proxy/agency) sang (individual/company/anonymous)
+-- ngày 2026-09-17 theo quyết định Kien: proxy gộp vào individual (+ notes='posted_on_behalf'),
+-- agency đổi tên thành company, anonymous trở thành 1 giá trị enum thay vì cờ riêng.
+alter table sublet_listings drop constraint if exists sublet_listings_poster_type_check;
+alter table sublet_listings add constraint sublet_listings_poster_type_check
+  check (poster_type in ('individual','company','anonymous'));
 alter table sublet_seekers
   add column if not exists city text not null default 'Amsterdam',
   add column if not exists language text default 'en',
@@ -311,12 +317,36 @@ create or replace view sublet_v_deal_queue as
   from sublet_listings l left join sublet_groups g on g.key = l.group_key
   where l.kind='offering' and l.status in ('new','matched') and l.canonical_id is null
     and coalesce(l.deal_score,0) >= 60 and l.scam_score < 60 and coalesce(l.confidence,'low') <> 'low'
-    and coalesce(l.poster_type,'individual') <> 'agency'
+    and coalesce(l.poster_type,'individual') <> 'company'
   order by l.deal_score desc, l.seen_at desc;
 
 create or replace view sublet_v_analyze_queue as
   select id, source, source_url, group_key, poster_name, posted_at, seen_at, raw_text
   from sublet_listings where kind is null order by seen_at limit 40;
+
+-- ---------- who/why/how leads view (intent-analyze, 2026-09-17) ----------
+-- Câu trả lời queryable cho "ai đáng liên hệ, vì sao, thế nào": cả offering
+-- lẫn seeking, đã classify (kind not null, not 'other'), status còn sống.
+-- scam_score chưa được tính trong bản đầu (Kien quyết định để sau) nên
+-- KHÔNG filter scam_score ở đây — thêm lại `and l.scam_score < 60` khi
+-- scam scoring thật sự chạy, nếu không filter trên cột toàn 0 sẽ là no-op
+-- trông như đang lọc mà không lọc gì.
+create or replace view sublet_v_leads as
+  select
+    l.id as listing_id, l.kind, l.subtype, l.poster_type, l.confidence,
+    l.poster_name, l.source_url,
+    ctx.payload->'poster'->>'profile_url' as poster_profile_url,
+    l.group_key, l.area, l.room_type, l.rent_eur, l.deposit_eur,
+    l.bills_included, l.available_from, l.available_to, l.min_term_days,
+    l.max_people, l.poster_constraints, l.registration_allowed,
+    l.notes, l.status, l.seen_at, l.posted_at
+  from sublet_listings l
+  left join lateral (
+    select e.payload from sublet_events e
+    where e.entity_type='listing' and e.entity_id=l.id and e.event='context_captured'
+    order by e.id desc limit 1
+  ) ctx on true
+  where l.kind is not null and l.kind <> 'other' and l.status <> 'dead';
 
 create or replace view sublet_v_link_validation_queue as
   select id, source, source_url, group_key, poster_name, raw_text, seen_at,
@@ -574,3 +604,63 @@ create or replace view sublet_v_outreach_queue as
   ) ctx on true
   where sm.channel = 'fb_dm'
   order by sm.status, sm.created_at;
+
+-- ---------- group dashboard view (2026-09-17, theo yêu cầu Kien) ----------
+-- 1 view trả lời hết: group nào đã scrape hoàn tất/dở/chưa động tới, bao
+-- nhiêu post đã capture, bao nhiêu còn thiếu permalink, bao nhiêu offer/
+-- seeker/other, cùng tier/size/join/privacy/posts-per-day. scrape_status suy
+-- ra từ sublet_ops_state.scrape_14_groups_batch (nguồn thật của batch hiện
+-- tại) — không hardcode danh sách group, tự cập nhật khi ops_state đổi.
+-- 'partial_untracked' = có dữ liệu capture nhưng group không (còn) nằm trong
+-- batch 14-group hiện tại (vd batch cũ đã kết thúc/đổi danh sách).
+create or replace view sublet_v_group_dashboard as
+with batch as (
+  select value::jsonb as v from sublet_ops_state where key = 'scrape_14_groups_batch'
+),
+counts as (
+  select
+    g.key as group_key,
+    coalesce((select count(*) from sublet_listings l where l.group_key = g.key), 0) as listings_with_permalink,
+    coalesce((select count(*) from sublet_events e where e.event = 'capture_unresolved' and e.payload->>'group_key' = g.key), 0) as unresolved_no_permalink,
+    coalesce((select count(*) from sublet_listings l where l.group_key = g.key and l.kind = 'offering'), 0) as offering_count,
+    coalesce((select count(*) from sublet_listings l where l.group_key = g.key and l.kind = 'seeking'), 0) as seeking_count,
+    coalesce((select count(*) from sublet_listings l where l.group_key = g.key and l.kind = 'other'), 0) as other_count,
+    coalesce((select count(*) from sublet_listings l where l.group_key = g.key and l.kind is null), 0) as unclassified_count
+  from sublet_groups g
+),
+metrics as (
+  select distinct on (group_key)
+    group_key, posts_per_day, posts_14d_count, posts_14d_complete, posts_14d_checked_at
+  from sublet_group_metrics
+  order by group_key, posts_14d_checked_at desc nulls last
+)
+select
+  g.key as group_key,
+  g.name as group_name,
+  g.city,
+  g.tier,
+  g.member_count,
+  g.is_private,
+  g.joined,
+  m.posts_per_day,
+  m.posts_14d_checked_at,
+  c.listings_with_permalink,
+  c.unresolved_no_permalink,
+  (c.listings_with_permalink + c.unresolved_no_permalink) as total_posts_captured,
+  c.offering_count,
+  c.seeking_count,
+  c.other_count,
+  c.unclassified_count,
+  case
+    when batch.v is null then
+      case when (c.listings_with_permalink + c.unresolved_no_permalink) > 0 then 'partial_untracked' else 'not_started' end
+    when (batch.v -> 'completed') @> to_jsonb(g.key::text) then 'complete'
+    when (batch.v -> 'blocked') @> to_jsonb(g.key::text) then 'complete_blocked'
+    when (batch.v ->> 'current_group') = g.key then 'partial'
+    when (c.listings_with_permalink + c.unresolved_no_permalink) > 0 then 'partial_untracked'
+    else 'not_started'
+  end as scrape_status
+from sublet_groups g
+left join counts c on c.group_key = g.key
+left join metrics m on m.group_key = g.key
+left join batch on true;
