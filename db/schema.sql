@@ -566,7 +566,8 @@ create or replace view sublet_v_listing_profile as
     (insight.payload->>'repost_same_poster')::boolean as repost_same_poster,
     insight.payload->>'run_at' as insight_run_at,
     norm.payload->>'normalized_at' as normalized_at,
-    l.raw_text
+    l.raw_text,
+    l.language
   from sublet_listings l
   -- offer_or_need/pricing/risk: owned by analyze-insights, event insight_reviewed
   left join lateral (

@@ -85,7 +85,7 @@ tín hiệu để đáng hỏi lại; Kien có thể yêu cầu mở rộng sau)
 
 ```sql
 select distinct l.listing_id, l.poster_name, l.offer_or_need, l.source_url,
-       l.risk_flags, l.duplicate_of
+       l.risk_flags, l.duplicate_of, l.language
 from (
   select seeker_listing_id as listing_id from sublet_insight_matches where confidence in ('high','medium','low')
   union
@@ -110,27 +110,49 @@ where l.link_validation_status = 'validated'
   );
 ```
 
-## Template (Kien chốt bản cuối 2026-09-16, giữ nguyên văn — không tự đổi giọng)
+## Template (chốt bản cuối 2026-09-16, mở rộng theo ngôn ngữ 2026-09-17 theo yêu cầu Kien — giữ nguyên văn, không tự đổi giọng)
 
-- **Offering** (`template='availability_check_offering'`): `"Hi! I saw your
-  post, is the place still available?"`
-- **Seeking** (`template='availability_check_seeker'`): `"Hey! I saw your
-  post, are you still looking for a place?"`
+`template` column vẫn chỉ mang **kind** (`availability_check_offering` /
+`availability_check_seeker`) — giữ nguyên để không phá logic dedup/report ở
+các phần khác của skill này. **`body`** (nội dung thật gửi đi) được chọn theo
+**2 trục: kind (offering/seeking) × `sublet_listings.language`** (cột
+data-engineer detect bằng `langdetect`, thêm 2026-09-17) — tra bảng dưới đây,
+không tự dịch/diễn giải thêm:
 
-Bản đầu (`"Hi! Is your place still available?"` / `"Hey! Are you still
-looking for a place?"`) đã bị thay — 12 draft tạo ngày 2026-09-16 đã được
-UPDATE tại chỗ sang bản mới vì còn `status='draft'` (chưa gửi, sửa tại chỗ an
-toàn — khác `sublet_events` là append-only, `sublet_messages` ở trạng thái
-draft chưa gửi thì sửa được bình thường).
+| kind | `language` | `body` |
+|---|---|---|
+| offering | `en` (hoặc bất kỳ giá trị nào khác `nl`, kể cả `null`) | `Hi! I saw your post, is the place still available?` |
+| offering | `nl` | `Hoi! Ik zag je bericht, is de plek nog beschikbaar?` |
+| seeking | `en` (hoặc bất kỳ giá trị nào khác `nl`, kể cả `null`) | `Hey! I saw your post, are you still looking for a place?` |
+| seeking | `nl` | `Hey! Ik zag je bericht, ben je nog op zoek naar een plek?` |
 
-Ghi đúng nguyên văn 2 câu trên vào `body`, không thêm tên poster, không thêm
-chi tiết bài đăng, không nhắc AI/agent/automation — Kien có thể tự sửa/cá
-nhân hoá trước khi gửi tay, agent không tự ý mở rộng câu chữ. Nếu Kien đổi
-template sau này, cập nhật đúng 2 dòng trên, không suy diễn thêm biến thể.
+Chỉ 2 ngôn ngữ có bản dịch riêng (en/nl chiếm 97.7% dữ liệu hiện có — 695+401
+trên 1122). Mọi `language` khác (af/da/es/de/fr/...) hoặc `null` **mặc định
+về bản tiếng Anh** — không tự dịch sang ngôn ngữ khác dù `language` cho biết
+đó là tiếng gì, tránh dịch sai/lệch giọng khi chưa được Kien duyệt. Nếu Kien
+muốn thêm ngôn ngữ thứ 3 (vd Tây Ban Nha), thêm 1 dòng mới vào bảng trên theo
+đúng yêu cầu rõ ràng của Kien, không tự suy diễn thêm.
+
+Bản đầu tiên (`"Hi! Is your place still available?"` / `"Hey! Are you still
+looking for a place?"`) đã bị thay bằng bản `en` ở trên — 12 draft tạo ngày
+2026-09-16 đã được UPDATE tại chỗ sang bản mới vì còn `status='draft'` (chưa
+gửi, sửa tại chỗ an toàn — khác `sublet_events` là append-only,
+`sublet_messages` ở trạng thái draft chưa gửi thì sửa được bình thường).
+
+Ghi đúng nguyên văn câu tương ứng vào `body`, không thêm tên poster, không
+thêm chi tiết bài đăng, không nhắc AI/agent/automation — Kien có thể tự
+sửa/cá nhân hoá trước khi gửi tay, agent không tự ý mở rộng câu chữ. Nếu Kien
+đổi template sau này, cập nhật đúng bảng trên, không suy diễn thêm biến thể.
 
 ## Ghi `sublet_messages`
 
+Lấy `kind` và `language` từ listing trước khi chọn `body` theo bảng trên.
+
 ```sql
+-- vi du: offering + language='nl'
+insert into sublet_messages (entity_type, entity_id, direction, channel, template, body, status)
+values ('listing', '<listing_id>', 'out', 'fb_dm', 'availability_check_offering', 'Hoi! Ik zag je bericht, is de plek nog beschikbaar?', 'draft');
+-- vi du: offering + language khac 'nl' (hoac null) -> mac dinh ban en
 insert into sublet_messages (entity_type, entity_id, direction, channel, template, body, status)
 values ('listing', '<listing_id>', 'out', 'fb_dm', 'availability_check_offering', 'Hi! I saw your post, is the place still available?', 'draft');
 ```
