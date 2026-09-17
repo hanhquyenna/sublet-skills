@@ -691,3 +691,61 @@ select
 from sublet_listings l
 where l.poster_name is not null
 order by l.poster_name, l.seen_at desc;
+
+-- ---------- outreach priority + poster identity update (2026-09-17) ----------
+-- Priority ranking sống ở view riêng (sublet_v_outreach_priority) để logic
+-- chỉ viết 1 nơi; sublet_v_poster_identity join vào để lộ cột outreach_order
+-- (1,2,3... liên tục, chỉ cho người CHƯA outreach) + has_outreached (theo
+-- poster_name, không chỉ theo 1 bài — khớp rule "không nhắn 1 người 2 lần").
+-- Cả 2 đều là VIEW thường (không materialized) -> live, tự tính lại mỗi query.
+create or replace view sublet_v_outreach_priority as
+with base as (
+  select
+    l.id as listing_id,
+    l.poster_name,
+    l.confidence,
+    l.seen_at,
+    extract(day from (now() - l.seen_at))::int as days_since_seen
+  from sublet_listings l
+  left join sublet_v_listing_profile prof on prof.listing_id = l.id
+  where l.kind in ('offering','seeking')
+    and l.link_validation_status = 'validated'
+    and l.canonical_id is null
+    and l.poster_name is not null
+    and (prof.risk_flags is null or jsonb_array_length(prof.risk_flags) = 0)
+    and extract(day from (now() - l.seen_at))::int <= 7
+    and not exists (
+      select 1 from sublet_messages sm
+      where sm.status = 'sent'
+        and sm.entity_type = 'listing'
+        and sm.entity_id in (select id from sublet_listings l2 where l2.poster_name = l.poster_name)
+    )
+)
+select
+  listing_id, poster_name, confidence, seen_at, days_since_seen,
+  case when days_since_seen <= 4 then 'A' else 'B' end as recency_tier,
+  row_number() over (
+    order by
+      case when days_since_seen <= 4 then 0 else 1 end,
+      case confidence when 'high' then 0 when 'medium' then 1 when 'low' then 2 else 3 end,
+      seen_at desc
+  ) as priority_rank
+from base;
+
+create or replace view sublet_v_poster_identity as
+select
+  l.poster_name, l.poster_type, l.id as listing_id, l.group_key,
+  l.source_url as post_link, l.raw_text as post_text, l.kind as intent,
+  l.subtype, l.confidence, l.area, l.rent_eur, l.available_from, l.available_to,
+  l.registration_allowed, l.poster_constraints, l.link_validation_status,
+  l.canonical_id, l.seen_at, l.analyzed_at,
+  exists (
+    select 1 from sublet_messages sm
+    where sm.status = 'sent' and sm.entity_type = 'listing'
+      and sm.entity_id in (select id from sublet_listings l2 where l2.poster_name = l.poster_name)
+  ) as has_outreached,
+  op.priority_rank as outreach_order
+from sublet_listings l
+left join sublet_v_outreach_priority op on op.listing_id = l.id
+where l.poster_name is not null
+order by l.poster_name, l.seen_at desc;
