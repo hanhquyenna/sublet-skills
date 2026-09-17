@@ -16,6 +16,33 @@ xoá hoàn toàn (169,012 dòng, phần lớn `weak`-tier — data bloat không 
 xứng giá trị). Giờ mỗi listing `offering`/`seeking` genuinely-validated đủ
 điều kiện tự nó là 1 candidate — không cần ghép cặp với listing nào khác.
 
+**2026-09-17 (tiếp) — chuyển hẳn sang đọc view `dashboardkien_outreach`:**
+mọi điều kiện lọc (mục "Input" cũ bên dưới), thứ tự ưu tiên, và nội dung
+template giờ đã tính sẵn trong 1 view duy nhất — skill này **không tự query
+`sublet_listings` nữa**, chỉ đọc `dashboardkien_outreach`:
+
+```sql
+select listing_id, poster_name, intent, post_link, message1, scam_flag
+from dashboardkien_outreach
+where outreach_order is not null   -- đã qua hết filter (validated, individual,
+                                    -- canonical_id null, no risk_flags, ≤7 ngày,
+                                    -- chưa outreach) + xếp hạng theo priority
+  and not has_outreached
+order by outreach_order;           -- 1,2,3... liên tục, làm đúng thứ tự này
+```
+
+`outreach_order` đã gộp sẵn: recency tier (0-4 ngày trước ưu tiên hơn 5-7
+ngày; quá 7 ngày tự động `outreach_order=null`, không hiện ra nữa) + trong
+tier thì `confidence` (high→medium→low). `has_outreached` tính theo
+`poster_name` (không chỉ theo 1 bài) — khớp đúng rule 7 bên dưới, tự loại
+người đã từng nhận tin. `message1` là nội dung draft đã chọn sẵn theo
+kind×language (xem mục Template) — copy nguyên văn, không tự sửa.
+
+**`scam_flag=true` không tự động loại** (theo yêu cầu Kien: chỉ đánh dấu, để
+Kien tự xem) — nhưng **nên bỏ qua thủ công** khi tạo draft, vì regex chỉ bắt
+được mẫu đã biết, không phải xác nhận chắc chắn. Liệt kê riêng số này trong
+báo cáo, không im lặng draft cho scam-flagged.
+
 ## Spec
 
 - **Trigger:** Kien gọi tay `/outreach-prep`, thường sau khi `intent-analyze`
@@ -149,16 +176,19 @@ sửa/cá nhân hoá trước khi gửi tay, agent không tự ý mở rộng c�
 
 ## Ghi `sublet_messages`
 
-Lấy `kind` và `language` từ listing trước khi chọn `body` theo bảng trên.
+`message1` từ `dashboardkien_outreach` đã đúng nội dung cần gửi — copy thẳng
+vào `body`, không tự tra lại bảng kind×language nữa (view đã làm việc đó).
+`template` vẫn ghi theo `intent` để giữ logic dedup cũ hoạt động bình thường.
 
 ```sql
--- vi du: offering + language='nl'
+-- vi du: 1 dong tu dashboardkien_outreach co intent='offering', message1='Hoi! ...'
 insert into sublet_messages (entity_type, entity_id, direction, channel, template, body, status)
-values ('listing', '<listing_id>', 'out', 'fb_dm', 'availability_check_offering', 'Hoi! Ik zag je bericht, is de plek nog beschikbaar?', 'draft');
--- vi du: offering + language khac 'nl' (hoac null) -> mac dinh ban en
-insert into sublet_messages (entity_type, entity_id, direction, channel, template, body, status)
-values ('listing', '<listing_id>', 'out', 'fb_dm', 'availability_check_offering', 'Hi! I saw your post, is the place still available?', 'draft');
+values ('listing', '<listing_id>', 'out', 'fb_dm', 'availability_check_offering', '<message1 nguyen van>', 'draft');
+-- intent='seeking' -> template='availability_check_seeker'
 ```
+
+Ghi theo đúng thứ tự `outreach_order` (không đảo lộn), ghi ngay sau mỗi
+listing xử lý xong, không đợi hết batch.
 
 `entity_type='listing'` (không dùng `'match'`/`'seeker'` vì dự án chưa có
 `sublet_seekers`/`sublet_matches` chính thức ở scope hiện tại — liên kết trực
@@ -178,7 +208,7 @@ Không tự động đổi status hàng loạt, không đoán đã gửi từ im
 Kien "có vẻ đang mở Messenger". Nếu Kien báo đã gửi nhiều tin cùng lúc, xử lý
 từng `message_id` một, xác nhận lại số lượng đã update.
 
-## Track "ai / gửi gì / lúc nào" — view `sublet_v_outreach_queue`, không cần bảng mới
+## Track "ai / gửi gì / lúc nào" — `dashboardkien_outreach.has_outreached` + view `sublet_v_outreach_queue`
 
 Đủ dữ liệu từ `sublet_messages` hiện có, gộp sẵn qua view
 `sublet_v_outreach_queue` (thêm 2026-09-16) — 1 dòng/message, có
