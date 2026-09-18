@@ -1,67 +1,74 @@
 ---
 name: outreach-prep
-description: "Draft availability-check DMs (never sent by the agent) for qualifying individual offering/seeking listings, save them to sublet_messages as status='draft', and track who was contacted, with what message, and when Kien marks it sent. Use with /outreach-prep."
+description: "Draft availability-check DMs (never sent by the agent) in strict outreach_order from dashboardkien_outreach, using message1 verbatim, and mark status when Kien reports a send. Use with /outreach-prep."
 ---
 
 # outreach-prep
 
-Skill này soạn **draft** tin nhắn hỏi lại "còn không/vẫn tìm không" cho từng
-listing đủ điều kiện — **không bao giờ gửi**. Agent chỉ đọc Facebook để lấy
-context (đã có sẵn trong DB, không cần mở Facebook lại ở skill này), ghi draft
-vào `sublet_messages`, và track trạng thái gửi khi Kien tự báo đã gửi.
+Skill này soạn **draft** tin nhắn hỏi lại "còn không/vẫn tìm không" theo đúng
+thứ tự ưu tiên đã tính sẵn trong view `dashboardkien_outreach` — **không bao
+giờ gửi**. Agent không mở Facebook ở skill này (context đã có sẵn trong DB),
+chỉ đọc view, ghi draft vào `outreach_messages`, và track trạng thái gửi khi
+Kien tự báo đã gửi.
 
-**2026-09-17 — bỏ bước matching (Kien quyết định):** trước đây skill này lấy
-candidate từ `sublet_insight_matches` (seeker↔offering pairing). Bảng đó đã bị
-xoá hoàn toàn (169,012 dòng, phần lớn `weak`-tier — data bloat không tương
-xứng giá trị). Giờ mỗi listing `offering`/`seeking` genuinely-validated đủ
-điều kiện tự nó là 1 candidate — không cần ghép cặp với listing nào khác.
+**⚠️ 2026-09-17 — DB đã migrate, đọc `information/SKILL.md` mục "Database"
+trước khi chạy skill này nếu chưa đọc.** Bảng/RPC cũ (`sublet_listings`,
+`sublet_messages`, RPC `sublet_exec`) không còn tồn tại. Project data thật là
+ref `cteunhuxrghpozwbnehh` (không phải "Lamy"); `scripts/db.py` đang hỏng —
+đọc/ghi bằng REST trực tiếp với `SUPABASE_SERVICE_ROLE_KEY` từ
+`~/.sublet-skills.env`, hoặc MCP Supabase đã xác nhận trỏ đúng project này.
 
-**2026-09-17 (tiếp) — chuyển hẳn sang đọc view `dashboardkien_outreach`:**
-mọi điều kiện lọc (mục "Input" cũ bên dưới), thứ tự ưu tiên, và nội dung
-template giờ đã tính sẵn trong 1 view duy nhất — skill này **không tự query
-`sublet_listings` nữa**, chỉ đọc `dashboardkien_outreach`:
+Toàn bộ input, xếp hạng, dedup và nội dung message đã tính sẵn trong 1 view
+duy nhất — skill này **không tự tính lại điều kiện gì**, chỉ đọc
+`dashboardkien_outreach` theo đúng cột đã có:
 
 ```sql
-select listing_id, poster_name, intent, post_link, message1, scam_flag
+select poster_id, poster_name, post_id, intent, post_link, message1,
+       scam_flag, outreach_order
 from dashboardkien_outreach
-where outreach_order is not null   -- đã qua hết filter (validated, individual,
-                                    -- canonical_id null, no risk_flags, ≤7 ngày,
-                                    -- chưa outreach) + xếp hạng theo priority
+where outreach_order is not null   -- đã qua hết filter của view (validated,
+                                     -- individual, không risk/scam auto-exclude,
+                                     -- ≤7 ngày, xếp hạng theo fit_score/recency/confidence)
   and not has_outreached
-order by outreach_order;           -- 1,2,3... liên tục, làm đúng thứ tự này
+order by outreach_order asc;        -- LÀM ĐÚNG THỨ TỰ NÀY, không nhảy cóc, không tự sắp xếp lại
 ```
 
-`outreach_order` đã gộp sẵn: recency tier (0-4 ngày trước ưu tiên hơn 5-7
-ngày; quá 7 ngày tự động `outreach_order=null`, không hiện ra nữa) + trong
-tier thì `confidence` (high→medium→low). `has_outreached` tính theo
-`poster_name` (không chỉ theo 1 bài) — khớp đúng rule 7 bên dưới, tự loại
-người đã từng nhận tin. `message1` là nội dung draft đã chọn sẵn theo
-kind×language (xem mục Template) — copy nguyên văn, không tự sửa.
+(Chạy qua REST tương đương:
+`GET /rest/v1/dashboardkien_outreach?select=poster_id,poster_name,post_id,intent,post_link,message1,scam_flag,outreach_order&outreach_order=not.is.null&has_outreached=eq.false&order=outreach_order.asc`)
 
-**`scam_flag=true` không tự động loại** (theo yêu cầu Kien: chỉ đánh dấu, để
-Kien tự xem) — nhưng **nên bỏ qua thủ công** khi tạo draft, vì regex chỉ bắt
-được mẫu đã biết, không phải xác nhận chắc chắn. Liệt kê riêng số này trong
-báo cáo, không im lặng draft cho scam-flagged.
+`outreach_order` đã gộp sẵn: recency (post mới nhất trước, quá 7 ngày tự động
+`outreach_order=null` — không hiện ra nữa) rồi trong cùng tier thì theo mức độ
+chi tiết của bài (`confidence`/`fit_score`, cao hơn ưu tiên hơn). `has_outreached`
+tính live theo poster (không chỉ theo 1 bài) — tự loại người đã từng nhận tin,
+khớp rule "không nhắn 1 người 2 lần" bên dưới. `message1` là nội dung draft đã
+chọn sẵn theo intent×language — **copy nguyên văn**, không tự sửa.
+
+**Known gap (không phải việc của skill này để tự vá):** `outreach_order` hiện
+không tuyệt đối liên tục 1,2,3... (có khoảng trống rải rác trong dãy số) —
+không ảnh hưởng thứ tự tương đối, chỉ cần `order by outreach_order asc` là đủ
+đúng thứ tự thật; đừng suy diễn số thứ tự tuyệt đối = số người đã xử lý.
+
+**`scam_flag=true` không tự động loại khỏi view** (theo yêu cầu Kien: chỉ
+đánh dấu, để Kien tự xem) — nhưng agent **nên bỏ qua thủ công**, không tạo
+draft cho các dòng này, và liệt kê riêng trong báo cáo thay vì im lặng draft.
 
 ## Spec
 
-- **Trigger:** Kien gọi tay `/outreach-prep`, thường sau khi `intent-analyze`
-  đã classify thêm listing mới.
-- **Đọc:** `sublet_listings` (kind/area/link_validation_status/poster_name/
-  canonical_id), `sublet_v_listing_profile` (risk_flags/language),
-  `sublet_v_link_needs_reverification`, `sublet_messages`/
-  `sublet_v_outreach_queue` (để biết listing/poster nào đã có draft, tránh
-  trùng).
-- **Ghi:** `sublet_messages` (`status='draft'`, một dòng mỗi listing lần đầu
-  cần draft); không ghi gì khác. Không tạo `sublet_seekers`/`sublet_matches`
-  chính thức.
-- **Không bao giờ:** không mở Facebook, không click Send/Message trên bất kỳ
+- **Trigger:** Kien gọi tay `/outreach-prep`.
+- **Đọc:** `dashboardkien_outreach` (view duy nhất cần đọc để chọn candidate,
+  lấy nội dung và biết ai đã outreach); `outreach_messages` chỉ để tránh ghi
+  trùng và để trả lời "đã gửi gì cho ai".
+- **Ghi:** `outreach_messages` (`status='draft'`, một dòng mỗi `post_id`+
+  `poster_id` lần đầu cần draft). Không ghi gì khác, không tạo bảng mới.
+- **Không bao giờ:** không mở Facebook, không click Send/Message ở bất kỳ
   giao diện nào, không tự đổi `status` sang `sent` — chỉ Kien đổi (qua lệnh
-  `/outreach-prep sent <message_id>` hoặc Kien tự update).
-- **Metrics:** `outreach.drafts_created`, `outreach.drafts_pending`,
-  `outreach.sent_by_agent` (phải luôn = 0 — R01 registry).
-- **Kết quả:** báo số draft mới tạo, số listing bị loại và lý do (risk flag,
-  duplicate, anonymous chưa access-ready), số draft đang chờ gửi.
+  `/outreach-prep sent <message_id>` hoặc Kien tự báo trong chat).
+- **Metrics:** số draft mới tạo, số draft đang chờ (`status='draft'`), số đã
+  gửi (`status='sent'`, phải luôn do Kien báo, không phải agent tự đổi).
+- **Kết quả báo cáo:** số draft mới tạo (kèm `outreach_order` thấp nhất→cao
+  nhất đã xử lý, để Kien biết có đi đúng thứ tự không), số dòng bị bỏ qua vì
+  `scam_flag=true` (liệt kê tên), tổng số người còn lại trong queue
+  (`outreach_order is not null and not has_outreached`).
 
 ## Hard rule (thừa hưởng nguyên vẹn từ CLAUDE.md, không có ngoại lệ)
 
@@ -70,171 +77,113 @@ báo cáo, không im lặng draft cho scam-flagged.
   cầu trực tiếp. "Agent là mắt và trí nhớ; con người là tay và tên."
 - Mọi message tạo ra ở đây bắt buộc `status='draft'`. Chỉ Kien được đổi
   `status='sent'` + `sent_at` — agent chỉ thực hiện đổi này khi Kien **báo rõ
-  trong chat** "đã gửi tin X" hoặc gọi lệnh đánh dấu, không tự suy đoán đã gửi.
-- Không giới hạn số draft tạo ra (khác với DM thật — PLAN.md giới hạn ≤10
-  DM/ngày là cho tin **đã gửi**, không áp cho việc tạo draft). Nhưng vẫn báo
-  rõ số lượng để Kien không bị ngợp.
+  trong chat** "đã gửi tin X" hoặc gọi lệnh đánh dấu, không tự suy đoán đã gửi
+  từ im lặng hay hành vi khác.
+- Không giới hạn số draft tạo ra (khác với DM thật đã gửi, có giới hạn riêng
+  trong `PLAN.md`). Nhưng vẫn báo rõ số lượng để Kien không bị ngợp.
+- Không nhắn 1 người (theo `poster_id`) 2 lần trong 2 đợt outreach khác nhau —
+  `has_outreached` trong view đã tự tính việc này (dựa trên
+  `outreach_messages.status='sent'` join theo `poster_id`); nếu view đã trả về
+  `not has_outreached` thì tin theo, không tự query lại logic riêng.
 
-## Input: listing nào được tạo draft
+## Đi qua queue: luôn theo `outreach_order`, không tự sắp xếp lại
 
-Không còn bước ghép cặp seeker↔offering nào cả — mỗi listing `offering`/
-`seeking` genuinely-validated, đủ điều kiện dưới đây, tự nó là 1 candidate độc
-lập cho draft "còn không/vẫn tìm không". Điều kiện:
+1. Query `dashboardkien_outreach` như SQL/REST ở trên, `order by
+   outreach_order asc`.
+2. Xử lý **tuần tự từng dòng theo đúng thứ tự trả về** — không nhảy cóc, không
+   ưu tiên theo cảm tính riêng (ví dụ "bài này nhìn hấp dẫn hơn"); nếu Kien
+   muốn đổi tiêu chí xếp hạng, đó là việc sửa logic trong view
+   `dashboardkien_outreach` (báo Kien / DBA quyết định), không phải việc
+   skill này tự làm.
+3. Với mỗi dòng: nếu `scam_flag=true` → bỏ qua, ghi vào danh sách "skipped
+   (scam_flag)" cho báo cáo, **không** insert draft. Nếu không → tạo draft
+   (mục dưới).
+4. Ghi `outreach_messages` ngay sau khi xử lý xong 1 dòng, không đợi hết cả
+   batch rồi ghi 1 lần — để nếu bị dừng giữa chừng, DB vẫn phản ánh đúng tiến
+   độ thật.
 
-1. `kind in ('offering','seeking')` (`intent-analyze` đã phân loại; `kind is
-   null` hoặc `kind='other'` chưa/không đủ điều kiện).
-2. `link_validation_status='validated'` **và** không nằm trong
-   `sublet_v_link_needs_reverification` (loại `link_resolution_method=
-   'bulk_unverified_override'` — validated giả, chưa mở link thật).
-3. `poster_name is not null` — không có ai để bấm Message thì draft vô dụng.
-4. `canonical_id is null` (không phải bản repost/duplicate — chỉ giữ bản gốc
-   trong pool).
-5. Không có `risk_flags` (rỗng) trên listing đó — có risk flag thì **không**
-   tạo draft, liệt kê riêng cho Kien tự quyết (đặc biệt
-   `community_warning`/`prepay_before_viewing`/`off_platform_redirect`/
-   `duplicate_across_posters`: không bao giờ tự động draft).
-6. Chưa có draft nào trước đó cho **listing này** (`select 1 from
-   sublet_messages where entity_type='listing' and entity_id=<listing.id>
-   and channel='fb_dm' and template in ('availability_check_offering',
-   'availability_check_seeker')`) — tránh tạo 2 draft cho cùng 1 bài.
-7. **Chưa từng nhắn cho người này qua bất kỳ listing nào khác** (kiểm theo
-   `poster_name`, không chỉ theo `listing_id`) — cùng 1 poster có thể có
-   nhiều bài khác nhau (không phải repost, không bị loại ở điều kiện 4); nếu
-   họ **đã có** message (`draft` hoặc `sent`) từ lần chạy trước, **không** tạo
-   thêm draft mới cho bài khác của họ. Lý do: nhắn 1 người 2 lần trong cùng
-   đợt outreach là làm phiền, không phải "thêm cơ hội". Dùng `poster_name` dù
-   biết đây là tín hiệu yếu (2 người trùng tên thật vẫn có thể xảy ra,
-   `data-engineer` đã ghi rõ "display_name giống nhau không đủ để merge
-   identity") — với outreach thì **thà bỏ sót 1 draft hiếm khi trùng tên còn
-   hơn nhắn phiền ai đó 2 lần**, ngược chiều với nguyên tắc recall-first dùng
-   cho trích xuất dữ liệu (đó là ưu tiên không bỏ sót dữ liệu, không áp dụng
-   cho hành động nhắm vào người thật). **Rule này giữ nguyên vẹn từ thiết kế
-   cũ, không đổi khi bỏ bước matching.**
-
-Anonymous poster (theo R31): chỉ tạo draft khi `anonymous_access_ready=true`
-(permalink đã validate xác nhận đúng bài); thiếu điều kiện này thì bỏ qua,
-liệt kê riêng.
-
-```sql
-select l.id as listing_id, l.poster_name, l.kind, l.source_url, l.language,
-       prof.risk_flags
-from sublet_listings l
-left join sublet_v_listing_profile prof on prof.listing_id = l.id
-where l.kind in ('offering','seeking')
-  and l.link_validation_status = 'validated'
-  and l.id not in (select id from sublet_v_link_needs_reverification)
-  and l.poster_name is not null
-  and l.canonical_id is null
-  and (prof.risk_flags is null or jsonb_array_length(prof.risk_flags) = 0)
-  and not exists (
-    select 1 from sublet_messages sm
-    where sm.entity_type = 'listing' and sm.entity_id = l.id
-      and sm.channel = 'fb_dm'
-      and sm.template in ('availability_check_offering','availability_check_seeker')
-  )
-  and not exists (
-    -- điều kiện 7: người này (theo poster_name) chưa nhận message nào qua listing khác
-    select 1 from sublet_v_outreach_queue oq
-    where oq.poster_name = l.poster_name
-      and oq.template in ('availability_check_offering','availability_check_seeker')
-  );
-```
-
-## Template (chốt bản cuối 2026-09-16, mở rộng theo ngôn ngữ 2026-09-17 theo yêu cầu Kien — giữ nguyên văn, không tự đổi giọng)
-
-`template` column vẫn chỉ mang **kind** (`availability_check_offering` /
-`availability_check_seeker`) — giữ nguyên để không phá logic dedup/report ở
-các phần khác của skill này. **`body`** (nội dung thật gửi đi) được chọn theo
-**2 trục: kind (offering/seeking) × `sublet_listings.language`** (cột
-data-engineer detect bằng `langdetect`, thêm 2026-09-17) — tra bảng dưới đây,
-không tự dịch/diễn giải thêm:
-
-| kind | `language` | `body` |
-|---|---|---|
-| offering | `en` (hoặc bất kỳ giá trị nào khác `nl`, kể cả `null`) | `Hi! I saw your post, is the place still available?` |
-| offering | `nl` | `Hoi! Ik zag je bericht, is de plek nog beschikbaar?` |
-| seeking | `en` (hoặc bất kỳ giá trị nào khác `nl`, kể cả `null`) | `Hey! I saw your post, are you still looking for a place?` |
-| seeking | `nl` | `Hey! Ik zag je bericht, ben je nog op zoek naar een plek?` |
-
-Chỉ 2 ngôn ngữ có bản dịch riêng (en/nl chiếm 97.7% dữ liệu hiện có — 695+401
-trên 1122). Mọi `language` khác (af/da/es/de/fr/...) hoặc `null` **mặc định
-về bản tiếng Anh** — không tự dịch sang ngôn ngữ khác dù `language` cho biết
-đó là tiếng gì, tránh dịch sai/lệch giọng khi chưa được Kien duyệt. Nếu Kien
-muốn thêm ngôn ngữ thứ 3 (vd Tây Ban Nha), thêm 1 dòng mới vào bảng trên theo
-đúng yêu cầu rõ ràng của Kien, không tự suy diễn thêm.
-
-Bản đầu tiên (`"Hi! Is your place still available?"` / `"Hey! Are you still
-looking for a place?"`) đã bị thay bằng bản `en` ở trên — 12 draft tạo ngày
-2026-09-16 đã được UPDATE tại chỗ sang bản mới vì còn `status='draft'` (chưa
-gửi, sửa tại chỗ an toàn — khác `sublet_events` là append-only,
-`sublet_messages` ở trạng thái draft chưa gửi thì sửa được bình thường).
-
-Ghi đúng nguyên văn câu tương ứng vào `body`, không thêm tên poster, không
-thêm chi tiết bài đăng, không nhắc AI/agent/automation — Kien có thể tự
-sửa/cá nhân hoá trước khi gửi tay, agent không tự ý mở rộng câu chữ. Nếu Kien
-đổi template sau này, cập nhật đúng bảng trên, không suy diễn thêm biến thể.
-
-## Ghi `sublet_messages`
+## Ghi draft vào `outreach_messages`
 
 `message1` từ `dashboardkien_outreach` đã đúng nội dung cần gửi — copy thẳng
-vào `body`, không tự tra lại bảng kind×language nữa (view đã làm việc đó).
-`template` vẫn ghi theo `intent` để giữ logic dedup cũ hoạt động bình thường.
+vào `body`, không tự tra lại bảng intent×language nào khác (view đã làm việc
+đó). `template` ghi theo `intent` để giữ dedup dễ đọc:
+`intent='offering'` → `template='availability_check_offering'`;
+`intent='seeking'` → `template='availability_check_seeker'`.
+
+Trước khi insert, kiểm tra chưa có draft/sent nào cho đúng `post_id` này (dedup
+theo bài) — view đã tự lo phần "chưa từng nhắn người này qua bài khác" (qua
+`has_outreached`), chỉ cần tự check thêm theo `post_id` để không tạo 2 draft
+cho cùng 1 bài nếu skill chạy nhiều lần trong ngày:
 
 ```sql
--- vi du: 1 dong tu dashboardkien_outreach co intent='offering', message1='Hoi! ...'
-insert into sublet_messages (entity_type, entity_id, direction, channel, template, body, status)
-values ('listing', '<listing_id>', 'out', 'fb_dm', 'availability_check_offering', '<message1 nguyen van>', 'draft');
--- intent='seeking' -> template='availability_check_seeker'
+select 1 from outreach_messages
+where post_id = '<post_id>' and channel = 'fb_dm';
+-- có kết quả -> đã có draft/sent cho bài này rồi, bỏ qua, không insert lại
 ```
 
-Ghi theo đúng thứ tự `outreach_order` (không đảo lộn), ghi ngay sau mỗi
-listing xử lý xong, không đợi hết batch.
+Insert khi chưa có:
 
-`entity_type='listing'` (không dùng `'match'`/`'seeker'` vì dự án chưa có
-`sublet_seekers`/`sublet_matches` chính thức ở scope hiện tại — liên kết trực
-tiếp tới `sublet_listings.id`). Ghi ngay sau mỗi listing xử lý xong, không đợi
-hết batch.
+```sql
+insert into outreach_messages (post_id, poster_id, direction, channel, template, body, status)
+values ('<post_id>', '<poster_id>', 'out', 'fb_dm', '<availability_check_offering|availability_check_seeker>', '<message1 nguyen van>', 'draft');
+```
 
-## Đánh dấu đã gửi — chỉ Kien
+(REST tương đương: `POST /rest/v1/outreach_messages` với body JSON đúng các
+cột trên, header `Prefer: return=representation` nếu cần lấy lại `id`.)
+
+Không thêm tên poster, không thêm chi tiết bài đăng, không nhắc AI/agent/
+automation vào `body` — Kien có thể tự sửa/cá nhân hoá trước khi gửi tay,
+agent không tự ý mở rộng câu chữ trong `message1`.
+
+## Đánh dấu đã gửi — chỉ Kien, và `has_outreached` tự cập nhật live theo đó
 
 `/outreach-prep sent <message_id>` (hoặc Kien nêu rõ trong chat "đã gửi cho
 X"): agent update đúng 1 dòng:
 
 ```sql
-update sublet_messages set status='sent', sent_at=now() where id='<message_id>' and status='draft';
+update outreach_messages set status='sent', sent_at=now() where id='<message_id>' and status='draft';
 ```
 
-Không tự động đổi status hàng loạt, không đoán đã gửi từ im lặng hay từ việc
-Kien "có vẻ đang mở Messenger". Nếu Kien báo đã gửi nhiều tin cùng lúc, xử lý
-từng `message_id` một, xác nhận lại số lượng đã update.
+(REST: `PATCH /rest/v1/outreach_messages?id=eq.<message_id>&status=eq.draft`
+với body `{"status":"sent","sent_at":"<now iso>"}`.)
 
-## Track "ai / gửi gì / lúc nào" — `dashboardkien_outreach.has_outreached` + view `sublet_v_outreach_queue`
+Vì `dashboardkien_outreach.has_outreached` là cột tính live từ
+`outreach_messages.status='sent'`, agent **không cần và không được** tự set
+`has_outreached` ở đâu khác — chỉ cần update đúng `outreach_messages` là view
+tự phản ánh đúng ngay ở lần query kế tiếp. Không tự động đổi status hàng
+loạt, không đoán đã gửi từ im lặng hay từ việc Kien "có vẻ đang mở Messenger".
+Nếu Kien báo đã gửi nhiều tin cùng lúc, xử lý từng `message_id` một, xác nhận
+lại số lượng đã update ở cuối.
 
-Đủ dữ liệu từ `sublet_messages` hiện có, gộp sẵn qua view
-`sublet_v_outreach_queue` (thêm 2026-09-16) — 1 dòng/message, có
-`message_id, status, template, body, created_at, sent_at, poster_name,
-source_url, poster_profile_url, offer_or_need, group_key`.
-`poster_profile_url` lấy từ event `context_captured` mới nhất — không phải
-lúc nào cũng có (Facebook không luôn lộ link profile trong feed); thiếu thì
-Kien mở `source_url` (bài gốc) để tìm người đăng, không phải lỗi thiếu dữ
-liệu.
+## Track "ai / gửi gì / lúc nào"
+
+Không cần view phụ nào khác — `dashboardkien_outreach` đã có đủ
+`has_outreached`/`outreach_order`/`message1`/`scam_flag` để biết ai đang chờ,
+ai đã xong; `outreach_messages` là log thật của từng tin (draft/sent, lúc
+nào). Muốn xem toàn bộ đang chờ gửi:
 
 ```sql
-select * from sublet_v_outreach_queue where status='draft';
+select poster_name, post_link, message1, outreach_order
+from dashboardkien_outreach
+where outreach_order is not null and not has_outreached
+order by outreach_order asc;
 ```
 
-Không tạo bảng "người sẽ DM" riêng — đúng nguyên tắc `data-engineer`
-("không cần tạo bảng người dùng mới mặc định, liên kết qua listing_id"); view
-đủ dùng ở quy mô hiện tại (chục draft/lần).
+Muốn xem đã gửi bao nhiêu:
+
+```sql
+select count(*) from outreach_messages where status = 'sent';
+```
 
 ## Completion và edge cases
 
-- Không có match candidate mới (mọi listing đủ điều kiện đã có draft) → báo
-  0 draft mới, không tạo gì, không coi là lỗi.
-- Listing bị loại vì risk flag/duplicate/anonymous chưa ready → liệt kê riêng
-  trong báo cáo (không im lặng bỏ qua), để Kien tự quyết có muốn xử lý tay
-  không.
-- DB lỗi giữa batch: retry đúng 1 lần sau 5 giây theo hard rule chung; vẫn
-  lỗi thì dừng, báo warning, không claim đã ghi hết.
-- Không bao giờ tự nới `confidence` threshold (vd. thêm `weak`) hay tự đổi
-  template mà không có yêu cầu rõ từ Kien trong chat.
+- Queue rỗng (`outreach_order is not null and not has_outreached` không có
+  dòng nào) → báo 0 draft mới, không tạo gì, không coi là lỗi.
+- Dòng bị bỏ qua vì `scam_flag=true` → liệt kê riêng trong báo cáo (không im
+  lặng bỏ qua), để Kien tự quyết có muốn xử lý tay không.
+- REST/DB lỗi giữa batch: retry đúng 1 lần sau 5 giây theo hard rule chung;
+  vẫn lỗi thì dừng, báo warning, không claim đã ghi hết.
+- Không bao giờ tự đổi logic xếp hạng trong view, tự nới `confidence`
+  threshold, hay tự đổi nội dung `message1`/template mà không có yêu cầu rõ
+  từ Kien trong chat — mọi thay đổi loại đó là sửa `dashboardkien_outreach`
+  (DDL), không phải việc của skill runtime này.

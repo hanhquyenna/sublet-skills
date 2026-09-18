@@ -15,6 +15,13 @@ Skill này là bản đồ context, không thay thế luật cứng hay logic ch
 
 ## Snapshot hiện tại
 
+**⚠️ 2026-09-17: Supabase schema đã migrate hoàn toàn** (`sublet_listings` →
+`posts`/`posters`/`post_details`/..., RPC `sublet_exec` bị xoá, project thật
+là ref `cteunhuxrghpozwbnehh` chứ không phải "Lamy"). Chi tiết đầy đủ ở mục
+**"Database: lưu ở đâu và dùng thế nào"** bên dưới — đọc mục đó trước khi
+đụng DB, đừng tin số liệu/tên bảng `sublet_*` trong phần snapshot cũ dưới đây
+(giữ lại vì có giá trị lịch sử về quá trình capture, nhưng tên bảng đã đổi).
+
 Snapshot này được ghi ngày **2026-09-16**, sau lần resume raw-capture gần nhất; luôn đối chiếu runtime trước khi hành động:
 
 - Repo chính: `/Users/ad/sublet-skills` (thường gọi bằng `~/sublet-skills`).
@@ -145,25 +152,87 @@ find .claude/skills -mindepth 2 -maxdepth 2 -name SKILL.md -print | sort
 
 ### Database: lưu ở đâu và dùng thế nào
 
-- Database live là Supabase project **Lamy**, ref
-  `cteunhuxrghpozwbnehh`; schema chuẩn nằm tại `db/schema.sql`.
-- Secret chỉ nằm ngoài repo trong `~/.sublet-skills.env`; không in, commit hoặc
-  yêu cầu paste secret vào chat.
-- Đường chuẩn để query/update là `python3 scripts/db.py "<SQL>"`, qua RPC
-  `public.sublet_exec`; không dùng DB script để điều khiển Facebook.
-- `sublet_groups`/`sublet_group_metrics`: group identity, joined/status,
-  member/activity, tier và checkpoint 14 ngày.
-- `sublet_listings`: raw post với `source_url`, `group_key`, poster, absolute
-  `posted_at` nếu thấy, `seen_at`, full `raw_text`, `kind=null`; relative-time
-  estimate (nếu parse được) chỉ nằm trong `notes`/context payload và luôn có
-  uncertainty; `text_hash` do DB generate. Link mới bắt đầu ở
-  `link_validation_status='unvalidated'`; `link_validated_url` giữ canonical
-  sau khi validator xác nhận, còn `source_url` luôn giữ evidence gốc.
-- `sublet_events`: provenance/context. Event raw chuẩn là
-  `context_captured`, contract v2; `detail_audit` là QA riêng, không analyzer.
-- `sublet_scan_runs`: run, group, page loads, counts, cursor và stop reason.
-- `sublet_ops_state`/`sublet_jobs`: resumable batch/chunk progress.
-- `sublet_inbox`: cảnh báo và việc Kien cần biết; `sublet_metrics`: số đo báo cáo.
+**⚠️ Đọc kỹ mục này trước khi đụng DB — có 2 Supabase project khác tên/khác
+ref, dễ nhầm, và schema đã đổi hoàn toàn ngày 2026-09-17.**
+
+**Có đúng 1 project chứa dữ liệu sublet thật, không phải "Lamy":**
+
+- Project chứa data sublet là project **riêng, dành riêng cho sublet-skills**,
+  ref `cteunhuxrghpozwbnehh`, URL `https://cteunhuxrghpozwbnehh.supabase.co`.
+  Đây là project duy nhất có bảng `posts`/`posters`/`groups`/`dashboardkien_*`
+  thật — **không phải** project "Lamy" (`gcrolhshguehtshjmcmx`) mà MCP
+  `supabase` trong session có thể tự nối vào theo mặc định. Nếu gọi
+  `mcp__supabase__*` và thấy bảng `lamy_*` hoặc bảng `sublet_*` (không có
+  `posts`/`posters`) hiện ra, **đó là sai project** — đừng đọc/ghi gì ở đó cho
+  việc sublet, và đừng tin schema cũ nó cho thấy. Verify project trước khi ghi
+  bất cứ gì bằng `mcp__supabase__get_project_url` — phải khớp
+  `cteunhuxrghpozwbnehh`.
+- Secret của project đúng nằm ngoài repo trong `~/.sublet-skills.env` (mode
+  `600`): biến `SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY`. File có comment
+  ghi rõ "Project riêng cho sublet (ref cteunhuxrghpozwbnehh)" — tin theo
+  file này, không tin theo tên gọi "Lamy" trong `CLAUDE.md`/tài liệu cũ (tài
+  liệu cũ gộp nhầm 2 project, đang cần sửa). Không in, commit hoặc yêu cầu
+  paste secret vào chat.
+- **`python3 scripts/db.py` hiện KHÔNG dùng được** — nó gọi RPC
+  `public.sublet_exec(q text)`, và RPC này **đã bị xoá vĩnh viễn trong migration
+  2026-09-17** (chạy arbitrary SQL as postgres, chủ động gỡ vì lý do bảo mật —
+  đừng tạo lại). Gọi `db.py` sẽ ra lỗi `PGRST202 Could not find the function
+  public.sublet_exec`. Đường tạm thời để đọc/ghi:
+  - Đọc/ghi theo hàng qua REST (PostgREST) trực tiếp với
+    `SUPABASE_SERVICE_ROLE_KEY` từ `~/.sublet-skills.env`, header
+    `apikey`/`Authorization: Bearer <key>`, endpoint
+    `https://cteunhuxrghpozwbnehh.supabase.co/rest/v1/<table_or_view>` — dùng
+    được cho mọi việc CRUD theo bảng/view (select/insert/update/delete có
+    filter), không cần RPC.
+  - Chạy DDL thật (tạo/sửa view, migration, index) thì REST không làm được —
+    cần Supabase MCP đã trỏ đúng `cteunhuxrghpozwbnehh` (session hiện tại
+    chưa có sẵn cái này, chỉ có MCP trỏ nhầm sang "Lamy"), hoặc Supabase
+    Management API access token, hoặc Kien tự chạy trên Studio. Hỏi Kien nếu
+    cần DDL và chưa có đường nào ở trên.
+  - `anon`/`authenticated` đã bị revoke hoàn toàn mọi quyền trên mọi
+    bảng/view — chỉ `service_role` (server-side) dùng được. Không tự grant
+    lại `anon`.
+- **Schema đã đổi tên/cấu trúc hoàn toàn 2026-09-17** — bảng `sublet_listings`
+  (45 cột, làm 5 việc 1 lúc) đã tách thành:
+  - `posts` (1122 dòng) — post/crawl chính: `url`, `group_id`, `poster_id`,
+    `body`, `intent`, `subtype`, `confidence`, `status`, `language`,
+    `scam_score`, `scam_flags`, `canonical_post_id`, `link_status`,
+    `posted_at`/`seen_at`/`analyzed_at`. (`raw_text`→`body`, `kind`→`intent`,
+    `source_url`→`url`, `group_key`→`group_id`, `canonical_id`→
+    `canonical_post_id`, `link_validation_status`→`link_status`.)
+  - `posters` (796 dòng) — 1 dòng/người thật (dedup bởi DB qua unique index
+    `coalesce(profile_url, 'name:' || lower(name))`, không phải app code):
+    `name`, `profile_url`, `type` (individual/company/anonymous),
+    `is_verified`.
+  - `post_details` (1122 dòng, 1:1 với `posts`) — mọi field cũ về area/rent:
+    `areas` (array, cũ là `area` string), `price_eur` (cũ `rent_eur`),
+    `deposit_eur`, `available_from/to`, `requirements` (cũ
+    `poster_constraints`), `registration_allowed`, v.v.
+  - `post_metrics` (0 dòng, **chưa populate** — likes/shares/comments, để dành
+    cho việc tương lai, chưa có agent nào ghi).
+  - `post_comments` (61 dòng) — comment public gắn theo `post_id`.
+  - `outreach_messages` (12 dòng) — thay `sublet_messages`: `post_id`,
+    `poster_id`, `direction`, `channel`, `template`, `body`, `status`
+    (`draft`/`sent`), `sent_at`.
+  - `groups` (103 dòng) — thay `sublet_groups`, mất tiền tố `sublet_`.
+  - Giữ nguyên data, chỉ mất tiền tố `sublet_`: `events` (4111 dòng),
+    `scan_runs` (74), `ops_state` (12), `daily_metrics` (25), `inbox` (7),
+    `jobs` (0).
+  - **Bị xoá hẳn, không migrate:** `sublet_matches`, `sublet_viewings`,
+    `sublet_fees`, `sublet_seekers` — chưa từng có data nên không mất gì thật.
+  - `events.entity_type` giờ là `'post'`, không còn `'listing'`.
+- **2 view report vẫn sống, đã tự migrate và vẫn hoạt động (verify
+  2026-09-17):** `dashboardkien_group` (103 dòng — coverage/scrape status
+  theo group, xem `dashboardkien-group` trong `db/schema.sql` cũ để hiểu logic
+  gốc, cột đã đổi tên theo bảng mới) và `dashboardkien_outreach` (1064 dòng —
+  board outreach, xem chi tiết ở `outreach-prep/SKILL.md`). Một view khác
+  từng được nhắc tới trong 1 note nội bộ, `v_outreach_queue`, **không tồn
+  tại thật** (query ra 404) — đừng tin theo tên đó nếu thấy nhắc lại ở đâu đó,
+  `dashboardkien_outreach` mới là view thật đang dùng.
+- Rule mới cho schema (từ note migration, áp dụng cho bất kỳ agent nào sửa DB
+  sau này): không tạo bảng mới nếu chưa hỏi qua; bảng mới phải bật RLS ngay;
+  view mới phải có `security_invoker = true` (thiếu cái này view chạy quyền
+  owner, lộ hết row bất kể RLS — đây chính là bug từng bị vá trong migration).
 
 #### Tổng quan toàn bộ 15 bảng `sublet_*` (row count snapshot 2026-09-16, luôn query lại)
 
@@ -261,24 +330,26 @@ profile follow-up hay outreach.
 
 ## Supabase hiện tại
 
-Project canonical hiện tại là **Lamy**, ref `cteunhuxrghpozwbnehh`, URL `https://cteunhuxrghpozwbnehh.supabase.co`. Không dùng project cũ/nhầm.
+**Xem chi tiết đầy đủ (2 project, migration 2026-09-17, cách query khi
+`sublet_exec` đã mất) ở mục "Database: lưu ở đâu và dùng thế nào" phía trên —
+đây chỉ tóm tắt nhanh, đừng đọc mỗi đoạn này rồi tự query.**
 
-- Secret nằm ngoài repo trong `~/.sublet-skills.env`, mode `600`, gồm `SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY` (có thể có biến legacy khác). Không in giá trị, không commit, không yêu cầu Kien paste lại vào chat.
-- `scripts/db.py` tự đọc file env này và ưu tiên REST RPC `sublet_exec`; workflow hiện tại **không cần** `SUPABASE_DB_URL`, psycopg2 hay source file.
-- Mọi SQL từ skill chạy bằng:
-
-  ```sh
-  python3 scripts/db.py "select count(*) from sublet_groups"
-  ```
-
-  SQL dài có thể truyền qua stdin: `echo "..." | python3 scripts/db.py -`.
-- RPC `public.sublet_exec(q text)` đã tồn tại trên project, chạy security definer với `search_path=public`, chỉ cấp execute cho `service_role`. RPC này là runtime setup từ trước và không nằm trong `db/schema.sql`; nếu DB mới thiếu RPC, dừng và xử lý setup rõ ràng, không tự đổi project.
-- Codex có thể có Supabase MCP trong `/Users/ad/.codex/config.toml`; agent
-  khác có thể dùng connector/MCP riêng nếu host cung cấp. Đây chỉ là kênh phụ
-  để inspect/SQL khi khả dụng; `scripts/db.py` đọc `~/.sublet-skills.env` và là
-  đường chạy chuẩn, không phụ thuộc agent.
-- Schema có các bảng chính: `sublet_groups`, `sublet_listings`, `sublet_seekers`, `sublet_matches`, `sublet_viewings`, `sublet_fees`, `sublet_messages`, `sublet_events`, `sublet_scan_runs`, `sublet_ops_state`, `sublet_inbox`.
-- Không sửa schema chỉ để thêm status Facebook. `sublet_groups` dùng `joined` boolean, `tier`, `is_private`, `member_count`, `notif_all_posts`, `offering_7d` và notes; trạng thái pending cần ghi rõ theo schema/skill trước khi mở rộng.
+- Project data thật: **ref `cteunhuxrghpozwbnehh`**, URL
+  `https://cteunhuxrghpozwbnehh.supabase.co`. Đây **không phải** project
+  "Lamy" (`gcrolhshguehtshjmcmx`) — 2 project khác nhau, đừng gộp.
+- Secret nằm ngoài repo trong `~/.sublet-skills.env`, mode `600`: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. Không in giá trị, không commit, không yêu cầu Kien paste lại vào chat.
+- `scripts/db.py` **đang hỏng** (RPC `sublet_exec` nó gọi đã bị xoá
+  2026-09-17) — không dùng được cho tới khi có DDL/RPC thay thế. Đọc/ghi
+  row-level thì gọi REST trực tiếp bằng service_role key (xem mục phía trên);
+  DDL thì cần Kien hoặc 1 MCP đã trỏ đúng project này.
+- Bảng chính hiện tại (thay hoàn toàn cho `sublet_*` cũ): `posts`, `posters`,
+  `post_details`, `post_metrics` (rỗng), `post_comments`, `outreach_messages`,
+  `groups`, `events`, `scan_runs`, `ops_state`, `daily_metrics`, `inbox`,
+  `jobs`. View report: `dashboardkien_group`, `dashboardkien_outreach`.
+- `db/schema.sql` trong repo **vẫn còn mô tả schema CŨ** (`sublet_*`,
+  pre-2026-09-17) — chưa được cập nhật theo migration; đừng dùng nó làm
+  nguồn sự thật cho tên cột/bảng thật cho tới khi có agent nào đối chiếu và
+  viết lại theo schema mới ở trên.
 
 ## Browser và quyền thao tác
 
