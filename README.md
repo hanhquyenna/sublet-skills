@@ -8,7 +8,7 @@
 > `kind`/`subtype`/`poster_type`/... — xem `CLAUDE.md`), và **`outreach-prep`**
 > đọc view `dashboardkien_outreach` để soạn **draft** DM theo đúng thứ tự
 > `outreach_order`; agent được gửi **draft đã tồn tại** qua browser panel khi
-> Kien yêu cầu send rõ ràng, hoặc xử lý ready drafts khi `outreach.auto_dm=true`. Matching
+> agent tự gửi ready drafts theo `outreach_order`, không cần hỏi lại từng tin. Matching
 > seeker↔offering (`sublet_insight_matches`) đã bị **xoá bỏ hoàn toàn
 > 2026-09-17** (Kien quyết định, dữ liệu bloat không tương xứng giá trị).
 >
@@ -83,7 +83,7 @@ Match/viewing chính thức (bảng riêng, không phải seeker↔offering matc
 | `analyze-insights` | Đọc-only trên DB (không mở Facebook): offering/seeking/other thô, cụm trùng lặp, cờ rủi ro, tóm tắt vào inbox/metrics; không re-đọc listing đã `insight_reviewed` | Không |
 | `data-engineer` | Chuẩn hoá raw/insight/lifecycle events, QA, dedupe, provenance, behavior aggregates và report; không browse Facebook, không semantic matching/outreach | Không |
 | `intent-analyze` | Phân loại chính thức offering/seeking/other, `poster_type`, `confidence`, area/rent/date, ghi thật lên DB (bật 2026-09-17) | Không |
-| `outreach-prep` | Soạn draft DM theo `outreach_order` + `message1`; send phase chỉ dùng row draft đã tồn tại | **Có, có điều kiện** — explicit send khi `auto_dm=false`, hoặc ready-draft send khi `auto_dm=true`; body phải giữ nguyên và audit sau khi gửi |
+| `outreach-prep` | Soạn draft DM theo `outreach_order` + `message1`; send phase chỉ dùng row draft đã tồn tại | **Có, có điều kiện** — agent tự gửi ready-draft theo `outreach_order`, không cần hỏi lại từng tin; body phải giữ nguyên và audit sau khi gửi |
 
 ## Giới hạn an toàn (đã code vào skill)
 - ≤4 page load Facebook/chu kỳ, ≤~400/ngày, 24/7 (đổi từ 08–23h ngày 2026-09-16 theo yêu cầu Kien), dừng ngay khi thấy checkpoint.

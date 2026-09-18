@@ -88,7 +88,6 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | E73 | Post bằng NL | template NL | sublet-draft | — |
 | E74 | Seeker push_count hôm nay ≥3 | bỏ qua seeker đó hôm nay | sublet-draft | — |
 | E75 | Chưa có `seeker_form.url` | offer dùng "forward me the replies" | sublet-draft | — |
-| E76 | Có draft nhưng `auto_dm=false` và chưa có explicit send request | giữ `draft`, không mở Messenger/send | outreach-prep | manual |
 | E77 | Agent send thành công, UI xác nhận rõ | update đúng row `sent` + `sent_at`, ghi `events.outreach_dm_sent` actor=agent | outreach-prep | manual |
 | E78 | Click/send UI lỗi hoặc không chắc message đã gửi | giữ `draft`, không ghi sent/event success; báo warning | outreach-prep | manual |
 | E79 | Draft candidate có `scam_flag=true`, đã outreach poster, hoặc ra khỏi queue | không send; giữ/skip draft và báo lý do | outreach-prep | manual |

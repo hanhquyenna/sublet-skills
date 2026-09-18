@@ -1,6 +1,6 @@
 ---
 name: outreach-prep
-description: "Create availability-check DM drafts in strict outreach_order from dashboardkien_outreach, and send only pre-existing approved drafts through the visible Facebook browser when explicitly requested or when outreach.auto_dm=true. Use message bodies verbatim and audit every send. Use with /outreach-prep."
+description: "Create availability-check DM drafts in strict outreach_order from dashboardkien_outreach, and send pre-existing approved drafts through the visible Facebook browser autonomously, in outreach_order, without asking each time. Use message bodies verbatim and audit every send. Use with /outreach-prep."
 ---
 
 # outreach-prep
@@ -27,16 +27,15 @@ ref `cteunhuxrghpozwbnehh`; bảng hiện tại dùng `posts`, `posters`,
 
 ## Permission để gửi
 
-- `outreach.auto_dm: false` (mặc định): `/outreach-prep` chỉ tạo draft. Agent
-  chỉ được gửi khi Kien yêu cầu rõ một send action, ví dụ
-  `/outreach-prep send <message_id>` hoặc một câu tương đương chỉ rõ draft cần
-  gửi.
-- `outreach.auto_dm: true`: agent được xử lý các **draft đã tồn tại** theo
-  `outreach_order` mà không phải hỏi lại từng message. Việc bật cờ này không
-  cho phép bỏ qua các check bên dưới và không cho phép draft+send trong cùng
-  một bước không có row draft trung gian.
-- Dù cờ nào, agent không bao giờ post/comment/like/join group/submit form trên
-  Facebook. DM từ draft là ngoại lệ ghi duy nhất.
+Agent được xử lý các **draft đã tồn tại** theo `outreach_order` và gửi ngay
+trong cùng run, không cần hỏi lại từng message và không cần Kien yêu cầu rõ
+từng send action — không còn cờ `outreach.auto_dm` để bật/tắt việc này. Điều
+này không cho phép bỏ qua các check ở Pha 2 và không cho phép draft+send
+trong cùng một bước không có row draft trung gian (draft vẫn phải persist
+trước khi gửi).
+
+Agent không bao giờ post/comment/like/join group/submit form trên Facebook.
+DM từ draft là ngoại lệ ghi duy nhất.
 
 ## Queue nguồn
 
@@ -59,10 +58,8 @@ view tự loại nhưng agent phải skip: không draft, không send, và báo r
 ## Spec
 
 - **Trigger draft:** `/outreach-prep`.
-- **Trigger send khi `auto_dm=false`:** `/outreach-prep send <message_id>` hoặc
-  yêu cầu rõ tương đương.
-- **Trigger send khi `auto_dm=true`:** có thể gửi các draft ready theo thứ tự
-  mà không hỏi lại từng tin trong một run outreach đã được yêu cầu.
+- **Trigger send:** agent tự gửi các draft ready theo `outreach_order` trong
+  cùng run, không cần hỏi lại từng tin.
 - **Đọc:** `dashboardkien_outreach`, `outreach_messages`, `data/config.yaml`.
 - **Ghi:** `outreach_messages`; sau agent-send thành công ghi thêm `events`.
 - **Facebook:** chỉ visible browser panel đang login thủ công; không CLI/API/
@@ -75,14 +72,24 @@ view tự loại nhưng agent phải skip: không draft, không send, và báo r
 1. Query queue `order by outreach_order asc`.
 2. Xử lý tuần tự, không tự sắp xếp lại.
 3. `scam_flag=true` -> skip và báo tên, không insert draft.
-4. Với row hợp lệ, kiểm tra chưa có message cho `post_id` + `channel='fb_dm'`:
+4. Với row hợp lệ, kiểm tra chưa có message nào (`draft` hoặc `sent`) cho
+   **`poster_id`** này qua bất kỳ post nào — không chỉ riêng `post_id` hiện tại.
+   `message1` chỉ đúng là tin đầu tiên nếu poster này thật sự chưa có message
+   nào trước đó ở bất kỳ post nào của họ:
 
 ```sql
-select id, status from outreach_messages
-where post_id = '<post_id>' and channel = 'fb_dm';
+select id, status, post_id from outreach_messages
+where poster_id = '<poster_id>' and channel = 'fb_dm' and direction = 'out';
 ```
 
-Nếu chưa có, insert `message1` nguyên văn:
+Nếu **đã có bất kỳ row nào** (dù `draft` hay `sent`, ở post khác) cho poster
+này -> skip, không insert draft mới cho `post_id` hiện tại, báo riêng
+(poster đã có message qua post khác). Điều này còn được chốt cứng ở DB bằng
+unique index trên `outreach_messages(poster_id)` (`where channel='fb_dm' and
+direction='out' and status='sent'`) — bên DB tự chặn 2 `sent` cho cùng
+poster, còn check này chặn sớm hơn ở bước tạo draft.
+
+Nếu poster_id này **chưa có message nào**, insert `message1` nguyên văn:
 
 ```sql
 insert into outreach_messages
@@ -167,6 +174,9 @@ Vì `dashboardkien_outreach.has_outreached` tính live từ
 - Không rewrite body tại send time.
 - Không send row `scam_flag=true`, expired/out-of-queue, hoặc poster đã được
   outreach trước đó.
+- Không tạo draft mới cho một `poster_id` đã có message (`draft` hoặc `sent`)
+  ở post khác — `message1` chỉ hợp lệ khi nó thật sự là tin đầu tiên của
+  poster đó, không phải tin đầu tiên riêng cho một `post_id`.
 - Không post/comment/like/join/submit form.
 - Không dùng Facebook API, CLI, script scraper, headless browser, Chrome
   session khác hoặc cookie ngoài browser panel.
@@ -176,8 +186,6 @@ Vì `dashboardkien_outreach.has_outreached` tính live từ
 ## Completion / edge cases
 
 - Queue rỗng -> báo 0 draft mới / 0 send, không coi là lỗi.
-- Draft tồn tại nhưng `auto_dm=false` và chưa có explicit send request -> giữ
-  draft, không gửi.
 - Send UI ambiguous/fail -> giữ `draft`, báo warning; không đoán đã gửi.
 - Checkpoint/captcha/login/unusual activity -> dừng Facebook ngay theo hard
   rule chung; không retry trong 24h.

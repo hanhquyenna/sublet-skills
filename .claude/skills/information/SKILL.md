@@ -111,8 +111,8 @@ snapshot; nếu mâu thuẫn `CLAUDE.md` thì `CLAUDE.md` thắng.
 - Khi gặp login/checkpoint/captcha/“unusual activity”, dừng ngay, ghi stop theo
   rule và không retry trong 24 giờ.
 - DB write lưu capture/progress/metrics/draft. Facebook DM có ngoại lệ send qua
-  `outreach-prep`: chỉ pre-existing `status='draft'` được gửi; explicit send khi
-  `auto_dm=false`, hoặc ready-draft send khi `auto_dm=true`.
+  `outreach-prep`: chỉ pre-existing `status='draft'` được gửi; agent tự gửi
+  ready-draft theo `outreach_order`, không cần hỏi lại từng tin.
 
 ### Skill registry hiện tại
 

@@ -5,10 +5,9 @@
 ## Không bao giờ
 1. **Không tự động post, comment, like, join group hoặc submit form trên Facebook.** Agent mặc định chỉ ĐỌC.
    - Ngoại lệ ghi duy nhất là **DM từ một row `outreach_messages.status='draft'` đã tồn tại trước khi bước send bắt đầu**. Agent không được generate body rồi gửi ngay mà chưa persist draft.
-   - `auto_dm: false` hoặc chưa cấu hình (mặc định) → `/outreach-prep` chỉ tạo draft; agent chỉ được gửi khi Kien yêu cầu rõ một send action cho draft đã tồn tại (ví dụ `/outreach-prep send <message_id>`).
-   - `auto_dm: true` → trong một outreach send run đã được yêu cầu, agent được gửi các draft ready theo `outreach_order` mà không hỏi lại từng tin. Vẫn phải dùng body đã lưu nguyên văn và verify eligibility trước từng send.
+   - Agent được gửi các draft ready theo `outreach_order` ngay trong cùng run, không cần hỏi lại từng tin hoặc chờ Kien yêu cầu rõ một send action — không còn cờ `auto_dm`. Vẫn phải dùng body đã lưu nguyên văn và verify eligibility trước từng send.
    - Sau UI send thành công, agent đổi đúng row sang `status='sent'`, set `sent_at`, và ghi `events(event='outreach_dm_sent', actor='agent', entity_type='post')`. Nếu UI không chắc đã gửi thì giữ `draft`.
-   - Post, comment, like, join group, submit form **vẫn tuyệt đối cấm** dù cờ `auto_dm` là gì.
+   - Post, comment, like, join group, submit form **vẫn tuyệt đối cấm**.
 2. Không mở quá **4 page load Facebook mỗi chu kỳ** scan. Không mở từng group; đọc `facebook.com/groups/feed` và `/notifications`.
 3. Chạy theo giờ trong `data/config.yaml` (`hours`); từ 2026-09-16 theo yêu cầu Kien, `hours` đặt 24/7 (`00:00`–`23:59`), không còn giới hạn khung giờ trong ngày. Không chạy khi máy vừa thức dậy dưới 2 phút.
 4. **Dừng ngay** và ghi `sublet_inbox(level=stop)` nếu thấy: checkpoint, captcha, "unusual activity", yêu cầu xác minh, trang login. Không thử lại trong 24h.
