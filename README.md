@@ -6,10 +6,10 @@
 > thức) và `data-engineer` (DB-only QA/normalization/behavior aggregates).
 > **`intent-analyze` đã bật chính thức từ 2026-09-17** (ghi thật
 > `kind`/`subtype`/`poster_type`/... — xem `CLAUDE.md`), và **`outreach-prep`**
-> đọc view `dashboardkien_outreach` để soạn **draft** DM theo đúng thứ tự
-> `outreach_order`; agent được gửi **draft đã tồn tại** qua browser panel khi
-> agent tự gửi trực tiếp `message1` cho poster hợp lệ theo `outreach_order`,
-> ghi `outreach_messages` ngay sau khi gửi thành công (không còn draft/status).
+> đọc view `dashboardkien_outreach` theo đúng thứ tự `outreach_order`; agent
+> mở post, verify người, mở Messenger, paste `message1` — rồi **dừng lại và
+> chờ Kien tự click Send**, agent không bao giờ tự click. `outreach_messages`
+> chỉ ghi sau khi Kien xác nhận gửi thành công.
 > Matching
 > seeker↔offering (`sublet_insight_matches`) đã bị **xoá bỏ hoàn toàn
 > 2026-09-17** (Kien quyết định, dữ liệu bloat không tương xứng giá trị).
@@ -68,7 +68,7 @@ Claude Code (Mac)                         Supabase (project riêng, ref cteunhux
 | 2 | `/sublet-scrape-14-groups` | Capture tuần tự tối đa 14 group, mỗi group 14 ngày |
 | 3 | `/validate-permalink` | Validate queue link Facebook đã capture, resume từ DB |
 | 4 | `/intent-analyze` | Ghi thật `kind`/`subtype`/`poster_type`/`confidence`/... lên listing đã có `source_url` (bật 2026-09-17) |
-| 5 | `/outreach-prep` | Soạn draft theo `outreach_order`; agent có thể gửi **pre-existing draft** nguyên văn qua browser panel theo send permission trong skill |
+| 5 | `/outreach-prep` | Mở post, verify người, mở Messenger, paste `message1` theo `outreach_order`; agent dừng lại và chờ Kien tự click Send |
 | — | `/analyze-insights` | Đọc-only, chạy bất kỳ lúc nào sau bước 2: tóm tắt offering/seeking/duplicate/risk cho Kien, bỏ qua listing đã review |
 | — | `/data-engineer` | DB-only: normalize, audit provenance, dedupe, checkpoint, customer-behavior aggregates và report |
 
@@ -85,11 +85,11 @@ Match/viewing chính thức (bảng riêng, không phải seeker↔offering matc
 | `analyze-insights` | Đọc-only trên DB (không mở Facebook): offering/seeking/other thô, cụm trùng lặp, cờ rủi ro, tóm tắt vào inbox/metrics; không re-đọc listing đã `insight_reviewed` | Không |
 | `data-engineer` | Chuẩn hoá raw/insight/lifecycle events, QA, dedupe, provenance, behavior aggregates và report; không browse Facebook, không semantic matching/outreach | Không |
 | `intent-analyze` | Phân loại chính thức offering/seeking/other, `poster_type`, `confidence`, area/rent/date, ghi thật lên DB (bật 2026-09-17) | Không |
-| `outreach-prep` | Gửi trực tiếp `message1` theo `outreach_order`; ghi `outreach_messages` chỉ sau khi gửi thành công (không draft/status) | **Có, có điều kiện** — agent tự gửi theo `outreach_order`, không cần hỏi lại từng tin; body phải giữ nguyên và audit sau khi gửi |
+| `outreach-prep` | Chuẩn bị `message1` theo `outreach_order` (mở post, verify, paste); ghi `outreach_messages` chỉ sau khi Kien tự click Send | **Có, có điều kiện** — agent chuẩn bị, Kien tự click Send, không phải agent; body phải giữ nguyên và audit sau khi gửi |
 
 ## Giới hạn an toàn (đã code vào skill)
 - ≤4 page load Facebook/chu kỳ, ≤~400/ngày, 24/7 (đổi từ 08–23h ngày 2026-09-16 theo yêu cầu Kien), dừng ngay khi thấy checkpoint.
-- Agent không bao giờ post/comment/like/join/submit form. DM là ngoại lệ duy nhất: gửi trực tiếp `message1` cho poster hợp lệ (không `scam_flag`, chưa `has_outreached`) qua visible browser panel, ghi `outreach_messages` chỉ sau khi gửi thành công, theo `outreach-prep`.
+- Agent không bao giờ post/comment/like/join/submit form, và **không bao giờ tự click Send**. DM là ngoại lệ duy nhất: agent chuẩn bị `message1` cho poster hợp lệ (không `scam_flag`, chưa `has_outreached`) qua visible browser panel rồi dừng lại — Kien mới là người click Send; `outreach_messages` chỉ ghi sau đó, theo `outreach-prep`.
 - Không thu tiền hộ, không giữ deposit, không chuyển địa chỉ chính xác qua bạn.
 - Không xếp hạng theo quốc tịch/giới tính/tuổi.
 

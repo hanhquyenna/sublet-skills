@@ -58,8 +58,8 @@
 | outreach | dm_sent_24h | `outreach_messages` rows (by `sent_at`) in last 24h — mỗi row = 1 lần gửi thật, không còn status | ≤10 agent-sent (R14) | outreach-prep |
 | outreach | dm_yes_rate_7d | listings accepted / contacted 7d | ≥30% (<20% → đổi offer) | inbox-triage |
 | outreach | yes_rate_by_template | như trên, group by template | so sánh A/B | inbox-triage |
-| outreach | sent_by_agent | `events` where actor='agent' and event='outreach_dm_sent' | audit volume; must reconcile 1:1 with agent-sent message rows | outreach-prep |
-| outreach | agent_send_audit_mismatch | agent-send event without matching sent message, or sent agent message without event | **0** | outreach-prep |
+| outreach | sent_by_kien | `events` where actor='human' and event='outreach_dm_sent' | audit volume; must reconcile 1:1 with sent message rows | outreach-prep |
+| outreach | send_audit_mismatch | send event without matching sent message, or sent message without event | **0** | outreach-prep |
 | inbox | replies_24h | messages direction=in 24h | — | inbox-triage |
 | inbox | triage_unclear_rate | "hỏi bạn" / replies | ≤15% | inbox-triage |
 | viewing | accepted_to_3v_72h | listings accepted có 3 viewing confirmed ≤72h / accepted | ≥50% | viewing-coordinate |

@@ -88,9 +88,10 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | E73 | Post bằng NL | template NL | sublet-draft | — |
 | E74 | Seeker push_count hôm nay ≥3 | bỏ qua seeker đó hôm nay | sublet-draft | — |
 | E75 | Chưa có `seeker_form.url` | offer dùng "forward me the replies" | sublet-draft | — |
-| E77 | Agent send thành công, UI xác nhận rõ | insert 1 row `outreach_messages` (`sent_at=now()`), ghi `events.outreach_dm_sent` actor=agent | outreach-prep | manual |
+| E76 | Kien không click Send (bận, đổi ý, tạm dừng) sau khi agent đã paste | không insert gì, báo "waiting for Kien", dừng ở candidate này | outreach-prep | manual |
+| E77 | Kien click Send, UI xác nhận rõ | insert 1 row `outreach_messages` (`sent_at=now()`), ghi `events.outreach_dm_sent` actor=human | outreach-prep | manual |
 | E78 | Click/send UI lỗi hoặc không chắc message đã gửi | không insert gì, không ghi event; báo warning | outreach-prep | manual |
-| E79 | Candidate có `scam_flag=true`, đã `has_outreached`, hoặc ra khỏi queue | không send; skip và báo lý do | outreach-prep | manual |
+| E79 | Candidate có `scam_flag=true`, đã `has_outreached`, hoặc ra khỏi queue | không chuẩn bị DM; skip và báo lý do | outreach-prep | manual |
 
 ## G. INBOX — reply
 | # | Tình huống | Xử lý | Skill | Test |

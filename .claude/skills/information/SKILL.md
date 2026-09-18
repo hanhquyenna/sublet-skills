@@ -111,9 +111,10 @@ snapshot; nếu mâu thuẫn `CLAUDE.md` thì `CLAUDE.md` thắng.
 - Khi gặp login/checkpoint/captcha/“unusual activity”, dừng ngay, ghi stop theo
   rule và không retry trong 24 giờ.
 - DB write lưu capture/progress/metrics. Facebook DM có ngoại lệ send qua
-  `outreach-prep`: gửi trực tiếp `message1` cho poster hợp lệ theo
-  `outreach_order`, không cần hỏi lại từng tin; `outreach_messages` chỉ được
-  ghi (insert-only, không draft/status) sau khi gửi thành công.
+  `outreach-prep`: agent chuẩn bị `message1` cho poster hợp lệ theo
+  `outreach_order` (mở post, verify, paste), rồi dừng lại chờ Kien tự click
+  Send — agent không bao giờ tự click; `outreach_messages` chỉ được ghi
+  (insert-only, không draft/status) sau khi Kien gửi thành công.
 
 ### Skill registry hiện tại
 
@@ -138,9 +139,10 @@ Bộ sublet hiện có **7 skills active**:
   Facebook, không tự phân loại semantic hay outreach.
 - `intent-analyze` — pipeline classification chính thức, ghi intent/poster type/
   extracted fields theo `docs/intent-logic.md`.
-- `outreach-prep` — tạo draft theo `dashboardkien_outreach`; agent được gửi
-  **pre-existing draft** qua visible Facebook browser theo permission trong
-  `CLAUDE.md` và skill này.
+- `outreach-prep` — chuẩn bị DM theo `dashboardkien_outreach` (mở post,
+  verify, paste `message1`) qua visible Facebook browser, rồi dừng lại và
+  chờ Kien tự click Send — agent không bao giờ tự click, theo `CLAUDE.md`
+  và skill này.
 
 Không coi các skill sublet cũ đã xóa là dependency (ví dụ `sublet-groups`,
 `sublet-backfill`).
@@ -371,8 +373,8 @@ DB/SQL là luồng riêng: `scripts/db.py` vẫn là kênh chuẩn để đọc/
 
 Login Facebook là việc Kien làm tay trong browser UI tương ứng. Agent mặc định
 chỉ đọc feed/search/notifications; không bấm Join, không bật notification,
-không post/comment/like. DM chỉ được send từ pre-existing draft theo
-`outreach-prep` và CLAUDE.md #1.
+không post/comment/like. DM: agent chuẩn bị và paste, nhưng chỉ Kien mới
+click Send — theo `outreach-prep` và CLAUDE.md #1.
 
 Nếu thấy login, checkpoint, captcha hoặc “unusual activity”: dừng, ghi stop nếu workflow yêu cầu, không retry 24h.
 
@@ -395,10 +397,11 @@ outreach chưa thuộc scope hiện tại.
 - `analyze-insights` chỉ đọc `raw_text` đã có, ghi event `insight_reviewed` +
   snapshot `sublet_inbox`/`sublet_metrics`; không đụng `kind`/`subtype`/
   `scam_score` chính thức và không mở Facebook.
-- Outbound DM: `outreach-prep` gửi trực tiếp `message1` cho poster hợp lệ;
-  chỉ sau browser UI success mới insert 1 row vào `outreach_messages`
-  (`sent_at=now()`, không draft/status) và ghi
-  `events(event='outreach_dm_sent')`.
+- Outbound DM: `outreach-prep` chuẩn bị `message1` cho poster hợp lệ (mở
+  post, verify, paste) rồi dừng chờ Kien click Send — agent không tự click;
+  chỉ sau khi Kien gửi và browser UI xác nhận mới insert 1 row vào
+  `outreach_messages` (`sent_at=now()`, actor='human', không draft/status)
+  và ghi `events(event='outreach_dm_sent')`.
 - `filled`, `signed`, `paid` chỉ ghi khi có xác nhận thật và kèm nguồn.
 - Mọi việc cần Kien biết đưa vào `sublet_inbox`; không tự gửi notification ngoài.
 
