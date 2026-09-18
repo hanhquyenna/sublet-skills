@@ -7,7 +7,8 @@
 > **`intent-analyze` đã bật chính thức từ 2026-09-17** (ghi thật
 > `kind`/`subtype`/`poster_type`/... — xem `CLAUDE.md`), và **`outreach-prep`**
 > đọc view `dashboardkien_outreach` để soạn **draft** DM theo đúng thứ tự
-> `outreach_order`, không bao giờ tự gửi — chỉ Kien gửi tay. Matching
+> `outreach_order`; agent được gửi **draft đã tồn tại** qua browser panel khi
+> Kien yêu cầu send rõ ràng, hoặc xử lý ready drafts khi `outreach.auto_dm=true`. Matching
 > seeker↔offering (`sublet_insight_matches`) đã bị **xoá bỏ hoàn toàn
 > 2026-09-17** (Kien quyết định, dữ liệu bloat không tương xứng giá trị).
 >
@@ -65,7 +66,7 @@ Claude Code (Mac)                         Supabase (project riêng, ref cteunhux
 | 2 | `/sublet-scrape-14-groups` | Capture tuần tự tối đa 14 group, mỗi group 14 ngày |
 | 3 | `/validate-permalink` | Validate queue link Facebook đã capture, resume từ DB |
 | 4 | `/intent-analyze` | Ghi thật `kind`/`subtype`/`poster_type`/`confidence`/... lên listing đã có `source_url` (bật 2026-09-17) |
-| 5 | `/outreach-prep` | Soạn **draft** DM theo đúng `outreach_order` từ view `dashboardkien_outreach`, dùng `message1` nguyên văn, không bao giờ tự gửi |
+| 5 | `/outreach-prep` | Soạn draft theo `outreach_order`; agent có thể gửi **pre-existing draft** nguyên văn qua browser panel theo send permission trong skill |
 | — | `/analyze-insights` | Đọc-only, chạy bất kỳ lúc nào sau bước 2: tóm tắt offering/seeking/duplicate/risk cho Kien, bỏ qua listing đã review |
 | — | `/data-engineer` | DB-only: normalize, audit provenance, dedupe, checkpoint, customer-behavior aggregates và report |
 
@@ -82,11 +83,11 @@ Match/viewing chính thức (bảng riêng, không phải seeker↔offering matc
 | `analyze-insights` | Đọc-only trên DB (không mở Facebook): offering/seeking/other thô, cụm trùng lặp, cờ rủi ro, tóm tắt vào inbox/metrics; không re-đọc listing đã `insight_reviewed` | Không |
 | `data-engineer` | Chuẩn hoá raw/insight/lifecycle events, QA, dedupe, provenance, behavior aggregates và report; không browse Facebook, không semantic matching/outreach | Không |
 | `intent-analyze` | Phân loại chính thức offering/seeking/other, `poster_type`, `confidence`, area/rent/date, ghi thật lên DB (bật 2026-09-17) | Không |
-| `outreach-prep` | Soạn draft DM "còn không/vẫn tìm không" theo `outreach_order` + `message1` từ `dashboardkien_outreach`, ghi `status='draft'` | **Không** — chỉ tạo draft, Kien tự gửi và tự báo lại để agent đổi `status='sent'` |
+| `outreach-prep` | Soạn draft DM theo `outreach_order` + `message1`; send phase chỉ dùng row draft đã tồn tại | **Có, có điều kiện** — explicit send khi `auto_dm=false`, hoặc ready-draft send khi `auto_dm=true`; body phải giữ nguyên và audit sau khi gửi |
 
 ## Giới hạn an toàn (đã code vào skill)
 - ≤4 page load Facebook/chu kỳ, ≤~400/ngày, 24/7 (đổi từ 08–23h ngày 2026-09-16 theo yêu cầu Kien), dừng ngay khi thấy checkpoint.
-- Agent không bao giờ post/comment/like/DM/join. Mọi tin đi ra do người gửi.
+- Agent không bao giờ post/comment/like/join/submit form. DM là ngoại lệ duy nhất: chỉ gửi từ `outreach_messages.status='draft'` đã tồn tại, qua visible browser panel, theo `outreach-prep`.
 - Không thu tiền hộ, không giữ deposit, không chuyển địa chỉ chính xác qua bạn.
 - Không xếp hạng theo quốc tịch/giới tính/tuổi.
 

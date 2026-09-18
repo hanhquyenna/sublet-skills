@@ -55,11 +55,12 @@
 | demand | consent_rate | consent true / all form | ≥80% | seeker-intake |
 | match | listings_with_3plus | offering 7d có ≥3 match ≥60 | ≥50% of deal_queue | sublet-match |
 | match | avg_top_score | avg max(score) per listing 7d | ≥70 | sublet-match |
-| outreach | dm_sent_24h | messages template like 'offer_%' sent 24h | ≤10 (R14) | draft + bạn |
+| outreach | dm_sent_24h | `outreach_messages.status='sent'` in last 24h | ≤10 agent-sent (R14) | outreach-prep |
 | outreach | dm_yes_rate_7d | listings accepted / contacted 7d | ≥30% (<20% → đổi offer) | inbox-triage |
 | outreach | yes_rate_by_template | như trên, group by template | so sánh A/B | inbox-triage |
 | outreach | draft_backlog | messages status=draft >2h | ≤5 | sublet-followup |
-| outreach | sent_by_agent | events actor=agent & event='sent' | **0** (R01) | audit |
+| outreach | sent_by_agent | `events` where actor='agent' and event='outreach_dm_sent' | audit volume; must reconcile 1:1 with agent-sent message rows | outreach-prep |
+| outreach | agent_send_audit_mismatch | agent-send event without matching sent message, or sent agent message without event | **0** | outreach-prep |
 | inbox | replies_24h | messages direction=in 24h | — | inbox-triage |
 | inbox | triage_unclear_rate | "hỏi bạn" / replies | ≤15% | inbox-triage |
 | viewing | accepted_to_3v_72h | listings accepted có 3 viewing confirmed ≤72h / accepted | ≥50% | viewing-coordinate |

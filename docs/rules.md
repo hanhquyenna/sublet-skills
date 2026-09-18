@@ -4,7 +4,7 @@ Nguồn luật: `CLAUDE.md`. File này là chỉ mục để audit. Skill tham c
 
 | # | Luật | Enforce ở | Kiểm chứng | Trạng thái |
 |---|---|---|---|---|
-| R01 | Agent không post/comment/like/DM/join/gửi gì trên Facebook | CLAUDE.md #1; mọi skill chỉ có tool đọc; `sublet_messages.status='sent'` chỉ do người đổi | metric `outreach.sent_by_agent` phải = 0 (event actor='agent' & event='sent') | enforce |
+| R01 | Agent không post/comment/like/join/submit form; DM chỉ được gửi từ **pre-existing** `outreach_messages.status='draft'` theo `outreach-prep` | `CLAUDE.md #1`; visible browser only; explicit send khi `auto_dm=false`, ready-draft send khi `auto_dm=true` | mọi agent send có `outreach_messages.status='sent'` + `events.event='outreach_dm_sent'`, actor='agent'; không có send nếu thiếu draft | enforce |
 | R02 | ≤4 page load/chu kỳ scan; ≤6 inbox-triage; ≤3 diagnose; ≤6/tuần discover | `sublet-scan` bước 2–6; `sublet_scan_runs.page_loads` | metric `capture.page_loads_per_run` max ≤4 | enforce |
 | R03 | ≤350 page load Facebook/24h, tổng mọi mode (scrape+validation) | `ops/run_skill.sh` gate thật (2026-09-16, trước đó chỉ report.py báo cáo sau khi đã vượt) — query `sum(page_loads)` từ `sublet_scan_runs` 24h gần nhất, skip nếu ≥350 | log `ops/logs/*.log` có "R03: page_loads_24h=… >= 350"; metric `capture.page_loads_24h` ≤350 | enforce |
 | R04 | Chạy theo `data/config.yaml→hours`; từ 2026-09-16 = 24/7 theo yêu cầu Kien (không còn chặn ngoài giờ); không chạy <2' sau wake | `ops/run_skill.sh` gate giờ (nay luôn pass) + boottime | log `ops/logs/*.log` có "skip (ngoài giờ)" chỉ khi hours bị thu hẹp lại | enforce |
@@ -15,7 +15,7 @@ Nguồn luật: `CLAUDE.md`. File này là chỉ mục để audit. Skill tham c
 | R09 | Không xếp hạng theo nationality/gender/age/religion | `scripts/match.py` chỉ dùng dates/budget/area/people/reg/pets/occupation; `poster_constraints` lưu nguyên văn không chấm | code review `match.py` | enforce |
 | R10 | Mỗi record có `source_url` + `seen_at` | schema not null `seen_at`; `source_url` unique; capture bước 5 | `select count(*) from sublet_listings where source_url is null` = 0 | enforce |
 | R11 | Match score từ `match.py`, LLM chỉ viết reasons | `sublet-match` bước 3 | `sublet_matches.score` luôn đi kèm `reasons` | enforce |
-| R12 | Mọi tin ra ngoài là draft; chỉ người đổi `sent` | `sublet-draft`, `inbox-triage`, `viewing-coordinate`, `sublet-followup` | R01 metric | enforce |
+| R12 | Mọi outbound message phải persist thành draft trước; Facebook DM là ngoại lệ agent-send duy nhất và chỉ send body đã lưu nguyên văn | `outreach-prep` two-stage draft→send; các flow khác vẫn human-send | audit: không có `outreach_dm_sent` nếu message trước đó không phải `draft`; body không đổi tại send time | enforce |
 | R13 | Mọi tin ra ngoài đọc `partner-voice` trước; ≤90 từ DM đầu, ≤40 follow-up; không nhắc AI | 4 skill trên có dòng "Đọc partner-voice trước" | grep body draft: không chứa "AI|agent|automation" | enforce |
 | R14 | ≤10 DM offer/ngày; ≤2 follow-up/thread; ≤3 push/seeker/ngày | `sublet-draft` kiểm đếm; `sublet-followup` đếm; `push_count` | metric `outreach.dm_sent_today` ≤10; `outreach.followups_per_thread` ≤2 | enforce |
 | R15 | Không thu tiền hộ, không giữ deposit, không chuyển địa chỉ chính xác qua bạn | `viewing-coordinate` "Không"; templates | audit tay templates | policy |

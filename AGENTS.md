@@ -1,15 +1,14 @@
 # AGENTS.md — cho Codex (bản tương đương CLAUDE.md)
 
 Đọc **CLAUDE.md** — toàn bộ luật cứng ở đó và áp dụng nguyên văn cho Codex. Tóm tắt:
-- Chỉ ĐỌC Facebook. Không post/comment/like/DM/join/submit form.
+- Facebook mặc định chỉ ĐỌC. Không post/comment/like/join/submit form. DM là ngoại lệ duy nhất: `outreach-prep` được gửi **pre-existing** `outreach_messages.status='draft'` qua visible browser panel theo `CLAUDE.md` (explicit send khi `auto_dm=false`; có thể xử lý ready drafts khi `auto_dm=true`).
 - Capture tuần tự tối đa 14 group, cửa sổ 14 ngày; ≤4 page load/run và dừng ngay khi thấy checkpoint/captcha/login.
 - Mọi raw record có `source_url` + `seen_at`; resume từ DB cursor và dedupe trước khi ghi.
 
 ## Skills
-Active sublet scope gồm `.agents/skills/information/SKILL.md`,
-`.agents/skills/sublet-scrape-14-groups/SKILL.md`,
-`.agents/skills/validate-permalink/SKILL.md` và
-`.agents/skills/analyze-insights/SKILL.md` (symlink → `.claude/skills`).
+Active sublet scope gồm `information`, `sublet-scrape-14-groups`,
+`validate-permalink`, `analyze-insights`, `data-engineer`, `intent-analyze` và
+`outreach-prep` trong `.agents/skills/` (symlink → `.claude/skills`).
 Đọc `information` trước; capture bằng `sublet-scrape-14-groups`, rồi gọi
 `validate-permalink` để xử lý queue link theo thứ tự. `analyze-insights` là
 skill đọc-only trên DB (không mở Facebook), chạy bất kỳ lúc nào sau capture để
@@ -17,7 +16,7 @@ tóm tắt insight — không thay thế `validate-permalink` và không phải 
 `intent-analyze` chính thức.
 
 ## Browser
-Mọi thao tác Facebook (search, đọc, verify) **chỉ dùng ChatGPT browser panel / Codex In-app Browser session đang mở cho người dùng**. Không dùng CLI, script, web-fetch/API, headless browser, Chrome session khác, hoặc cookie ở nơi khác để thao tác/verify Facebook. Người dùng login thủ công; agent chỉ đọc và phải dừng khi thấy login/checkpoint/captcha/unusual activity.
+Mọi thao tác Facebook (search, đọc, verify) **chỉ dùng ChatGPT browser panel / Codex In-app Browser session đang mở cho người dùng**. Không dùng CLI, script, web-fetch/API, headless browser, Chrome session khác, hoặc cookie ở nơi khác để thao tác/verify Facebook. Người dùng login thủ công; agent chỉ đọc trừ DM send đã được phép bởi `outreach-prep`, và luôn phải dừng khi thấy login/checkpoint/captcha/unusual activity.
 
 Trong skill, mọi bước navigate / get page text / scroll / click đọc map sang **Chrome-panel browser automation có UI**, ưu tiên DOM/accessibility tree của panel. DB/SQL là luồng riêng và vẫn dùng `scripts/db.py`; không dùng script đó để điều khiển Facebook.
 

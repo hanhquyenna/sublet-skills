@@ -110,12 +110,13 @@ snapshot; nếu mâu thuẫn `CLAUDE.md` thì `CLAUDE.md` thắng.
   send, donate, đọc DM/private content, friend list hoặc album riêng tư.
 - Khi gặp login/checkpoint/captcha/“unusual activity”, dừng ngay, ghi stop theo
   rule và không retry trong 24 giờ.
-- DB write chỉ để lưu dữ liệu capture/progress/metrics và draft. Tin gửi ra
-  ngoài luôn là `status='draft'`; chỉ Kien tự gửi.
+- DB write lưu capture/progress/metrics/draft. Facebook DM có ngoại lệ send qua
+  `outreach-prep`: chỉ pre-existing `status='draft'` được gửi; explicit send khi
+  `auto_dm=false`, hoặc ready-draft send khi `auto_dm=true`.
 
 ### Skill registry hiện tại
 
-Bộ sublet hiện có đúng **5 skills active**:
+Bộ sublet hiện có **7 skills active**:
 
 - `information` — context map và onboarding chi tiết.
 - `sublet-scrape-14-groups` — toàn bộ raw scraping workflow cho batch 14 group,
@@ -134,11 +135,14 @@ Bộ sublet hiện có đúng **5 skills active**:
 - `data-engineer` — DB-only normalization, provenance, dedupe, data-quality,
   checkpoint, customer-behavior events và aggregate/report; không browse
   Facebook, không tự phân loại semantic hay outreach.
+- `intent-analyze` — pipeline classification chính thức, ghi intent/poster type/
+  extracted fields theo `docs/intent-logic.md`.
+- `outreach-prep` — tạo draft theo `dashboardkien_outreach`; agent được gửi
+  **pre-existing draft** qua visible Facebook browser theo permission trong
+  `CLAUDE.md` và skill này.
 
-Không coi các skill sublet cũ đã xóa là dependency (ví dụ `intent-analyze`,
-`sublet-groups`, `sublet-backfill` — thư mục còn rỗng, không có `SKILL.md`,
-chỉ là tàn dư lịch sử). Nếu cần khôi phục scope của chúng, đó là quyết định mở
-rộng mới của Kien, không tự khôi phục.
+Không coi các skill sublet cũ đã xóa là dependency (ví dụ `sublet-groups`,
+`sublet-backfill`).
 
 Skill source duy nhất là `/Users/ad/sublet-skills/.claude/skills/<name>/SKILL.md`.
 `.agents/skills` chỉ là symlink cho Codex; không tạo bản copy thứ hai ở host
@@ -257,7 +261,7 @@ theo quyết định chủ động khi lập danh sách, không phải lỗi/thi
 | `sublet_matches` | 0 | Match chính thức seeker↔listing — chưa dùng. |
 | `sublet_viewings` | 0 | Lịch viewing — chưa dùng. |
 | `sublet_fees` | 0 | Phí dịch vụ (€49 khi move-in) — chưa dùng. |
-| `sublet_messages` | 12 | Draft tin nhắn/DM (`status='draft'` mặc định; chỉ Kien đổi `sent`, trừ khi `outreach.auto_dm=true` — xem CLAUDE.md #1). |
+| `sublet_messages` | 12 | Legacy snapshot của message rows; policy hiện tại yêu cầu outbound DM persist `draft` trước, rồi `outreach-prep` mới được send pre-existing draft theo CLAUDE.md #1. |
 | `sublet_events` | 958 | Event log provenance cho mọi hành động ghi nhận. Phân bố theo loại: `capture_unresolved` 433 (raw card không chase link, phổ biến nhất từ 2026-09-16 trở đi), `insight_reviewed` 198, `context_captured` 95, `listing_normalized` 95, `comment_reviewed` 61, `link_validated` 56, `detail_audit` 10, `capture_reconciled` 5, `group_joined_confirmed` 3, `link_inaccessible` 1, `capture_quality_cleanup` 1. |
 | `sublet_scan_runs` | 74 | Một row/run scrape (≤4 page load): `group_key`, `page_loads`, `posts_seen`, `new_listings`, `cursor`, `stopped_reason`. Dùng để tính R03 (≤350 page load/24h). |
 | `sublet_ops_state` | 12 | State máy resumable dạng key-value JSON, quan trọng nhất là `scrape_14_groups_batch` (group_keys, current_index, completed[], blocked[], current_progress). |
@@ -364,9 +368,10 @@ session khác. Rule này supersede mọi hướng dẫn Chrome DevTools/port `92
 
 DB/SQL là luồng riêng: `scripts/db.py` vẫn là kênh chuẩn để đọc/ghi Supabase, nhưng không được dùng để điều khiển Facebook.
 
-Login Facebook là việc Kien làm tay trong browser UI tương ứng. Agent chỉ đọc
-feed/search/notifications; không bấm Join, không bật notification,
-không post/comment/like/DM.
+Login Facebook là việc Kien làm tay trong browser UI tương ứng. Agent mặc định
+chỉ đọc feed/search/notifications; không bấm Join, không bật notification,
+không post/comment/like. DM chỉ được send từ pre-existing draft theo
+`outreach-prep` và CLAUDE.md #1.
 
 Nếu thấy login, checkpoint, captcha hoặc “unusual activity”: dừng, ghi stop nếu workflow yêu cầu, không retry 24h.
 
@@ -389,7 +394,9 @@ outreach chưa thuộc scope hiện tại.
 - `analyze-insights` chỉ đọc `raw_text` đã có, ghi event `insight_reviewed` +
   snapshot `sublet_inbox`/`sublet_metrics`; không đụng `kind`/`subtype`/
   `scam_score` chính thức và không mở Facebook.
-- Draft luôn lưu `status='draft'`; chỉ Kien đổi thành `sent`.
+- Outbound DM luôn phải được persist `status='draft'` trước. `outreach-prep`
+  có thể gửi row draft đã tồn tại; chỉ sau browser UI success mới đổi thành
+  `sent` + `sent_at` và ghi `events(event='outreach_dm_sent')`.
 - `filled`, `signed`, `paid` chỉ ghi khi có xác nhận thật và kèm nguồn.
 - Mọi việc cần Kien biết đưa vào `sublet_inbox`; không tự gửi notification ngoài.
 

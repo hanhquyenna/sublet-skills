@@ -39,7 +39,7 @@ seeker_form:
   csv_export_path: data/seekers_export.csv   # Tally → export CSV → seeker-intake đọc
 
 outreach:
-  auto_dm: false   # true = agent tự gửi DM khi draft đạt tiêu chuẩn, không hỏi lại từng tin (CLAUDE.md luật #1). Mặc định false — Kien tự bật.
+  auto_dm: false   # false = chỉ gửi draft khi Kien yêu cầu send rõ; true = trong send run được yêu cầu, agent có thể xử lý pre-existing ready drafts không hỏi lại từng tin.
 
 scam:
   flags:

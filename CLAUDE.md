@@ -1,13 +1,14 @@
 # sublet-skills — luật cứng cho agent
 
-Đây là bộ skill vận hành dịch vụ ghép sublet Amsterdam. Agent là **mắt và trí nhớ**; con người là **tay và tên**.
+Đây là bộ skill vận hành dịch vụ ghép sublet Amsterdam. Facebook mặc định read-only; ngoại lệ ghi duy nhất là DM đã có draft theo rule outreach bên dưới.
 
 ## Không bao giờ
-1. **Không tự động post, comment, like, join group trên Facebook.** Agent mặc định chỉ ĐỌC.
-   - Ngoại lệ duy nhất: **DM**, và chỉ khi `data/config.yaml` có `outreach.auto_dm: true` (Kien tự bật/tắt).
-   - `auto_dm: false` hoặc chưa cấu hình (mặc định) → agent chỉ tạo draft `status='draft'`; người dùng tự gửi, như cũ.
-   - `auto_dm: true` → agent được tự gửi DM cho draft đạt tiêu chuẩn match/scam-check và tự đổi `status='sent'`, không cần hỏi lại từng tin — nhưng mỗi lần gửi phải ghi `sublet_events` (ai/khi nào/listing/nội dung) để Kien audit lại được toàn bộ.
-   - Post, comment, like, join group **vẫn tuyệt đối cấm** dù cờ `auto_dm` là gì.
+1. **Không tự động post, comment, like, join group hoặc submit form trên Facebook.** Agent mặc định chỉ ĐỌC.
+   - Ngoại lệ ghi duy nhất là **DM từ một row `outreach_messages.status='draft'` đã tồn tại trước khi bước send bắt đầu**. Agent không được generate body rồi gửi ngay mà chưa persist draft.
+   - `auto_dm: false` hoặc chưa cấu hình (mặc định) → `/outreach-prep` chỉ tạo draft; agent chỉ được gửi khi Kien yêu cầu rõ một send action cho draft đã tồn tại (ví dụ `/outreach-prep send <message_id>`).
+   - `auto_dm: true` → trong một outreach send run đã được yêu cầu, agent được gửi các draft ready theo `outreach_order` mà không hỏi lại từng tin. Vẫn phải dùng body đã lưu nguyên văn và verify eligibility trước từng send.
+   - Sau UI send thành công, agent đổi đúng row sang `status='sent'`, set `sent_at`, và ghi `events(event='outreach_dm_sent', actor='agent', entity_type='post')`. Nếu UI không chắc đã gửi thì giữ `draft`.
+   - Post, comment, like, join group, submit form **vẫn tuyệt đối cấm** dù cờ `auto_dm` là gì.
 2. Không mở quá **4 page load Facebook mỗi chu kỳ** scan. Không mở từng group; đọc `facebook.com/groups/feed` và `/notifications`.
 3. Chạy theo giờ trong `data/config.yaml` (`hours`); từ 2026-09-16 theo yêu cầu Kien, `hours` đặt 24/7 (`00:00`–`23:59`), không còn giới hạn khung giờ trong ngày. Không chạy khi máy vừa thức dậy dưới 2 phút.
 4. **Dừng ngay** và ghi `sublet_inbox(level=stop)` nếu thấy: checkpoint, captcha, "unusual activity", yêu cầu xác minh, trang login. Không thử lại trong 24h.
@@ -26,7 +27,7 @@
 ## Luôn luôn
 - Mỗi record có `source_url` + `seen_at`. Không có nguồn = không tồn tại.
 - Match score tính bằng `scripts/match.py` (deterministic). LLM chỉ viết `reasons`.
-- Mọi draft (push, confirm) ghi vào DB với `status='draft'` và đưa cho người dùng duyệt. Chỉ người dùng đổi sang `sent`. Riêng **DM** theo cờ `outreach.auto_dm` (xem luật #1): mặc định vẫn draft-only; chỉ khi cờ bật agent mới được tự gửi và đổi sang `sent`, kèm log `sublet_events`.
+- Mọi outbound message phải được persist với `status='draft'` trước. Với Facebook DM, agent được gửi **draft đã tồn tại** theo luật #1; chỉ sau UI success mới đổi row đó sang `sent` + `sent_at` và ghi audit `events`. Các loại message khác vẫn cần người dùng gửi.
 - Ghi `sublet_scan_runs` mỗi chu kỳ (page_loads, new_posts) để tự kiểm soát volume.
 - DB lỗi (RPC/HTTP) → thử lại 1 lần sau 5s; vẫn lỗi → dừng skill, `sublet_inbox(warning)`, không ghi nửa chừng (R21).
 - Mỗi skill có khối **Spec** (lịch · trigger · đọc · ghi · metrics · edge cases · rules). Registry: `docs/rules.md`, `docs/edge-cases.md`, `docs/metrics.md`. Thêm hành vi mới = cập nhật cả 3.
@@ -44,8 +45,7 @@ aggregate và report; `analyze-insights` là bước đọc-only độc lập, c
 bất kỳ lúc nào sau capture (không cần chờ validate xong) để tóm tắt insight cho
 Kien. `intent-analyze` (bật 2026-09-17) là pipeline phân loại chính thức, ghi
 thật `kind`/`subtype`/`poster_type`/... lên `sublet_listings` đã có
-`source_url`; scam/deal scoring vẫn để mặc định, chưa bật. Các bước match,
-draft, viewing và outreach chưa nằm trong active skill scope.
+`source_url`; scam/deal scoring vẫn để mặc định, chưa bật. Matching và viewing chưa nằm trong active skill scope. `outreach-prep` đã active: tạo draft và có thể gửi pre-existing draft theo rule #1.
 
 ## Active scope
 - **Context** (`information`): onboarding, quyền agent, DB, state và cách tiếp tục.

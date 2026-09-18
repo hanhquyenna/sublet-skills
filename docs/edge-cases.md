@@ -79,15 +79,19 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | E63 | Pets / no couples / students only | flag từ `poster_constraints`, không veto cứng | match.py | smoke |
 | E64 | Không có seeker nào ≥50 | listing giữ `new`; draft dùng `offer_triage` không phải `offer_pool` | sublet-draft | — |
 
-## F. OUTREACH — draft
+## F. OUTREACH — draft + controlled send
 | # | Tình huống | Xử lý | Skill | Test |
 |---|---|---|---|---|
-| E70 | Đã 10 DM hôm nay | cảnh báo, không draft thêm | sublet-draft | — |
+| E70 | Đã 10 agent-sent DM trong 24h | giữ các row còn lại ở `draft`, không send thêm | outreach-prep | manual |
 | E71 | Listing >7 ngày | deal_score −20; nếu vẫn ≥60 thì draft nhắc "still looking?" | sublet-draft | — |
 | E72 | Poster là proxy | DM hỏi "bạn hay bạn của bạn quyết?" | sublet-draft | — |
 | E73 | Post bằng NL | template NL | sublet-draft | — |
 | E74 | Seeker push_count hôm nay ≥3 | bỏ qua seeker đó hôm nay | sublet-draft | — |
 | E75 | Chưa có `seeker_form.url` | offer dùng "forward me the replies" | sublet-draft | — |
+| E76 | Có draft nhưng `auto_dm=false` và chưa có explicit send request | giữ `draft`, không mở Messenger/send | outreach-prep | manual |
+| E77 | Agent send thành công, UI xác nhận rõ | update đúng row `sent` + `sent_at`, ghi `events.outreach_dm_sent` actor=agent | outreach-prep | manual |
+| E78 | Click/send UI lỗi hoặc không chắc message đã gửi | giữ `draft`, không ghi sent/event success; báo warning | outreach-prep | manual |
+| E79 | Draft candidate có `scam_flag=true`, đã outreach poster, hoặc ra khỏi queue | không send; giữ/skip draft và báo lý do | outreach-prep | manual |
 
 ## G. INBOX — reply
 | # | Tình huống | Xử lý | Skill | Test |

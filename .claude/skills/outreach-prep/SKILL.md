@@ -1,189 +1,185 @@
 ---
 name: outreach-prep
-description: "Draft availability-check DMs (never sent by the agent) in strict outreach_order from dashboardkien_outreach, using message1 verbatim, and mark status when Kien reports a send. Use with /outreach-prep."
+description: "Create availability-check DM drafts in strict outreach_order from dashboardkien_outreach, and send only pre-existing approved drafts through the visible Facebook browser when explicitly requested or when outreach.auto_dm=true. Use message bodies verbatim and audit every send. Use with /outreach-prep."
 ---
 
 # outreach-prep
 
-Skill này soạn **draft** tin nhắn hỏi lại "còn không/vẫn tìm không" theo đúng
-thứ tự ưu tiên đã tính sẵn trong view `dashboardkien_outreach` — **không bao
-giờ gửi**. Agent không mở Facebook ở skill này (context đã có sẵn trong DB),
-chỉ đọc view, ghi draft vào `outreach_messages`, và track trạng thái gửi khi
-Kien tự báo đã gửi.
+Skill này có **2 pha tách biệt**:
 
-**⚠️ 2026-09-17 — DB đã migrate, đọc `information/SKILL.md` mục "Database"
-trước khi chạy skill này nếu chưa đọc.** Bảng/RPC cũ (`sublet_listings`,
+1. **Draft:** đọc `dashboardkien_outreach`, copy `message1` nguyên văn vào
+   `outreach_messages` với `status='draft'`.
+2. **Send:** agent được phép gửi DM **chỉ khi row draft đã tồn tại từ trước**.
+   Agent lấy `outreach_messages.body` nguyên văn, gửi qua visible Facebook
+   browser panel, rồi chỉ sau khi UI xác nhận gửi thành công mới đổi đúng row đó
+   sang `status='sent'` và ghi audit event.
+
+Draft tồn tại là điều kiện bắt buộc trước khi agent được gửi. Không được tạo câu
+mới rồi gửi ngay trong cùng bước send, không được sửa body lúc gửi, và không
+được gửi một message chưa có row `status='draft'` trong DB.
+
+**2026-09-17 — DB đã migrate.** Đọc `information/SKILL.md` mục "Database"
+trước khi chạy nếu chưa đọc. Bảng/RPC cũ (`sublet_listings`,
 `sublet_messages`, RPC `sublet_exec`) không còn tồn tại. Project data thật là
-ref `cteunhuxrghpozwbnehh` (không phải "Lamy"); `scripts/db.py` đang hỏng —
-đọc/ghi bằng REST trực tiếp với `SUPABASE_SERVICE_ROLE_KEY` từ
-`~/.sublet-skills.env`, hoặc MCP Supabase đã xác nhận trỏ đúng project này.
+ref `cteunhuxrghpozwbnehh`; bảng hiện tại dùng `posts`, `posters`,
+`outreach_messages`, `events`, ... và view outreach thật là
+`dashboardkien_outreach`.
 
-Toàn bộ input, xếp hạng, dedup và nội dung message đã tính sẵn trong 1 view
-duy nhất — skill này **không tự tính lại điều kiện gì**, chỉ đọc
-`dashboardkien_outreach` theo đúng cột đã có:
+## Permission để gửi
+
+- `outreach.auto_dm: false` (mặc định): `/outreach-prep` chỉ tạo draft. Agent
+  chỉ được gửi khi Kien yêu cầu rõ một send action, ví dụ
+  `/outreach-prep send <message_id>` hoặc một câu tương đương chỉ rõ draft cần
+  gửi.
+- `outreach.auto_dm: true`: agent được xử lý các **draft đã tồn tại** theo
+  `outreach_order` mà không phải hỏi lại từng message. Việc bật cờ này không
+  cho phép bỏ qua các check bên dưới và không cho phép draft+send trong cùng
+  một bước không có row draft trung gian.
+- Dù cờ nào, agent không bao giờ post/comment/like/join group/submit form trên
+  Facebook. DM từ draft là ngoại lệ ghi duy nhất.
+
+## Queue nguồn
+
+Toàn bộ input, xếp hạng, dedup và nội dung draft đã tính sẵn trong view
+`dashboardkien_outreach`. Không tự tính lại điều kiện:
 
 ```sql
 select poster_id, poster_name, post_id, intent, post_link, message1,
-       scam_flag, outreach_order
+       scam_flag, outreach_order, has_outreached
 from dashboardkien_outreach
-where outreach_order is not null   -- đã qua hết filter của view (validated,
-                                     -- individual, không risk/scam auto-exclude,
-                                     -- ≤7 ngày, xếp hạng theo fit_score/recency/confidence)
+where outreach_order is not null
   and not has_outreached
-order by outreach_order asc;        -- LÀM ĐÚNG THỨ TỰ NÀY, không nhảy cóc, không tự sắp xếp lại
-```
-
-(Chạy qua REST tương đương:
-`GET /rest/v1/dashboardkien_outreach?select=poster_id,poster_name,post_id,intent,post_link,message1,scam_flag,outreach_order&outreach_order=not.is.null&has_outreached=eq.false&order=outreach_order.asc`)
-
-`outreach_order` đã gộp sẵn: recency (post mới nhất trước, quá 7 ngày tự động
-`outreach_order=null` — không hiện ra nữa) rồi trong cùng tier thì theo mức độ
-chi tiết của bài (`confidence`/`fit_score`, cao hơn ưu tiên hơn). `has_outreached`
-tính live theo poster (không chỉ theo 1 bài) — tự loại người đã từng nhận tin,
-khớp rule "không nhắn 1 người 2 lần" bên dưới. `message1` là nội dung draft đã
-chọn sẵn theo intent×language — **copy nguyên văn**, không tự sửa.
-
-**Known gap (không phải việc của skill này để tự vá):** `outreach_order` hiện
-không tuyệt đối liên tục 1,2,3... (có khoảng trống rải rác trong dãy số) —
-không ảnh hưởng thứ tự tương đối, chỉ cần `order by outreach_order asc` là đủ
-đúng thứ tự thật; đừng suy diễn số thứ tự tuyệt đối = số người đã xử lý.
-
-**`scam_flag=true` không tự động loại khỏi view** (theo yêu cầu Kien: chỉ
-đánh dấu, để Kien tự xem) — nhưng agent **nên bỏ qua thủ công**, không tạo
-draft cho các dòng này, và liệt kê riêng trong báo cáo thay vì im lặng draft.
-
-## Spec
-
-- **Trigger:** Kien gọi tay `/outreach-prep`.
-- **Đọc:** `dashboardkien_outreach` (view duy nhất cần đọc để chọn candidate,
-  lấy nội dung và biết ai đã outreach); `outreach_messages` chỉ để tránh ghi
-  trùng và để trả lời "đã gửi gì cho ai".
-- **Ghi:** `outreach_messages` (`status='draft'`, một dòng mỗi `post_id`+
-  `poster_id` lần đầu cần draft). Không ghi gì khác, không tạo bảng mới.
-- **Không bao giờ:** không mở Facebook, không click Send/Message ở bất kỳ
-  giao diện nào, không tự đổi `status` sang `sent` — chỉ Kien đổi (qua lệnh
-  `/outreach-prep sent <message_id>` hoặc Kien tự báo trong chat).
-- **Metrics:** số draft mới tạo, số draft đang chờ (`status='draft'`), số đã
-  gửi (`status='sent'`, phải luôn do Kien báo, không phải agent tự đổi).
-- **Kết quả báo cáo:** số draft mới tạo (kèm `outreach_order` thấp nhất→cao
-  nhất đã xử lý, để Kien biết có đi đúng thứ tự không), số dòng bị bỏ qua vì
-  `scam_flag=true` (liệt kê tên), tổng số người còn lại trong queue
-  (`outreach_order is not null and not has_outreached`).
-
-## Hard rule (thừa hưởng nguyên vẹn từ CLAUDE.md, không có ngoại lệ)
-
-- Agent **không bao giờ** post/comment/like/DM/send trên Facebook, không thao
-  tác Messenger dù dưới bất kỳ lý do gì kể cả khi Kien tự soạn template và yêu
-  cầu trực tiếp. "Agent là mắt và trí nhớ; con người là tay và tên."
-- Mọi message tạo ra ở đây bắt buộc `status='draft'`. Chỉ Kien được đổi
-  `status='sent'` + `sent_at` — agent chỉ thực hiện đổi này khi Kien **báo rõ
-  trong chat** "đã gửi tin X" hoặc gọi lệnh đánh dấu, không tự suy đoán đã gửi
-  từ im lặng hay hành vi khác.
-- Không giới hạn số draft tạo ra (khác với DM thật đã gửi, có giới hạn riêng
-  trong `PLAN.md`). Nhưng vẫn báo rõ số lượng để Kien không bị ngợp.
-- Không nhắn 1 người (theo `poster_id`) 2 lần trong 2 đợt outreach khác nhau —
-  `has_outreached` trong view đã tự tính việc này (dựa trên
-  `outreach_messages.status='sent'` join theo `poster_id`); nếu view đã trả về
-  `not has_outreached` thì tin theo, không tự query lại logic riêng.
-
-## Đi qua queue: luôn theo `outreach_order`, không tự sắp xếp lại
-
-1. Query `dashboardkien_outreach` như SQL/REST ở trên, `order by
-   outreach_order asc`.
-2. Xử lý **tuần tự từng dòng theo đúng thứ tự trả về** — không nhảy cóc, không
-   ưu tiên theo cảm tính riêng (ví dụ "bài này nhìn hấp dẫn hơn"); nếu Kien
-   muốn đổi tiêu chí xếp hạng, đó là việc sửa logic trong view
-   `dashboardkien_outreach` (báo Kien / DBA quyết định), không phải việc
-   skill này tự làm.
-3. Với mỗi dòng: nếu `scam_flag=true` → bỏ qua, ghi vào danh sách "skipped
-   (scam_flag)" cho báo cáo, **không** insert draft. Nếu không → tạo draft
-   (mục dưới).
-4. Ghi `outreach_messages` ngay sau khi xử lý xong 1 dòng, không đợi hết cả
-   batch rồi ghi 1 lần — để nếu bị dừng giữa chừng, DB vẫn phản ánh đúng tiến
-   độ thật.
-
-## Ghi draft vào `outreach_messages`
-
-`message1` từ `dashboardkien_outreach` đã đúng nội dung cần gửi — copy thẳng
-vào `body`, không tự tra lại bảng intent×language nào khác (view đã làm việc
-đó). `template` ghi theo `intent` để giữ dedup dễ đọc:
-`intent='offering'` → `template='availability_check_offering'`;
-`intent='seeking'` → `template='availability_check_seeker'`.
-
-Trước khi insert, kiểm tra chưa có draft/sent nào cho đúng `post_id` này (dedup
-theo bài) — view đã tự lo phần "chưa từng nhắn người này qua bài khác" (qua
-`has_outreached`), chỉ cần tự check thêm theo `post_id` để không tạo 2 draft
-cho cùng 1 bài nếu skill chạy nhiều lần trong ngày:
-
-```sql
-select 1 from outreach_messages
-where post_id = '<post_id>' and channel = 'fb_dm';
--- có kết quả -> đã có draft/sent cho bài này rồi, bỏ qua, không insert lại
-```
-
-Insert khi chưa có:
-
-```sql
-insert into outreach_messages (post_id, poster_id, direction, channel, template, body, status)
-values ('<post_id>', '<poster_id>', 'out', 'fb_dm', '<availability_check_offering|availability_check_seeker>', '<message1 nguyen van>', 'draft');
-```
-
-(REST tương đương: `POST /rest/v1/outreach_messages` với body JSON đúng các
-cột trên, header `Prefer: return=representation` nếu cần lấy lại `id`.)
-
-Không thêm tên poster, không thêm chi tiết bài đăng, không nhắc AI/agent/
-automation vào `body` — Kien có thể tự sửa/cá nhân hoá trước khi gửi tay,
-agent không tự ý mở rộng câu chữ trong `message1`.
-
-## Đánh dấu đã gửi — chỉ Kien, và `has_outreached` tự cập nhật live theo đó
-
-`/outreach-prep sent <message_id>` (hoặc Kien nêu rõ trong chat "đã gửi cho
-X"): agent update đúng 1 dòng:
-
-```sql
-update outreach_messages set status='sent', sent_at=now() where id='<message_id>' and status='draft';
-```
-
-(REST: `PATCH /rest/v1/outreach_messages?id=eq.<message_id>&status=eq.draft`
-với body `{"status":"sent","sent_at":"<now iso>"}`.)
-
-Vì `dashboardkien_outreach.has_outreached` là cột tính live từ
-`outreach_messages.status='sent'`, agent **không cần và không được** tự set
-`has_outreached` ở đâu khác — chỉ cần update đúng `outreach_messages` là view
-tự phản ánh đúng ngay ở lần query kế tiếp. Không tự động đổi status hàng
-loạt, không đoán đã gửi từ im lặng hay từ việc Kien "có vẻ đang mở Messenger".
-Nếu Kien báo đã gửi nhiều tin cùng lúc, xử lý từng `message_id` một, xác nhận
-lại số lượng đã update ở cuối.
-
-## Track "ai / gửi gì / lúc nào"
-
-Không cần view phụ nào khác — `dashboardkien_outreach` đã có đủ
-`has_outreached`/`outreach_order`/`message1`/`scam_flag` để biết ai đang chờ,
-ai đã xong; `outreach_messages` là log thật của từng tin (draft/sent, lúc
-nào). Muốn xem toàn bộ đang chờ gửi:
-
-```sql
-select poster_name, post_link, message1, outreach_order
-from dashboardkien_outreach
-where outreach_order is not null and not has_outreached
 order by outreach_order asc;
 ```
 
-Muốn xem đã gửi bao nhiêu:
+`outreach_order` có thể có khoảng trống; chỉ cần giữ đúng thứ tự tăng dần.
+`message1` là body draft đã chọn theo intent/language. `scam_flag=true` không bị
+view tự loại nhưng agent phải skip: không draft, không send, và báo riêng.
+
+## Spec
+
+- **Trigger draft:** `/outreach-prep`.
+- **Trigger send khi `auto_dm=false`:** `/outreach-prep send <message_id>` hoặc
+  yêu cầu rõ tương đương.
+- **Trigger send khi `auto_dm=true`:** có thể gửi các draft ready theo thứ tự
+  mà không hỏi lại từng tin trong một run outreach đã được yêu cầu.
+- **Đọc:** `dashboardkien_outreach`, `outreach_messages`, `data/config.yaml`.
+- **Ghi:** `outreach_messages`; sau agent-send thành công ghi thêm `events`.
+- **Facebook:** chỉ visible browser panel đang login thủ công; không CLI/API/
+  headless/cookie session khác.
+- **Metrics:** draft mới, draft chờ, sent, agent-send audit, skipped scam,
+  queue còn lại.
+
+## Pha 1 — tạo draft theo đúng `outreach_order`
+
+1. Query queue `order by outreach_order asc`.
+2. Xử lý tuần tự, không tự sắp xếp lại.
+3. `scam_flag=true` -> skip và báo tên, không insert draft.
+4. Với row hợp lệ, kiểm tra chưa có message cho `post_id` + `channel='fb_dm'`:
 
 ```sql
-select count(*) from outreach_messages where status = 'sent';
+select id, status from outreach_messages
+where post_id = '<post_id>' and channel = 'fb_dm';
 ```
 
-## Completion và edge cases
+Nếu chưa có, insert `message1` nguyên văn:
 
-- Queue rỗng (`outreach_order is not null and not has_outreached` không có
-  dòng nào) → báo 0 draft mới, không tạo gì, không coi là lỗi.
-- Dòng bị bỏ qua vì `scam_flag=true` → liệt kê riêng trong báo cáo (không im
-  lặng bỏ qua), để Kien tự quyết có muốn xử lý tay không.
-- REST/DB lỗi giữa batch: retry đúng 1 lần sau 5 giây theo hard rule chung;
-  vẫn lỗi thì dừng, báo warning, không claim đã ghi hết.
-- Không bao giờ tự đổi logic xếp hạng trong view, tự nới `confidence`
-  threshold, hay tự đổi nội dung `message1`/template mà không có yêu cầu rõ
-  từ Kien trong chat — mọi thay đổi loại đó là sửa `dashboardkien_outreach`
-  (DDL), không phải việc của skill runtime này.
+```sql
+insert into outreach_messages
+  (post_id, poster_id, direction, channel, template, body, status)
+values
+  ('<post_id>', '<poster_id>', 'out', 'fb_dm',
+   '<availability_check_offering|availability_check_seeker>',
+   '<message1 nguyên văn>', 'draft');
+```
+
+`intent='offering'` -> `template='availability_check_offering'`;
+`intent='seeking'` -> `template='availability_check_seeker'`.
+
+Không thêm tên, chi tiết post, AI/agent/automation, hoặc bất kỳ text mới nào
+vào body. Draft phải được persist trước khi một send phase có thể dùng nó.
+
+## Pha 2 — gửi một draft đã tồn tại
+
+Trước mỗi send, agent phải verify tất cả điều kiện này:
+
+1. `outreach_messages.id=<message_id>` tồn tại, `status='draft'`,
+   `channel='fb_dm'`, `direction='out'`.
+2. Draft không phải row vừa được tạo ngầm trong send step; nó phải đã được
+   persist trước khi bước gửi bắt đầu.
+3. Join về `dashboardkien_outreach` theo `post_id`/`poster_id`; row còn
+   `has_outreached=false`, `outreach_order is not null`, `scam_flag=false`.
+4. Chưa có `status='sent'` cho cùng `poster_id` qua một post khác.
+5. Chưa đạt giới hạn **10 agent-sent DM trong 24h**. Nếu đã đạt, giữ draft và
+   dừng gửi thêm.
+
+Nếu bất kỳ check nào fail: không gửi và giữ nguyên `status='draft'`.
+
+### Cách gửi
+
+1. Mở `post_link` bằng visible Facebook browser panel đang login thủ công.
+2. Verify poster hiển thị khớp candidate/draft. Nếu không chắc identity, dừng
+   và giữ draft.
+3. Mở Message/Messenger từ UI Facebook.
+4. Paste **chính xác `outreach_messages.body`**, không rewrite/personalize thêm.
+5. Click Send.
+6. Chỉ khi UI cho thấy message đã gửi thành công mới cập nhật DB. Nếu UI lỗi,
+   checkpoint/captcha/login/unusual activity, hoặc trạng thái gửi không chắc:
+   dừng ngay, không retry mù, không đổi `status`.
+
+## Sau khi agent gửi thành công
+
+Update đúng row draft vừa gửi:
+
+```sql
+update outreach_messages
+set status='sent', sent_at=now()
+where id='<message_id>' and status='draft';
+```
+
+Sau đó ghi audit event vào schema hiện tại:
+
+```sql
+insert into events
+  (entity_type, entity_id, event, actor, source_url, payload)
+values
+  ('post', '<post_id>', 'outreach_dm_sent', 'agent', '<post_link>',
+   jsonb_build_object(
+     'message_id', '<message_id>',
+     'channel', 'fb_dm',
+     'template', '<template>'
+   ));
+```
+
+Nội dung thật vẫn nằm ở `outreach_messages.body`; event chỉ trỏ lại
+`message_id` để audit, tránh duplicate body trong event payload.
+
+Nếu Kien tự gửi tay rồi báo lại, agent chỉ update row tương ứng sang `sent` +
+`sent_at`; actor của một audit event (nếu ghi) phải là `human`, không giả là
+agent.
+
+Vì `dashboardkien_outreach.has_outreached` tính live từ
+`outreach_messages.status='sent'`, không tự set `has_outreached` ở nơi khác.
+
+## Không được làm
+
+- Không gửi nếu không có pre-existing `status='draft'` row.
+- Không rewrite body tại send time.
+- Không send row `scam_flag=true`, expired/out-of-queue, hoặc poster đã được
+  outreach trước đó.
+- Không post/comment/like/join/submit form.
+- Không dùng Facebook API, CLI, script scraper, headless browser, Chrome
+  session khác hoặc cookie ngoài browser panel.
+- Không mark `sent` khi UI chưa xác nhận send thành công.
+- Không vượt 10 agent-sent DM/24h.
+
+## Completion / edge cases
+
+- Queue rỗng -> báo 0 draft mới / 0 send, không coi là lỗi.
+- Draft tồn tại nhưng `auto_dm=false` và chưa có explicit send request -> giữ
+  draft, không gửi.
+- Send UI ambiguous/fail -> giữ `draft`, báo warning; không đoán đã gửi.
+- Checkpoint/captcha/login/unusual activity -> dừng Facebook ngay theo hard
+  rule chung; không retry trong 24h.
+- DB lỗi giữa batch -> retry đúng 1 lần sau 5s; vẫn lỗi thì dừng và báo warning.
+- Không tự đổi ranking, threshold, `message1`, template hoặc view logic.
