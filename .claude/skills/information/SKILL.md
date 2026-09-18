@@ -110,9 +110,10 @@ snapshot; nếu mâu thuẫn `CLAUDE.md` thì `CLAUDE.md` thắng.
   send, donate, đọc DM/private content, friend list hoặc album riêng tư.
 - Khi gặp login/checkpoint/captcha/“unusual activity”, dừng ngay, ghi stop theo
   rule và không retry trong 24 giờ.
-- DB write lưu capture/progress/metrics/draft. Facebook DM có ngoại lệ send qua
-  `outreach-prep`: chỉ pre-existing `status='draft'` được gửi; agent tự gửi
-  ready-draft theo `outreach_order`, không cần hỏi lại từng tin.
+- DB write lưu capture/progress/metrics. Facebook DM có ngoại lệ send qua
+  `outreach-prep`: gửi trực tiếp `message1` cho poster hợp lệ theo
+  `outreach_order`, không cần hỏi lại từng tin; `outreach_messages` chỉ được
+  ghi (insert-only, không draft/status) sau khi gửi thành công.
 
 ### Skill registry hiện tại
 
@@ -394,9 +395,10 @@ outreach chưa thuộc scope hiện tại.
 - `analyze-insights` chỉ đọc `raw_text` đã có, ghi event `insight_reviewed` +
   snapshot `sublet_inbox`/`sublet_metrics`; không đụng `kind`/`subtype`/
   `scam_score` chính thức và không mở Facebook.
-- Outbound DM luôn phải được persist `status='draft'` trước. `outreach-prep`
-  có thể gửi row draft đã tồn tại; chỉ sau browser UI success mới đổi thành
-  `sent` + `sent_at` và ghi `events(event='outreach_dm_sent')`.
+- Outbound DM: `outreach-prep` gửi trực tiếp `message1` cho poster hợp lệ;
+  chỉ sau browser UI success mới insert 1 row vào `outreach_messages`
+  (`sent_at=now()`, không draft/status) và ghi
+  `events(event='outreach_dm_sent')`.
 - `filled`, `signed`, `paid` chỉ ghi khi có xác nhận thật và kèm nguồn.
 - Mọi việc cần Kien biết đưa vào `sublet_inbox`; không tự gửi notification ngoài.
 

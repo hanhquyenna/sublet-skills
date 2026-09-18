@@ -4,9 +4,9 @@
 
 ## Không bao giờ
 1. **Không tự động post, comment, like, join group hoặc submit form trên Facebook.** Agent mặc định chỉ ĐỌC.
-   - Ngoại lệ ghi duy nhất là **DM từ một row `outreach_messages.status='draft'` đã tồn tại trước khi bước send bắt đầu**. Agent không được generate body rồi gửi ngay mà chưa persist draft.
-   - Agent được gửi các draft ready theo `outreach_order` ngay trong cùng run, không cần hỏi lại từng tin hoặc chờ Kien yêu cầu rõ một send action — không còn cờ `auto_dm`. Vẫn phải dùng body đã lưu nguyên văn và verify eligibility trước từng send.
-   - Sau UI send thành công, agent đổi đúng row sang `status='sent'`, set `sent_at`, và ghi `events(event='outreach_dm_sent', actor='agent', entity_type='post')`. Nếu UI không chắc đã gửi thì giữ `draft`.
+   - Ngoại lệ ghi duy nhất là **DM gửi trực tiếp `message1` cho poster hợp lệ theo `outreach_order`** (chưa `has_outreached`, không `scam_flag`) — xem `outreach-prep/SKILL.md`. Từ 2026-09-18: không còn mô hình draft/send 2 pha, không còn cờ `auto_dm`, không còn `outreach_messages.status`. Agent tự xử lý cả queue trong cùng run, không cần hỏi lại từng tin.
+   - Agent chỉ ghi vào `outreach_messages` **NGAY SAU** khi Facebook xác nhận gửi thành công — 1 insert/lần gửi, không update (không có trạng thái trung gian để update). Nếu UI không chắc đã gửi thì **không insert gì**. Sau insert, ghi thêm `events(event='outreach_dm_sent', actor='agent', entity_type='post')`.
+   - `has_outreached` tính live từ việc tồn tại bất kỳ row nào trong `outreach_messages` cho poster đó — tự đúng ngay khi insert, không cần set thêm ở nơi khác.
    - Post, comment, like, join group, submit form **vẫn tuyệt đối cấm**.
 2. Không mở quá **4 page load Facebook mỗi chu kỳ** scan. Không mở từng group; đọc `facebook.com/groups/feed` và `/notifications`.
 3. Chạy theo giờ trong `data/config.yaml` (`hours`); từ 2026-09-16 theo yêu cầu Kien, `hours` đặt 24/7 (`00:00`–`23:59`), không còn giới hạn khung giờ trong ngày. Không chạy khi máy vừa thức dậy dưới 2 phút.
@@ -26,7 +26,7 @@
 ## Luôn luôn
 - Mỗi record có `source_url` + `seen_at`. Không có nguồn = không tồn tại.
 - Match score tính bằng `scripts/match.py` (deterministic). LLM chỉ viết `reasons`.
-- Mọi outbound message phải được persist với `status='draft'` trước. Với Facebook DM, agent được gửi **draft đã tồn tại** theo luật #1; chỉ sau UI success mới đổi row đó sang `sent` + `sent_at` và ghi audit `events`. Các loại message khác vẫn cần người dùng gửi.
+- Facebook DM: agent gửi trực tiếp `message1` cho poster hợp lệ theo luật #1; chỉ sau UI success mới ghi 1 row vào `outreach_messages` (insert-only, không draft/status) và ghi audit `events`. Các loại message khác vẫn cần người dùng gửi.
 - Ghi `sublet_scan_runs` mỗi chu kỳ (page_loads, new_posts) để tự kiểm soát volume.
 - DB lỗi (RPC/HTTP) → thử lại 1 lần sau 5s; vẫn lỗi → dừng skill, `sublet_inbox(warning)`, không ghi nửa chừng (R21).
 - Mỗi skill có khối **Spec** (lịch · trigger · đọc · ghi · metrics · edge cases · rules). Registry: `docs/rules.md`, `docs/edge-cases.md`, `docs/metrics.md`. Thêm hành vi mới = cập nhật cả 3.

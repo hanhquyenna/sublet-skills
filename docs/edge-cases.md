@@ -82,15 +82,15 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 ## F. OUTREACH — draft + controlled send
 | # | Tình huống | Xử lý | Skill | Test |
 |---|---|---|---|---|
-| E70 | Đã 10 agent-sent DM trong 24h | giữ các row còn lại ở `draft`, không send thêm | outreach-prep | manual |
+| E70 | Đã 10 agent-sent DM trong 24h | dừng gửi thêm trong run này, báo còn lại bao nhiêu trong queue | outreach-prep | manual |
 | E71 | Listing >7 ngày | deal_score −20; nếu vẫn ≥60 thì draft nhắc "still looking?" | sublet-draft | — |
 | E72 | Poster là proxy | DM hỏi "bạn hay bạn của bạn quyết?" | sublet-draft | — |
 | E73 | Post bằng NL | template NL | sublet-draft | — |
 | E74 | Seeker push_count hôm nay ≥3 | bỏ qua seeker đó hôm nay | sublet-draft | — |
 | E75 | Chưa có `seeker_form.url` | offer dùng "forward me the replies" | sublet-draft | — |
-| E77 | Agent send thành công, UI xác nhận rõ | update đúng row `sent` + `sent_at`, ghi `events.outreach_dm_sent` actor=agent | outreach-prep | manual |
-| E78 | Click/send UI lỗi hoặc không chắc message đã gửi | giữ `draft`, không ghi sent/event success; báo warning | outreach-prep | manual |
-| E79 | Draft candidate có `scam_flag=true`, đã outreach poster, hoặc ra khỏi queue | không send; giữ/skip draft và báo lý do | outreach-prep | manual |
+| E77 | Agent send thành công, UI xác nhận rõ | insert 1 row `outreach_messages` (`sent_at=now()`), ghi `events.outreach_dm_sent` actor=agent | outreach-prep | manual |
+| E78 | Click/send UI lỗi hoặc không chắc message đã gửi | không insert gì, không ghi event; báo warning | outreach-prep | manual |
+| E79 | Candidate có `scam_flag=true`, đã `has_outreached`, hoặc ra khỏi queue | không send; skip và báo lý do | outreach-prep | manual |
 
 ## G. INBOX — reply
 | # | Tình huống | Xử lý | Skill | Test |

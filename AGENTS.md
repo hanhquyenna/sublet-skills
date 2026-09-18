@@ -1,7 +1,7 @@
 # AGENTS.md — cho Codex (bản tương đương CLAUDE.md)
 
 Đọc **CLAUDE.md** — toàn bộ luật cứng ở đó và áp dụng nguyên văn cho Codex. Tóm tắt:
-- Facebook mặc định chỉ ĐỌC. Không post/comment/like/join/submit form. DM là ngoại lệ duy nhất: `outreach-prep` được gửi **pre-existing** `outreach_messages.status='draft'` qua visible browser panel theo `CLAUDE.md` — agent tự gửi ready drafts theo `outreach_order`, không cần hỏi lại từng tin.
+- Facebook mặc định chỉ ĐỌC. Không post/comment/like/join/submit form. DM là ngoại lệ duy nhất: `outreach-prep` gửi trực tiếp `message1` cho poster hợp lệ (không `scam_flag`, chưa `has_outreached`) theo `outreach_order` qua visible browser panel, ghi `outreach_messages` chỉ sau khi gửi thành công (không còn draft/status) — theo `CLAUDE.md`.
 - Capture tuần tự tối đa 14 group, cửa sổ 14 ngày; ≤4 page load/run và dừng ngay khi thấy checkpoint/captcha/login.
 - Mọi raw record có `source_url` + `seen_at`; resume từ DB cursor và dedupe trước khi ghi.
 
