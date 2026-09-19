@@ -1,13 +1,11 @@
 # sublet-skills — luật cứng cho agent
 
-Đây là bộ skill vận hành dịch vụ ghép sublet Amsterdam. Facebook mặc định read-only; ngoại lệ ghi duy nhất là DM đã có draft theo rule outreach bên dưới.
+Đây là bộ skill vận hành dịch vụ ghép sublet Amsterdam. Facebook mặc định read-only; outreach dùng `message1` nguyên văn và chỉ auto-send khi premessage/auto-send đã bật.
 
 ## Không bao giờ
 1. **Không tự động post, comment, like, join group hoặc submit form trên Facebook.** Agent mặc định chỉ ĐỌC.
-   - Ngoại lệ ghi duy nhất là **DM từ một row `outreach_messages.status='draft'` đã tồn tại trước khi bước send bắt đầu**. Agent không được generate body rồi gửi ngay mà chưa persist draft.
-   - `auto_dm: false` hoặc chưa cấu hình (mặc định) → `/outreach-prep` chỉ tạo draft; agent chỉ được gửi khi Kien yêu cầu rõ một send action cho draft đã tồn tại (ví dụ `/outreach-prep send <message_id>`).
-   - `auto_dm: true` → trong một outreach send run đã được yêu cầu, agent được gửi các draft ready theo `outreach_order` mà không hỏi lại từng tin. Vẫn phải dùng body đã lưu nguyên văn và verify eligibility trước từng send.
-   - Sau UI send thành công, agent đổi đúng row sang `status='sent'`, set `sent_at`, và ghi `events(event='outreach_dm_sent', actor='agent', entity_type='post')`. Nếu UI không chắc đã gửi thì giữ `draft`.
+   - `auto_dm: false` → agent chỉ dán và dừng. Khi `auto_dm: true`/premessage bật, agent được gửi theo `outreach_order` na verificatie, dùng body nguyên văn.
+   - Sau UI send thành công, ghi row `status='sent'`, `sent_at`, và audit `events(event='outreach_dm_sent', actor='agent', entity_type='post')`. Nếu UI không chắc đã gửi thì không ghi.
    - Post, comment, like, join group, submit form **vẫn tuyệt đối cấm** dù cờ `auto_dm` là gì.
 2. Không mở quá **4 page load Facebook mỗi chu kỳ** scan. Không mở từng group; đọc `facebook.com/groups/feed` và `/notifications`.
 3. Chạy theo giờ trong `data/config.yaml` (`hours`); từ 2026-09-16 theo yêu cầu Kien, `hours` đặt 24/7 (`00:00`–`23:59`), không còn giới hạn khung giờ trong ngày. Không chạy khi máy vừa thức dậy dưới 2 phút.
