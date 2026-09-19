@@ -103,8 +103,6 @@ Trước mỗi send, agent phải verify tất cả điều kiện này:
 3. Join về `dashboardkien_outreach` theo `post_id`/`poster_id`; row còn
    `has_outreached=false`, `outreach_order is not null`, `scam_flag=false`.
 4. Chưa có `status='sent'` cho cùng `poster_id` qua một post khác.
-5. Chưa đạt giới hạn **10 agent-sent DM trong 24h**. Nếu đã đạt, giữ draft và
-   dừng gửi thêm.
 
 Nếu bất kỳ check nào fail: không gửi và giữ nguyên `status='draft'`.
 
@@ -113,7 +111,8 @@ Nếu bất kỳ check nào fail: không gửi và giữ nguyên `status='draft'
 1. Mở `post_link` bằng visible Facebook browser panel đang login thủ công.
 2. Verify poster hiển thị khớp candidate/draft. Nếu không chắc identity, dừng
    và giữ draft.
-3. Mở Message/Messenger từ UI Facebook.
+3. Close any existing Messenger chat window with its `X` before opening the
+   next person’s chat. Then open Message/Messenger from the verified profile.
 4. Paste **chính xác `outreach_messages.body`**, không rewrite/personalize thêm.
 5. Click Send.
 6. Chỉ khi UI cho thấy message đã gửi thành công mới cập nhật DB. Nếu UI lỗi,
@@ -158,13 +157,12 @@ Vì `dashboardkien_outreach.has_outreached` tính live từ
 
 - Không ghi DB nếu agent/user chưa xác nhận đã gửi thành công.
 - Không rewrite body tại send time.
-- Không send row `scam_flag=true`, expired/out-of-queue, hoặc poster đã được
-  outreach trước đó.
+- Không send expired/out-of-queue, hoặc poster đã được outreach trước đó.
+  `scam_flag=true` không phải lý do skip.
 - Không post/comment/like/join/submit form.
 - Không dùng Facebook API, CLI, script scraper, headless browser, Chrome
   session khác hoặc cookie ngoài browser panel.
 - Không mark `sent` khi UI chưa xác nhận send thành công.
-- Không vượt 10 agent-sent DM/24h.
 
 ## Completion / edge cases
 
