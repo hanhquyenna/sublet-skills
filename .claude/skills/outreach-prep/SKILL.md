@@ -1,9 +1,25 @@
 ---
 name: outreach-prep
-description: "Send the first Facebook outreach message from dashboardkien_outreach in strict outreach_order, recording every confirmed outcome."
+description: "Run the approved first-message Facebook outreach workflow from Supabase dashboardkien_outreach, resuming from the database and recording each confirmed outcome."
 ---
 
 # outreach-prep
+
+## Project and control surface
+
+This skill uses Supabase project `cteunhuxrghpozwbnehh`.
+The operator-facing control view is `public.dashboardkien_outreach`.
+Do not substitute another Supabase project, an old `sublet_*` schema, or a
+different dashboard view.
+
+If the Supabase MCP is not connected to project
+`cteunhuxrghpozwbnehh`, do not guess, use a different project, or print
+secrets. Ask Kien to provide the required database connection or token through
+the approved secure channel. Never ask Kien to paste a secret into a public
+prompt or commit it to the repository.
+
+This skill is for `message1` only. It must not send `message2` or `message3`
+unless Kien explicitly requests that separate stage.
 
 Use this skill for the first outreach message (`message1`). The database is the
 source of truth. Do not infer progress from Messenger’s inbox position, a
@@ -11,7 +27,7 @@ count of sent messages, or a screenshot.
 
 ## Start and resume logic
 
-1. Query `dashboardkien_outreach` and its underlying persistent source with
+1. Query `dashboardkien_outreach` and its internal source tables with
    `outreach_order`, ascending. Keep gaps; never renumber or sort by name.
 2. For each order, treat the outcome as complete when either:
    - `has_outreached=true`, or an outgoing `fb_dm` row exists for that
@@ -21,6 +37,10 @@ count of sent messages, or a screenshot.
    Never calculate the next order as “last order + 1” or “number completed”.
 4. Before acting on a candidate, re-query that row and check again for any
    outgoing `fb_dm` row. `scam_flag=true` never excludes a candidate.
+
+The resume decision is always recalculated from the database at the start of a
+run. Never use the previous agent's message, a Messenger inbox count, or
+`max(outreach_order)+1`. The lowest eligible order is the next row.
 
 ## Send procedure
 
@@ -68,6 +88,13 @@ Only after visible send confirmation:
   send state, stop. Do not retry blindly and do not write a sent row.
 - If the database fails, retry the exact query/write once; if it still fails,
   stop without partial bookkeeping.
+
+## Stage boundary
+
+The first-message workflow ends after the confirmed `message1` database
+verification. A later-message workflow is a separate run and requires Kien's
+explicit instruction. Do not infer that a reply means `message2` or `message3`
+should be sent.
 
 ## Progress report
 

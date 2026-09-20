@@ -1,9 +1,43 @@
 ---
 name: sublet-scrape-14-groups
-description: "Scrape raw data from up to 14 joined Facebook groups, one group at a time, for the latest 7 calendar days (changed 2026-09-16 from 14 days; groups already completed under the old 14-day window are not redone). Resume from the database, deduplicate, checkpoint after every batch, and finish each group before moving on. Use with /sublet-scrape-14-groups."
+description: "Scrape joined Facebook groups through the visible browser, resume from Supabase state, checkpoint each batch, and expose progress in dashboardkien_group."
 ---
 
 # sublet-scrape-14-groups
+
+## Project and control surface
+
+This skill uses Supabase project `cteunhuxrghpozwbnehh`.
+The operator-facing control view is `public.dashboardkien_group`.
+The database is the resume source: do not rely on the previous agent's prompt,
+browser tab, or conversation history.
+
+If the Supabase MCP is not connected to project
+`cteunhuxrghpozwbnehh`, stop before reading or writing project data and ask Kien
+for the required secure database connection or token. Do not guess the project,
+use a different project, print secrets, or put credentials in the repository.
+
+This skill captures and checkpoints raw scraping progress. It does not perform
+outreach, send messages, or decide to send `message1`, `message2`, or
+`message3`.
+
+## Automatic resume contract
+
+At the start of every run:
+
+1. Read `dashboardkien_group` and the current Supabase run/checkpoint state.
+2. Select the next joined eligible group using the existing database ordering
+   and status rules in this skill.
+3. If a group has an unfinished run, resume that run's cursor rather than
+   starting over.
+4. If the dashboard does not establish a safe next step, stop and report the
+   ambiguity; do not invent a checkpoint.
+5. After each batch, write the raw capture and checkpoint before continuing.
+6. Finish the current group before selecting another group.
+
+The next agent should be able to start with only the database and this skill.
+It must report the selected group, checkpoint, current status, and next action
+before opening Facebook.
 
 Đây là skill sublet duy nhất để scrape. `information` là skill duy nhất để
 khôi phục context/onboarding. Skill này tự chứa toàn bộ capture workflow; không

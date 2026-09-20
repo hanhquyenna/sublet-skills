@@ -1,5 +1,13 @@
 # HANDOFF — prompt cho Codex (hoặc bất kỳ agent nào) tiếp quản repo này
 
+## Current source-of-truth handoff
+
+For the current `dashboardkien_*` workflow, read
+`docs/dashboard-source-of-truth.md` and use the onboarding text in
+`docs/agent-onboarding-prompt.md` before relying on the historical handoff
+below. The historical instructions are retained for context and may describe
+older schema or workflow decisions.
+
 > **Active scope:** bộ sublet hiện có `information`, `sublet-scrape-14-groups`, `validate-permalink`, `data-engineer` và `analyze-insights`. Các tên skill/workflow cũ còn trong phần lịch sử bên dưới không được gọi hoặc khôi phục.
 
 Copy nguyên khối dưới đây làm tin nhắn đầu tiên cho Codex khi mở `~/sublet-skills`.
