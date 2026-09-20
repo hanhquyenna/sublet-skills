@@ -21,6 +21,14 @@ prompt or commit it to the repository.
 This skill is for `message1` only. It must not send `message2` or `message3`
 unless Kien explicitly requests that separate stage.
 
+## Browser automation channel
+
+All Facebook actions in this skill must use Kien's already-open Chrome browser
+through the host's visible browser automation panel. Reuse that logged-in
+Chrome session and inspect its DOM/accessibility state before acting. Do not
+open a separate browser profile, use headless automation, HTTP/API requests,
+Selenium, or cookies outside Kien's Chrome session.
+
 Use this skill for the first outreach message (`message1`). The database is the
 source of truth. Do not infer progress from Messenger’s inbox position, a
 count of sent messages, or a screenshot.

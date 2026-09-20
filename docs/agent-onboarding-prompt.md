@@ -21,6 +21,11 @@ Do not invent classifications, statuses, limits, message wording, queue
 positions, or completion results. If evidence or a rule is unclear, mark the
 case for review or ask the operator; do not guess.
 
+For Facebook, use Kien's already-open Chrome browser through the visible
+browser automation panel. Reuse that logged-in Chrome session. Do not use a
+separate browser, headless automation, HTTP/API requests, Selenium, or external
+cookies.
+
 For scraping, inspect dashboardkien_group and the database checkpoint before
 deciding where to continue.
 

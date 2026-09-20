@@ -21,6 +21,14 @@ This skill captures and checkpoints raw scraping progress. It does not perform
 outreach, send messages, or decide to send `message1`, `message2`, or
 `message3`.
 
+## Browser automation channel
+
+All Facebook scraping must use Kien's already-open Chrome browser through the
+host's visible browser automation panel. Reuse that logged-in Chrome session
+and read the live DOM/accessibility state before capture. Do not open a
+separate browser profile, use headless automation, HTTP/API requests,
+Selenium, or cookies outside Kien's Chrome session.
+
 ## Automatic resume contract
 
 At the start of every run:
