@@ -24,19 +24,30 @@ conversation and sender are visibly verified.
    the database record, report the conflict, and do not send message2 until a
    fresh matching conversation resolves it.
 
-## Record answer1 and availability
+## Record answer1, answer2, and availability
 
-For a verified incoming reply, upsert `outreach_availability_answers` by
-`poster_id` with:
+For each verified incoming reply, determine its sequence in the matching
+thread before writing. The first incoming reply after `message1` belongs in
+`answer1`; an incoming reply that is visibly after our sent `message2` belongs
+in `answer2`. Never overwrite `answer1` with a later reply and never use the
+conversation-list preview alone to infer sequence.
 
-- the exact visible reply in `answer1`;
+Upsert `outreach_availability_answers` by `poster_id` with:
+
+- the exact visible first reply in `answer1`, or the exact later reply in
+  `answer2` with `answer2_at=now()`;
+- preserve existing verified `answer1` and `answer2` values unless a fresh
+  thread view proves the stored text is wrong;
 - `availability_answer='yes'` only when the reply clearly confirms current
   availability or intent to continue;
 - `availability_answer='no'` only when it clearly declines, is no longer
   looking, or is not offering the relevant place;
-- otherwise leave the answer unknown and do not force yes/no;
+- otherwise use the schema's `unclear` value and do not force yes/no;
 - `message2` copied from the dashboard’s selected variant;
 - `updated_at=now()`.
+
+Replies after `message2` must not change the original availability decision
+unless they explicitly correct it. They are follow-up content for `answer2`.
 
 Never overwrite a verified answer with an unverified inbox preview. A message
 like “hello, yes” is evidence of yes only when it is visibly an incoming
