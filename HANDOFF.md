@@ -50,4 +50,4 @@ Khi xong bước 1, in checklist onboarding với ✅/⬜ và 1 dòng "việc ti
 
 - Prompt trên tự đủ; Codex không cần lịch sử chat này.
 - Nếu dùng Claude Code thay vì Codex: mở `claude` trong repo và gõ `/onboarding` — CLAUDE.md và skills tự load, không cần prompt này.
-- Thứ chưa quyết, để dữ liệu quyết sau 30 ngày: fee trigger (move_in vs 3 viewings), promise 72h vs 24h, có thêm `outreach-prep` (agent điền sẵn draft vào ô Messenger, bạn Enter) hay không.
+- Outreach is active: `outreach-prep` handles strict-order message1 sends and `following-message` handles verified replies/message2. Resume by the lowest unfinished `outreach_order`, never by count.

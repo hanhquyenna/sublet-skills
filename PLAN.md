@@ -109,7 +109,7 @@ Bảng tổng: skill → đọc → ghi → trigger → page load
 - **Cập nhật logic:** trọng số trong `scripts/match.py` (hàm `score`). Đổi xong chạy `/sublet-match <id>` cho listing đang mở; match cũ status='proposed' bị tính lại.
 
 ### C7. sublet-draft
-- **Logic:** đọc partner-voice → điền `templates/dm_offer.md` với chi tiết thật của post → kiểm 10 DM/ngày → lưu draft; push seeker: matches ≥60 + consent, ≤15, không địa chỉ/không tên poster.
+- **Logic:** đọc partner-voice → điền `templates/dm_offer.md` với chi tiết thật của post → dùng strict queue and user-approved send rules → ghi confirmed outcome; push seeker: matches ≥60 + consent, ≤15, không địa chỉ/không tên poster.
 - **Dữ liệu:** `sublet_messages(entity_type, entity_id, direction='out', channel, template, body, status='draft')`. Khi bạn báo `sent`: `status='sent', sent_at`, listing→`contacted`/match→`pushed`.
 - **Cập nhật:** template trong `templates/`, giọng trong `partner-voice`, giới hạn/ngày trong SKILL.md.
 
@@ -179,7 +179,7 @@ Mọi thứ dưới đây **tự chạy** (launchd). Bạn chỉ làm cột ph�
 | Giờ | Tự động | Bạn (tổng ~25'/ngày) |
 |---|---|---|
 | 08:30 | `sublet-followup` → đọc `sublet_inbox` + 8 truy vấn | Mở Claude Code, đọc, gửi các draft (5–10 tap) |
-| 08:00–23:00 mỗi 12' | `sublet-scan` → `intent-analyze` → `sublet-match` → `sublet-draft` | Mỗi lần mở Claude Code: `/sublet-followup` → mở post, gửi DM. ≤10/ngày |
+| 08:00–23:00 mỗi 12' | `sublet-scan` → `intent-analyze` → `sublet-match` → `sublet-draft` | Outreach runs use strict order and report actual volume; no hidden daily cap |
 | mỗi 10' (24/7 khi lên Hetzner) | `sublet-email` → cùng pipeline | — |
 | mỗi 20' | `inbox-triage` → cập nhật trạng thái, draft trả lời | Tap gửi FAQ/trả lời; quyết các case negotiating |
 | khi subletter "ok" | `viewing-coordinate` → draft shortlist | Gửi shortlist; khi có slot → gửi confirm + contact |
@@ -266,7 +266,7 @@ Server ~€0 (Supabase free, Mac của bạn). Chi phí duy nhất đáng kể l
 |---|---|---|
 | `sublet-scan` đọc feed (text a11y ~20–30k ký tự × 60 chu kỳ) | lớn nhất nếu để LLM đọc cả feed | **Không cho LLM đọc feed.** Extract post bằng DOM/a11y → chỉ đưa LLM text từng post *mới* (đã lọc bằng cursor + text_hash). Từ ~1.5M token/ngày xuống ~100k |
 | `intent-analyze` (40 post/batch) | ~50–100 post/ngày × ~1.5k token | Dùng **Haiku 4.5** cho phân loại (doc + post ngắn, rule rõ) — rẻ ~10× Opus, eval mù đã cho thấy rule đủ rõ. Opus chỉ cho draft/voice |
-| `sublet-draft` / `inbox-triage` | ≤10 DM + ≤30 reply/ngày | Nhỏ; giữ model tốt vì đây là thứ khách đọc |
+| `sublet-draft` / `inbox-triage` | report volume only; no hidden outreach cap | Nhỏ; giữ model tốt vì đây là thứ khách đọc |
 | `sublet-backfill` | post/group trong cửa sổ 14 ngày × 1 lần | Chạy theo chunk resumable; không phân tích trong capture |
 
 → Mục tiêu: **< €1/ngày** LLM ở Phase 0. Đo bằng: log token trong `sublet_scan_runs.notes` và `sublet_events.payload.tokens`.
@@ -294,7 +294,7 @@ Server ~€0 (Supabase free, Mac của bạn). Chi phí duy nhất đáng kể l
 | 7 | `sublet_group_metrics` → tự động: sublet-groups discover ghi metrics thay vì Codex làm tay | 1h | Lặp lại được cho thành phố 2 | Phase 1 |
 | 8 | Enum Postgres thay `check` | 30' | Sạch hơn, không cấp bách | Phase 1 |
 | 9 | Hetzner cho email/match/followup/report/backup | 2h | 24/7 phần không cần browser | Khi laptop-closed thành vấn đề thật |
-| 10 | `outreach-prep` (điền sẵn draft vào ô Messenger, bạn Enter) | 2h | 10 DM = 1 phút | Chỉ nếu tap gửi thành nút thắt |
+| 10 | `outreach-prep` + `following-message` (strict-order send and verified reply follow-up) | 2h | report actual volume | Active when user authorizes |
 
 ### J4. Không làm (đã cân nhắc, không đáng)
 - Vector search / embeddings cho match: date + budget + area deterministic là đủ; embeddings chỉ thêm chi phí và khó giải thích cho subletter.

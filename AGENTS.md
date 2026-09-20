@@ -1,14 +1,14 @@
 # AGENTS.md — cho Codex (bản tương đương CLAUDE.md)
 
 Đọc **CLAUDE.md** — toàn bộ luật cứng ở đó và áp dụng nguyên văn cho Codex. Tóm tắt:
-- Facebook mặc định chỉ ĐỌC. Không post/comment/like/join/submit form. Với `outreach-prep`, agent dán `message1`; khi premessage/auto-send bật và user cho phép, agent được bấm Send rồi ghi DB/audit sau xác nhận.
+- Facebook mặc định chỉ ĐỌC. Không post/comment/like/join/submit form. Với `outreach-prep`, agent dán `message1`; khi premessage/auto-send bật và user cho phép, agent được bấm Send rồi ghi DB/audit sau xác nhận. Reply handling dùng `following-message` và phải xác minh người gửi trong đúng conversation.
 - Capture tuần tự tối đa 14 group, cửa sổ 14 ngày; ≤4 page load/run và dừng ngay khi thấy checkpoint/captcha/login.
 - Mọi raw record có `source_url` + `seen_at`; resume từ DB cursor và dedupe trước khi ghi.
 
 ## Skills
 Active sublet scope gồm `information`, `sublet-scrape-14-groups`,
 `validate-permalink`, `analyze-insights`, `data-engineer`, `intent-analyze` và
-`outreach-prep` trong `.agents/skills/` (symlink → `.claude/skills`).
+`outreach-prep`, `following-message` trong `.agents/skills/` (symlink → `.claude/skills`).
 Đọc `information` trước; capture bằng `sublet-scrape-14-groups`, rồi gọi
 `validate-permalink` để xử lý queue link theo thứ tự. `analyze-insights` là
 skill đọc-only trên DB (không mở Facebook), chạy bất kỳ lúc nào sau capture để

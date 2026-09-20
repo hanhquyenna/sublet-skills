@@ -1,176 +1,76 @@
 ---
 name: outreach-prep
-description: "Prepare and, when premessage/auto-send is enabled, send availability-check DMs in strict outreach_order from dashboardkien_outreach. Scam flags do not exclude candidates. Use message1 verbatim and audit confirmed sends. Use with /outreach-prep."
+description: "Send the first Facebook outreach message from dashboardkien_outreach in strict outreach_order, recording every confirmed outcome."
 ---
 
 # outreach-prep
 
-Skill này có **một flow có handoff người dùng**:
+Use this skill for the first outreach message (`message1`). The database is the
+source of truth. Do not infer progress from Messenger’s inbox position, a
+count of sent messages, or a screenshot.
 
-1. Đọc `dashboardkien_outreach` theo đúng `outreach_order`; skip
-   `has_outreached=true` và bất kỳ prior outgoing `fb_dm` row nào cho
-   `poster_id`, kể cả post khác. `scam_flag=true` **không skip**.
-2. Mở post/profile, verify identity, dán chính xác `message1` trong Messenger.
-   Khi premessage/auto-send bật, agent có thể bấm Send; nếu chưa bật thì dừng.
-3. Chỉ sau khi agent/user xác nhận gửi thành công, insert `outreach_messages`, ghi
-   audit event với `actor='agent'` hoặc `actor='human'`, re-query `dashboardkien_outreach`, và bắt
-   buộc `has_outreached=true` trước candidate tiếp theo. Verify fail thì dừng.
+## Start and resume logic
 
-Nếu `outreach_messages.status` tồn tại, mọi prior outgoing `fb_dm` row đều là
-đã outreach; nếu cột đã bị xoá, áp dụng cùng quy tắc theo sự tồn tại của row.
+1. Query `dashboardkien_outreach` and its underlying persistent source with
+   `outreach_order`, ascending. Keep gaps; never renumber or sort by name.
+2. For each order, treat the outcome as complete when either:
+   - `has_outreached=true`, or an outgoing `fb_dm` row exists for that
+     `poster_id` (including another post), or
+   - the poster is explicitly marked `outreach_unavailable=true`.
+3. Continue at the lowest `outreach_order` with neither completed outcome.
+   Never calculate the next order as “last order + 1” or “number completed”.
+4. Before acting on a candidate, re-query that row and check again for any
+   outgoing `fb_dm` row. `scam_flag=true` never excludes a candidate.
 
-**2026-09-17 — DB đã migrate.** Đọc `information/SKILL.md` mục "Database"
-trước khi chạy nếu chưa đọc. Bảng/RPC cũ (`sublet_listings`,
-`sublet_messages`, RPC `sublet_exec`) không còn tồn tại. Project data thật là
-ref `cteunhuxrghpozwbnehh`; bảng hiện tại dùng `posts`, `posters`,
-`outreach_messages`, `events`, ... và view outreach thật là
-`dashboardkien_outreach`.
+## Send procedure
 
-## Permission để gửi
+1. Open the stored `poster_profile_url` in the visible logged-in Facebook
+   browser panel. Use the profile URL; do not navigate to the post unless the
+   profile URL is missing or unusable.
+2. Verify the displayed identity matches `poster_name`. Close the previous
+   Messenger chat with its `X` before opening the next chat.
+3. If the profile cannot be verified, the profile URL is unusable, or there is
+   no usable Message/Nhắn tin action, write
+   `posters.outreach_unavailable=true` and a concise
+   `outreach_unavailable_reason`. Do not create an outreach row; continue in
+   order.
+4. Paste `dashboardkien_outreach.message1` exactly. Do not rewrite,
+   personalize, translate, or substitute text.
+5. Send only when the configured premessage/auto-send permission and the
+   user's explicit authorization allow it. The UI must visibly show the
+   message as sent. A pasted draft, loading state, or ambiguous composer is
+   not a send.
 
-- Premessage/auto-send bật: agent có thể bấm Send na verificatie. Tắt: agent
-  chỉ dán rồi dừng.
-- Sau xác nhận gửi, ghi row + audit `actor='human'`, re-query và yêu cầu
-  `has_outreached=true`; verify fail thì dừng.
+## After a confirmed send
 
-## Queue nguồn
+Only after visible send confirmation:
 
-Toàn bộ input, xếp hạng, dedup và nội dung draft đã tính sẵn trong view
-`dashboardkien_outreach`. Không tự tính lại điều kiện:
+1. Insert one outgoing row into `outreach_messages` with the current
+   `post_id`, `poster_id`, `direction='out'`, `channel='fb_dm'`, the correct
+   first-message template, exact body, and `sent_at=now()`.
+2. If the table has a `status` column, set it to `sent`; if it does not, omit
+   the column. Do not require `status` to exist.
+3. Insert one `events` row with `event='outreach_dm_sent'`, the real actor
+   (`agent` when the agent clicked Send, `human` when the user clicked Send),
+   the post URL, and the message template.
+4. Immediately re-query `dashboardkien_outreach` for that `poster_id` and
+   require `has_outreached=true` before moving on. If verification fails,
+   stop immediately and do not continue to the next person.
 
-```sql
-select poster_id, poster_name, post_id, intent, post_link, message1,
-       scam_flag, outreach_order, has_outreached
-from dashboardkien_outreach
-where outreach_order is not null
-  and not has_outreached
-order by outreach_order asc;
-```
+## Skip and stop rules
 
-`outreach_order` có thể có khoảng trống; chỉ cần giữ đúng thứ tự tăng dần.
-`message1` là body đã chọn theo intent/language. `scam_flag=true` không bị
-view tự loại và **không phải lý do skip**.
+- Skip `has_outreached=true`.
+- Skip any prior outgoing `fb_dm` row for the same `poster_id`, regardless of
+  post or status. This applies even if `status` was removed from the schema.
+- `scam_flag=true` is not a skip reason.
+- Do not invent a daily or 24-hour DM limit.
+- If Facebook shows login, checkpoint, CAPTCHA, unusual activity, or unclear
+  send state, stop. Do not retry blindly and do not write a sent row.
+- If the database fails, retry the exact query/write once; if it still fails,
+  stop without partial bookkeeping.
 
-## Spec
+## Progress report
 
-- **Trigger draft:** `/outreach-prep`.
-- **Send:** chỉ sau khi agent/user bấm Send và UI xác nhận thành công.
-- **Đọc:** `dashboardkien_outreach`, `outreach_messages`, `data/config.yaml`.
-- **Ghi:** `outreach_messages`; sau agent-send thành công ghi thêm `events`.
-- **Facebook:** chỉ visible browser panel đang login thủ công; không CLI/API/
-  headless/cookie session khác.
-- **Metrics:** sent (agent/user click), scam candidates included, skipped already-outreached,
-  queue còn lại.
-
-## Pha 1 — tạo draft theo đúng `outreach_order`
-
-1. Query queue `order by outreach_order asc`.
-2. Xử lý tuần tự, không tự sắp xếp lại.
-3. `scam_flag=true` -> vẫn xử lý như candidate bình thường.
-4. Với row hợp lệ, kiểm tra chưa có outgoing message cho `poster_id` +
-   `channel='fb_dm'`, kể cả post khác:
-
-```sql
-select id, status from outreach_messages
-where post_id = '<post_id>' and channel = 'fb_dm';
-```
-
-Nếu chưa có, insert `message1` nguyên văn:
-
-```sql
-insert into outreach_messages
-  (post_id, poster_id, direction, channel, template, body, status)
-values
-  ('<post_id>', '<poster_id>', 'out', 'fb_dm',
-   '<availability_check_offering|availability_check_seeker>',
-   '<message1 nguyên văn>', 'draft');
-```
-
-`intent='offering'` -> `template='availability_check_offering'`;
-`intent='seeking'` -> `template='availability_check_seeker'`.
-
-Không thêm tên, chi tiết post, AI/agent/automation, hoặc bất kỳ text mới nào
-vào body. Draft phải được persist trước khi một send phase có thể dùng nó.
-
-## Pha 2 — gửi một draft đã tồn tại
-
-Trước mỗi send, agent phải verify tất cả điều kiện này:
-
-1. `outreach_messages.id=<message_id>` tồn tại, `status='draft'`,
-   `channel='fb_dm'`, `direction='out'`.
-2. Draft không phải row vừa được tạo ngầm trong send step; nó phải đã được
-   persist trước khi bước gửi bắt đầu.
-3. Join về `dashboardkien_outreach` theo `post_id`/`poster_id`; row còn
-   `has_outreached=false`, `outreach_order is not null`, `scam_flag=false`.
-4. Chưa có `status='sent'` cho cùng `poster_id` qua một post khác.
-
-Nếu bất kỳ check nào fail: không gửi và giữ nguyên `status='draft'`.
-
-### Cách gửi
-
-1. Mở `post_link` bằng visible Facebook browser panel đang login thủ công.
-2. Verify poster hiển thị khớp candidate/draft. Nếu không chắc identity, dừng
-   và giữ draft.
-3. Close any existing Messenger chat window with its `X` before opening the
-   next person’s chat. Then open Message/Messenger from the verified profile.
-4. Paste **chính xác `outreach_messages.body`**, không rewrite/personalize thêm.
-5. Click Send.
-6. Chỉ khi UI cho thấy message đã gửi thành công mới cập nhật DB. Nếu UI lỗi,
-   checkpoint/captcha/login/unusual activity, hoặc trạng thái gửi không chắc:
-   dừng ngay, không retry mù, không đổi `status`.
-
-## Sau khi agent gửi thành công
-
-Update đúng row draft vừa gửi:
-
-```sql
-update outreach_messages
-set status='sent', sent_at=now()
-where id='<message_id>' and status='draft';
-```
-
-Sau đó ghi audit event vào schema hiện tại:
-
-```sql
-insert into events
-  (entity_type, entity_id, event, actor, source_url, payload)
-values
-  ('post', '<post_id>', 'outreach_dm_sent', 'agent', '<post_link>',
-   jsonb_build_object(
-     'message_id', '<message_id>',
-     'channel', 'fb_dm',
-     'template', '<template>'
-   ));
-```
-
-Nội dung thật vẫn nằm ở `outreach_messages.body`; event chỉ trỏ lại
-`message_id` để audit, tránh duplicate body trong event payload.
-
-Nếu Kien tự gửi tay rồi báo lại, agent chỉ update row tương ứng sang `sent` +
-`sent_at`; actor của một audit event (nếu ghi) phải là `human`, không giả là
-agent.
-
-Vì `dashboardkien_outreach.has_outreached` tính live từ
-`outreach_messages.status='sent'`, không tự set `has_outreached` ở nơi khác.
-
-## Không được làm
-
-- Không ghi DB nếu agent/user chưa xác nhận đã gửi thành công.
-- Không rewrite body tại send time.
-- Không send expired/out-of-queue, hoặc poster đã được outreach trước đó.
-  `scam_flag=true` không phải lý do skip.
-- Không post/comment/like/join/submit form.
-- Không dùng Facebook API, CLI, script scraper, headless browser, Chrome
-  session khác hoặc cookie ngoài browser panel.
-- Không mark `sent` khi UI chưa xác nhận send thành công.
-
-## Completion / edge cases
-
-- Queue rỗng -> báo 0 draft mới / 0 send, không coi là lỗi.
-- Send chưa xảy ra hoặc verify không đạt -> giữ nguyên, dừng
-  draft, không gửi.
-- Send UI ambiguous/fail -> giữ `draft`, báo warning; không đoán đã gửi.
-- Checkpoint/captcha/login/unusual activity -> dừng Facebook ngay theo hard
-  rule chung; không retry trong 24h.
-- DB lỗi giữa batch -> retry đúng 1 lần sau 5s; vẫn lỗi thì dừng và báo warning.
-- Không tự đổi ranking, threshold, `message1`, template hoặc view logic.
+Report the completed outcomes (sent plus explicitly unavailable), the next
+actual `outreach_order`, and any blocker. Always name the candidate and order;
+never report only a count.

@@ -20,5 +20,4 @@ Zo ja: antwoord "ok" en zet "reageer via {offer_link}" in je post (of stuur me d
 
 ## Rules
 - Không copy nguyên văn cho 2 người; đổi câu mở đầu theo post thật (khu, ngày, chi tiết).
-- ≤10 DM/ngày. Không gửi 2 DM liên tiếp cách nhau <3 phút.
 - Không nhắc đến "AI", "agent", "automation".

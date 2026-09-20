@@ -4,7 +4,7 @@
 
 ## Không bao giờ
 1. **Không tự động post, comment, like, join group hoặc submit form trên Facebook.** Agent mặc định chỉ ĐỌC.
-   - `auto_dm: false` → agent chỉ dán và dừng. Khi `auto_dm: true`/premessage bật, agent được gửi theo `outreach_order` na verificatie, dùng body nguyên văn.
+   - Agent chỉ bấm Send khi người dùng đã cho phép việc gửi và workflow yêu cầu gửi. Khi gửi, dùng body nguyên văn trong database.
    - Sau UI send thành công, ghi row `status='sent'`, `sent_at`, và audit `events(event='outreach_dm_sent', actor='agent', entity_type='post')`. Nếu UI không chắc đã gửi thì không ghi.
    - Post, comment, like, join group, submit form **vẫn tuyệt đối cấm** dù cờ `auto_dm` là gì.
 2. Không mở quá **4 page load Facebook mỗi chu kỳ** scan. Không mở từng group; đọc `facebook.com/groups/feed` và `/notifications`.
@@ -25,7 +25,7 @@
 ## Luôn luôn
 - Mỗi record có `source_url` + `seen_at`. Không có nguồn = không tồn tại.
 - Match score tính bằng `scripts/match.py` (deterministic). LLM chỉ viết `reasons`.
-- Mọi outbound message phải được persist với `status='draft'` trước. Với Facebook DM, agent được gửi **draft đã tồn tại** theo luật #1; chỉ sau UI success mới đổi row đó sang `sent` + `sent_at` và ghi audit `events`. Các loại message khác vẫn cần người dùng gửi.
+- Mọi confirmed Facebook DM phải được ghi vào `outreach_messages` **sau** khi UI cho thấy đã gửi; sau đó ghi audit `events`. Nếu schema có `status`, ghi `sent`; nếu không có, không yêu cầu cột đó. Không ghi trước khi gửi và không ghi khi trạng thái UI mơ hồ.
 - Ghi `sublet_scan_runs` mỗi chu kỳ (page_loads, new_posts) để tự kiểm soát volume.
 - DB lỗi (RPC/HTTP) → thử lại 1 lần sau 5s; vẫn lỗi → dừng skill, `sublet_inbox(warning)`, không ghi nửa chừng (R21).
 - Mỗi skill có khối **Spec** (lịch · trigger · đọc · ghi · metrics · edge cases · rules). Registry: `docs/rules.md`, `docs/edge-cases.md`, `docs/metrics.md`. Thêm hành vi mới = cập nhật cả 3.
@@ -36,6 +36,16 @@
 - Supabase (project Lamy), bảng prefix `sublet_`. Dùng Supabase MCP `execute_sql`. Schema: `db/schema.sql`.
 - Cấu hình: `data/config.yaml`, danh sách group: `data/groups.yaml`.
 
+### Outreach / reply-follow-up data rules
+- `dashboardkien_outreach` is the authoritative ordered queue. Resume by the
+  lowest `outreach_order` whose outcome is neither a confirmed outgoing DM nor
+  an explicit `outreach_unavailable=true`; never resume from a count.
+- `following-message` is the separate reply workflow. It trusts a fresh,
+  identity-matched incoming Messenger message, not a preview, unread dot,
+  stale accessibility tree, or screenshot from another thread.
+- A live `message2_sent` view property is derived from confirmed outgoing
+  `outreach_messages` rows. It must not be set from a pasted draft.
+
 ## Thứ tự skill hiện tại
 `information` → `sublet-scrape-14-groups` → `validate-permalink` (raw capture
 trước, link validation sau). `data-engineer` là lớp DB-only để QA, normalize,
@@ -43,7 +53,7 @@ aggregate và report; `analyze-insights` là bước đọc-only độc lập, c
 bất kỳ lúc nào sau capture (không cần chờ validate xong) để tóm tắt insight cho
 Kien. `intent-analyze` (bật 2026-09-17) là pipeline phân loại chính thức, ghi
 thật `kind`/`subtype`/`poster_type`/... lên `sublet_listings` đã có
-`source_url`; scam/deal scoring vẫn để mặc định, chưa bật. Matching và viewing chưa nằm trong active skill scope. `outreach-prep` đã active: tạo draft và có thể gửi pre-existing draft theo rule #1.
+`source_url`; scam/deal scoring vẫn để mặc định, chưa bật. Matching và viewing chưa nằm trong active skill scope. `outreach-prep` and `following-message` are active for strict-order first outreach and verified reply follow-up.
 
 ## Active scope
 - **Context** (`information`): onboarding, quyền agent, DB, state và cách tiếp tục.

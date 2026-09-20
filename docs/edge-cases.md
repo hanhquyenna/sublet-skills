@@ -82,16 +82,16 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 ## F. OUTREACH — draft + controlled send
 | # | Tình huống | Xử lý | Skill | Test |
 |---|---|---|---|---|
-| E70 | Đã 10 agent-sent DM trong 24h | giữ các row còn lại ở `draft`, không send thêm | outreach-prep | manual |
+| E70 | No user-defined daily/24-hour outreach cap exists | do not invent a 10-DM/24h stop; continue strict order until the queue or a real blocker ends the run | outreach-prep, following-message | manual |
 | E71 | Listing >7 ngày | deal_score −20; nếu vẫn ≥60 thì draft nhắc "still looking?" | sublet-draft | — |
 | E72 | Poster là proxy | DM hỏi "bạn hay bạn của bạn quyết?" | sublet-draft | — |
 | E73 | Post bằng NL | template NL | sublet-draft | — |
 | E74 | Seeker push_count hôm nay ≥3 | bỏ qua seeker đó hôm nay | sublet-draft | — |
 | E75 | Chưa có `seeker_form.url` | offer dùng "forward me the replies" | sublet-draft | — |
-| E76 | Có draft nhưng `auto_dm=false` và chưa có explicit send request | giữ `draft`, không mở Messenger/send | outreach-prep | manual |
-| E77 | Agent send thành công, UI xác nhận rõ | update đúng row `sent` + `sent_at`, ghi `events.outreach_dm_sent` actor=agent | outreach-prep | manual |
-| E78 | Click/send UI lỗi hoặc không chắc message đã gửi | giữ `draft`, không ghi sent/event success; báo warning | outreach-prep | manual |
-| E79 | Draft candidate có `scam_flag=true`, đã outreach poster, hoặc ra khỏi queue | không send; giữ/skip draft và báo lý do | outreach-prep | manual |
+| E76 | User has not authorized a send | do not click Send; do not write an outgoing row | outreach-prep | manual |
+| E77 | Agent send succeeds and UI confirms it | insert outgoing row, audit event, then require `has_outreached=true` | outreach-prep | manual |
+| E78 | Click/send UI fails or is ambiguous | do not write sent/outgoing success; stop on the candidate | outreach-prep, following-message | manual |
+| E79 | Candidate has `scam_flag=true` | do not skip for that reason; continue normal identity and duplicate checks | outreach-prep | manual |
 
 ## G. INBOX — reply
 | # | Tình huống | Xử lý | Skill | Test |
@@ -104,6 +104,9 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | E85 | Seeker "YES" nhưng listing đã filled | draft "đã có người, mình gửi cái khác" | inbox-triage | — |
 | E86 | Reply không liên quan sublet | bỏ qua, không lưu | inbox-triage | — |
 | E87 | 2 subletter cùng tên hiển thị | hỏi bạn | inbox-triage | — |
+| E88 | Messenger preview/unread dot says a message exists but the open thread shows only our outgoing text | do not record answer1, do not classify availability, and do not send message2; report the conflict | following-message | manual |
+| E89 | Dashboard order has gaps and unavailable rows are removed from the live view | resume from the lowest source `outreach_order` without a completed send or explicit unavailable outcome; never use count arithmetic | outreach-prep | manual |
+| E90 | Messenger history is missing/loading or the visible thread identity is ambiguous | treat as unverified; do not write answer1 or send message2 | following-message | manual |
 
 ## H. VIEWING / FEE
 | # | Tình huống | Xử lý | Skill | Test |

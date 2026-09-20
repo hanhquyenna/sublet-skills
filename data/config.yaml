@@ -39,7 +39,7 @@ seeker_form:
   csv_export_path: data/seekers_export.csv   # Tally → export CSV → seeker-intake đọc
 
 outreach:
-  auto_dm: false   # false = chỉ gửi draft khi Kien yêu cầu send rõ; true = trong send run được yêu cầu, agent có thể xử lý pre-existing ready drafts không hỏi lại từng tin.
+  auto_dm: false   # false = do not click Send; true = user-authorized send flow may click Send after identity and body checks.
 
 scam:
   flags:

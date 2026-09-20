@@ -55,7 +55,9 @@
 | demand | consent_rate | consent true / all form | ≥80% | seeker-intake |
 | match | listings_with_3plus | offering 7d có ≥3 match ≥60 | ≥50% of deal_queue | sublet-match |
 | match | avg_top_score | avg max(score) per listing 7d | ≥70 | sublet-match |
-| outreach | dm_sent_24h | `outreach_messages.status='sent'` in last 24h | ≤10 agent-sent (R14) | outreach-prep |
+| outreach | dm_sent_24h | `outreach_messages` confirmed outgoing rows in last 24h | report only; no hidden cap | outreach-prep |
+| outreach | message2_sent | live `dashboardkien_outreach.message2_sent` derived from confirmed outgoing `message2` rows | reconcile to `outreach_messages` | following-message |
+| inbox | recorded_replies | rows with verified `answer1` in `outreach_availability_answers` | report with yes/no/unknown denominator | following-message |
 | outreach | dm_yes_rate_7d | listings accepted / contacted 7d | ≥30% (<20% → đổi offer) | inbox-triage |
 | outreach | yes_rate_by_template | như trên, group by template | so sánh A/B | inbox-triage |
 | outreach | draft_backlog | messages status=draft >2h | ≤5 | sublet-followup |

@@ -66,7 +66,8 @@ Claude Code (Mac)                         Supabase (project riêng, ref cteunhux
 | 2 | `/sublet-scrape-14-groups` | Capture tuần tự tối đa 14 group, mỗi group 14 ngày |
 | 3 | `/validate-permalink` | Validate queue link Facebook đã capture, resume từ DB |
 | 4 | `/intent-analyze` | Ghi thật `kind`/`subtype`/`poster_type`/`confidence`/... lên listing đã có `source_url` (bật 2026-09-17) |
-| 5 | `/outreach-prep` | Soạn draft theo `outreach_order`; agent có thể gửi **pre-existing draft** nguyên văn qua browser panel theo send permission trong skill |
+| 5 | `/outreach-prep` | First outreach in strict `outreach_order`; send stored `message1` only after permission and UI identity verification |
+| 6 | `/following-message` | Verify incoming replies, record availability/answer1, and send the correct stored `message2` |
 | — | `/analyze-insights` | Đọc-only, chạy bất kỳ lúc nào sau bước 2: tóm tắt offering/seeking/duplicate/risk cho Kien, bỏ qua listing đã review |
 | — | `/data-engineer` | DB-only: normalize, audit provenance, dedupe, checkpoint, customer-behavior aggregates và report |
 
@@ -83,11 +84,11 @@ Match/viewing chính thức (bảng riêng, không phải seeker↔offering matc
 | `analyze-insights` | Đọc-only trên DB (không mở Facebook): offering/seeking/other thô, cụm trùng lặp, cờ rủi ro, tóm tắt vào inbox/metrics; không re-đọc listing đã `insight_reviewed` | Không |
 | `data-engineer` | Chuẩn hoá raw/insight/lifecycle events, QA, dedupe, provenance, behavior aggregates và report; không browse Facebook, không semantic matching/outreach | Không |
 | `intent-analyze` | Phân loại chính thức offering/seeking/other, `poster_type`, `confidence`, area/rent/date, ghi thật lên DB (bật 2026-09-17) | Không |
-| `outreach-prep` | Soạn draft DM theo `outreach_order` + `message1`; send phase chỉ dùng row draft đã tồn tại | **Có, có điều kiện** — explicit send khi `auto_dm=false`, hoặc ready-draft send khi `auto_dm=true`; body phải giữ nguyên và audit sau khi gửi |
+| `outreach-prep` | Gửi `message1` theo strict `outreach_order`, ghi confirmed outcome và resume từ order thực tế | **Có, khi user cho phép** — body nguyên văn, audit sau UI confirmation |
 
 ## Giới hạn an toàn (đã code vào skill)
 - ≤4 page load Facebook/chu kỳ, ≤~400/ngày, 24/7 (đổi từ 08–23h ngày 2026-09-16 theo yêu cầu Kien), dừng ngay khi thấy checkpoint.
-- Agent không bao giờ post/comment/like/join/submit form. DM là ngoại lệ duy nhất: chỉ gửi từ `outreach_messages.status='draft'` đã tồn tại, qua visible browser panel, theo `outreach-prep`.
+- Agent không bao giờ post/comment/like/join/submit form. DM chỉ được gửi khi user cho phép, qua visible browser panel, dùng body nguyên văn từ database; chỉ ghi DB/audit sau khi UI xác nhận đã gửi.
 - Không thu tiền hộ, không giữ deposit, không chuyển địa chỉ chính xác qua bạn.
 - Không xếp hạng theo quốc tịch/giới tính/tuổi.
 
