@@ -71,6 +71,19 @@ earlier step applies):
 
 One group at a time; don't move on until the current one is finished or blocked.
 
+**Resume is channel-agnostic.** Default channel is browser-panel; the Apify
+channel (below) only turns on when Kien gives a token for this session, and
+only for that session — it's not a sticky setting. Which group/gap to work
+next always comes from `dashboardkien_group`/`ops_state` alone, never from
+which channel handled the group last. A group half-scraped by browser-panel
+and finished later by Apify (or the reverse — started with Apify, continued
+by browser-panel once the token runs out or the session ends) resumes
+correctly with no extra handshake, because completion criteria
+(`window_days` boundary + full raw data) and gap detection never look at
+`capture_methods`/`source_surface`. See "Switching channels mid-group" under
+the Apify section for the one thing that does need explicit handling
+(closing an open run before switching mode).
+
 ## Repairing a recovery_required group
 
 - `posts_without_context`: post exists, no `context_captured` event. Re-open
@@ -108,6 +121,156 @@ immediately, record it, no retry for 24h.
 
 Page-load budget: ≤4 per run. Human-plausible scroll pace; don't use delay to
 evade rate limiting.
+
+## Apify channel (khi Kien cung cấp token)
+
+Chỉ dùng khi Kien đưa `APIFY_TOKEN` **và** group đang xử lý có
+`is_private=false` trong `dashboardkien_group`/`groups`. Group
+`is_private=true`/`null` (chưa xác minh) vẫn bắt buộc qua browser-panel ở
+trên — tự kiểm tra `is_private` trước khi gọi, không suy đoán. Actor duy
+nhất được phép: `apify/facebook-groups-scraper`. Gọi thẳng REST sync
+endpoint (không cần dashboard Apify):
+
+```
+POST https://api.apify.com/v2/acts/apify~facebook-groups-scraper/run-sync-get-dataset-items?token=<APIFY_TOKEN>
+Content-Type: application/json
+```
+
+### Input
+
+Field xác nhận thật từ input schema của actor (2026-09-21) — verify lại
+trên Apify console nếu actor cập nhật, đừng tin mù theo tài liệu này mãi:
+
+```json
+{
+  "startUrls": [{ "url": "https://www.facebook.com/groups/<slug>/" }],
+  "resultsLimit": 150,
+  "viewOption": "CHRONOLOGICAL",
+  "onlyPostsNewerThan": "7 days"
+}
+```
+
+- `startUrls`: URL group public, lấy đúng từ `groups.url`. Xác nhận shape
+  thật của field này (string thô hay object `{url}`) trong Input tab của
+  actor trước lần chạy đầu tiên — mô tả public không ghi rõ 100%.
+- `onlyPostsNewerThan`: đặt đúng bằng `window_days` hiện tại (7 ngày) —
+  actor tự lọc theo ngày phía Apify, không cần scrape dư rồi tự cắt.
+- `resultsLimit`: tính = `posts_per_day` (từ `dashboardkien_group`) × 7 ×
+  1.3 (buffer), làm tròn lên, tối thiểu 30, tối đa 300/group. Group
+  `posts_per_day` còn `null` → dùng 50 cho lần đầu, điều chỉnh theo dữ liệu
+  quan sát được sau đó.
+- `viewOption: "CHRONOLOGICAL"` để khớp newest→oldest như nhánh
+  browser-panel.
+
+### Chi phí và batch size
+
+Giá thật: **~$2.60/1000 post trích xuất** (~$0.0026/post), tính theo **số
+post lấy được**, không theo số group hay số run — batch to/nhỏ không tự
+quyết định giá, tổng `resultsLimit` cộng dồn mới quyết định.
+
+Trước khi chạy > 1 group/lần (bắt buộc theo `CLAUDE.md` #6): cộng
+`resultsLimit` từng group trong batch, nhân $0.0026, báo số tiền ước tính
+cho Kien trước khi gọi API. Ví dụ 5 group trung bình 20 post/ngày →
+resultsLimit ≈ 182/group → 910 post → ≈ $2.4/batch.
+
+Pilot lần đầu với 1 group, xác nhận link/poster/intent hợp lệ trước khi mở
+rộng — 2 lần test thật 2026-09-21 đều lẫn nhiều spam (xem phần lọc bên
+dưới), đừng chạy batch lớn trước khi pipeline lọc thật sự chạy đúng.
+
+### Map kết quả vào raw contract
+
+**Không nhầm `facebookUrl` (link group) với `url` (link post thật)** — lỗi
+thật đã gặp khi đọc nhanh output lần đầu:
+
+| Field Apify | Map vào |
+|---|---|
+| `url` | `posts.url` (permalink post thật — dùng field này, không phải `facebookUrl`) |
+| `time` | absolute timestamp thật cho `posted_at` — không cần ước lượng như label tương đối bên browser-panel |
+| `text` | `post_text`/`posts.body` |
+| `user.name` | `poster.display_name` |
+| `user.id` | `poster.profile_url` — ID số (vd `"61587509753606"`) dùng thẳng `facebook.com/profile.php?id=<id>`; ID dạng `pfbid0...` giữ nguyên trong payload và đánh dấu `profile_url_type="pfbid"` (không tự chuyển sang profile.php — sai định dạng) |
+| `groupTitle`/`facebookId` (group) | `group.name`/`group.id` — verify khớp `group_id` đang xử lý |
+| `attachments[].url`/`.image.uri` | `media` |
+| `likesCount`/`sharesCount`/`commentsCount` | `reaction_count`/`share_count`/`comment_count` |
+| `topComments[]` | `comments` (raw, giữ `commentUrl`/`author`, vẫn ≤100/post) |
+
+Item không có field `url` (hiếm) → **không tự dựng lại permalink từ
+`attachments[].url` bằng cách suy ra `gm.<id>`** — pattern đó chưa được
+verify thật bằng browser, chỉ là quan sát cấu trúc chưa xác nhận. Ghi
+`capture_unresolved` như card không có link, giữ nguyên rule không đoán.
+
+### Lọc bắt buộc trước khi ghi DB (không optional)
+
+Dữ liệu thô Apify **không tự động trust** — đo được thật ~50–85% là
+rác/trùng qua 2 lần test 2026-09-21:
+
+1. **Loại duplicate row y hệt** — Apify tự trả trùng nguyên văn (cùng
+   `user.id` + `text` + group lặp lại trong cùng array), gặp thật ở test đầu.
+2. **Loại cụm cross-poster cùng nội dung** — group theo `body_hash` chuẩn
+   hóa trên toàn batch (không chỉ trong 1 group); cùng text dưới ≥2
+   `user.id` khác nhau → nghi mạng spam xoay account, không ghi như N post
+   độc lập. Case thật: `luceguemon06@gmail.com` xuất hiện dưới 3 tên khác
+   nhau (Jennifer/Postine/Eliza Harthoorn) trên 9 group — phải chặn tay
+   bằng `posters.outreach_unavailable` sau khi đã lọt vào DB.
+3. **Loại off-topic rõ ràng** — đồ nội thất/thực phẩm/dịch vụ chuyển nhà/
+   quảng cáo bên thứ 3 không phải housing. `RentHunter` và
+   `Student Housing Amsterdam` là 2 account bot repost affiliate đã xác
+   nhận thật (không phải suy đoán) — loại nội dung của 2 account này mặc
+   định.
+4. **Dedupe với DB hiện có** — check `posts.url` đã tồn tại trước khi
+   insert, skip nếu trùng.
+
+Chỉ sau 4 bước lọc trên mới đến find-or-create poster + insert post + ghi
+`context_captured`, y hệt luồng ở phần "Capture per group" trên — khác mỗi
+nguồn dữ liệu.
+
+### Provenance bắt buộc
+
+- `capture_methods: ["apify_api"]` — không giả làm `detail_dom_a11y`/
+  `feed_dom_a11y` dù nội dung giống hệt output browser-panel.
+- `source_surface: "apify_api"`.
+- `posts.link_status = 'unvalidated'` như bình thường — Apify không thay
+  `validate-permalink`.
+- `scan_runs(mode='apify', group_id=<id>)` — giá trị `mode` mới, đã thêm
+  vào constraint DB 2026-09-21 (trước đó chỉ có `group_page` cho
+  browser-panel; dùng nhầm là tự giả provenance).
+- `intent` vẫn để `null` — Apify chỉ thay bước đọc raw text,
+  `intent-analyze` vẫn là bước phân loại chính thức duy nhất, không tắt
+  qua được bằng kênh này.
+
+### Switching channels mid-group
+
+Browser-panel is the default; Apify is opt-in per session when Kien gives a
+token, and only for `is_private=false` groups. Nothing about the resume
+state is channel-specific except one thing: `scan_runs`. Handle the switch
+exactly like this, in either direction:
+
+1. Before opening a new run in the *other* channel's mode for a group, check
+   `open_scan_run_id`/`resume_cursor` as usual. If it's open in the mode
+   you're **not** about to use (e.g. an open `mode='group_page'` run exists
+   but only an Apify token is available this session, or vice versa), close
+   it cleanly first: `update scan_runs set finished_at = now(),
+   stopped_reason = 'switched_to_apify'` (or `'switched_to_browser_panel'`).
+   Never leave two open runs for the same group — `dashboardkien_group`
+   collapses `open_scan_run_id` to one row per group (latest by
+   `started_at`), so a stray second open run just goes silently stale, not
+   safely ignored.
+2. Open the new run in the new mode (`group_page` or `apify`) for the same
+   `group_id`, then resume exactly like a cold start on that group: read
+   latest `group_metrics` + `max(posted_at)` from `posts` (step 2 of "Batch
+   state and resume" below) — this already reflects everything the other
+   channel captured, regardless of which channel wrote it.
+3. **`posts.url` has a real DB `unique` constraint** — this is the actual
+   safety net, not just the "dedupe with DB hiện có" filter step. Overlap
+   between channels (both capturing the same post) can never double-insert;
+   insert with `on conflict (url) do nothing` (or check-then-skip) so a
+   naturally overlapping resume never hard-errors the run instead of just
+   skipping the already-captured post.
+4. Completion (`posts_14d_complete`) is decided purely by the two conditions
+   in "Completion and avoiding false reporting" below — it doesn't care
+   which channel produced which post, so a group can finish its `window_days`
+   boundary with some posts from browser-panel and some from Apify with zero
+   special-casing.
 
 ## Batch state and resume
 
