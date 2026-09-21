@@ -1,7 +1,7 @@
 # AGENTS.md — cho Codex (bản tương đương CLAUDE.md)
 
 Đọc **CLAUDE.md** — toàn bộ luật cứng ở đó và áp dụng nguyên văn cho Codex. Tóm tắt:
-- Facebook mặc định chỉ ĐỌC. Không post/comment/like/join/submit form. Với `outreach-prep`, agent dán `message1`; khi premessage/auto-send bật và user cho phép, agent được bấm Send rồi ghi DB/audit sau xác nhận. Reply handling dùng `following-message` và phải xác minh người gửi trong đúng conversation.
+- Facebook mặc định chỉ ĐỌC. Không post/comment/like/join/submit form. DM là ngoại lệ duy nhất: `outreach-prep` mở post, verify người, mở Messenger, paste `message1` nguyên văn cho poster hợp lệ theo `outreach_order`, rồi **dừng lại và chờ Kien tự click Send** — agent không bao giờ tự click Send (2026-09-18 quyết định, không còn `auto_dm` mode nào). `outreach_messages` chỉ ghi sau khi Kien xác nhận gửi thành công. Reply handling dùng `following-message` và phải xác minh người gửi trong đúng conversation.
 - Capture tuần tự tối đa 14 group, cửa sổ 14 ngày; ≤4 page load/run và dừng ngay khi thấy checkpoint/captcha/login.
 - Mọi raw record có `source_url` + `seen_at`; resume từ DB cursor và dedupe trước khi ghi.
 

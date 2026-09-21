@@ -82,16 +82,16 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 ## F. OUTREACH — draft + controlled send
 | # | Tình huống | Xử lý | Skill | Test |
 |---|---|---|---|---|
-| E70 | No user-defined daily/24-hour outreach cap exists | do not invent a 10-DM/24h stop; continue strict order until the queue or a real blocker ends the run | outreach-prep, following-message | manual |
+| E70 | No user-defined daily/24-hour outreach cap exists | do not invent a 10-DM/24h stop; continue strict order until the queue or a real blocker ends the run (there's no agent-send count to cap anyway — Kien clicks Send, not the agent) | outreach-prep, following-message | manual |
 | E71 | Listing >7 ngày | deal_score −20; nếu vẫn ≥60 thì draft nhắc "still looking?" | sublet-draft | — |
 | E72 | Poster là proxy | DM hỏi "bạn hay bạn của bạn quyết?" | sublet-draft | — |
 | E73 | Post bằng NL | template NL | sublet-draft | — |
 | E74 | Seeker push_count hôm nay ≥3 | bỏ qua seeker đó hôm nay | sublet-draft | — |
 | E75 | Chưa có `seeker_form.url` | offer dùng "forward me the replies" | sublet-draft | — |
-| E76 | User has not authorized a send | do not click Send; do not write an outgoing row | outreach-prep | manual |
-| E77 | Agent send succeeds and UI confirms it | insert outgoing row, audit event, then require `message1_sent=true` | outreach-prep | manual |
-| E78 | Click/send UI fails or is ambiguous | do not write sent/outgoing success; stop on the candidate | outreach-prep, following-message | manual |
-| E79 | Candidate has `scam_flag=true` | do not skip for that reason; continue normal identity and duplicate checks | outreach-prep | manual |
+| E76 | Kien không click Send (bận, đổi ý, tạm dừng) sau khi agent đã paste | không insert gì, báo "waiting for Kien", dừng ở candidate này | outreach-prep | manual |
+| E77 | Kien click Send, UI xác nhận rõ | insert 1 row `outreach_messages` (`status='sent'`, `sent_at=now()`), ghi `events.outreach_dm_sent` actor=human, rồi verify `message1_sent=true` | outreach-prep | manual |
+| E78 | Click/send UI lỗi hoặc không chắc message đã gửi | không insert gì, không ghi event; báo warning | outreach-prep, following-message | manual |
+| E79 | Candidate có `scam_flag=true`, đã `message1_sent=true`, hoặc ra khỏi queue (`outreach_order is null`) | không chuẩn bị DM; skip và báo lý do — `scam_flag=true` một mình không phải lý do skip | outreach-prep | manual |
 
 ## G. INBOX — reply
 | # | Tình huống | Xử lý | Skill | Test |

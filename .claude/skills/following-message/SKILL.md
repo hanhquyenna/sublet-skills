@@ -80,23 +80,29 @@ Only `availability_answer='yes'` candidates qualify.
   browser UI.
 - Paste the exact stored `message2`; do not rewrite or personalize it.
 
-Before sending, skip anyone who already has an outgoing `fb_dm` row with
-`template='message2'` for that `poster_id`. If the schema has a `status`
-column, any prior outgoing row still counts as existing; if not, use row
-existence.
+Before sending, skip anyone who already has a **confirmed sent**
+(`status='sent'`) outgoing `fb_dm` row with `template='message2'` for that
+`poster_id`. A draft/approved row that was never actually sent does not skip
+the poster — same standard `message2_sent` itself uses, and the same
+2026-09-21 fix applied to `outreach-prep`'s message1 logic.
 
-After visible send confirmation:
+**Same send model as `outreach-prep`: the agent pastes `message2` into
+Messenger and stops — it never clicks Send.** Tell Kien it's ready and wait
+for Kien's own click. Only after Kien has visibly clicked Send and the UI
+confirms it:
 
 1. Insert one outgoing `outreach_messages` row with `template='message2'`,
    exact body, `post_id`, `poster_id`, `direction='out'`, `channel='fb_dm'`,
-   and `sent_at=now()`.
-2. Insert one `events` audit row with `event='outreach_dm_sent'` and the real
-   actor (`agent` or `human`).
+   `status='sent'`, and `sent_at=now()`.
+2. Insert one `events` audit row with `event='outreach_dm_sent'`,
+   `actor='human'` (Kien performed the send; the agent only prepared it).
 3. Re-query `dashboardkien_outreach` immediately and require both
    `message1_sent=true` and `message2_sent=true` before continuing.
 
-If sending is unclear, do not insert anything. If DB verification fails, stop
-before the next person. Do not invent a daily or 24-hour limit.
+If Kien doesn't click, or sending is unclear, do not insert anything —
+report the state and stop on that candidate. If DB verification fails, stop
+before the next person. Do not invent a daily or 24-hour limit — Kien clicks
+every send personally, there's no agent-volume to cap.
 
 ## Inbox scanning
 

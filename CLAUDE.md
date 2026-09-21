@@ -1,12 +1,13 @@
 # sublet-skills — luật cứng cho agent
 
-Đây là bộ skill vận hành dịch vụ ghép sublet Amsterdam. Facebook mặc định read-only; outreach dùng `message1` nguyên văn và chỉ auto-send khi premessage/auto-send đã bật.
+Đây là bộ skill vận hành dịch vụ ghép sublet Amsterdam. Facebook mặc định read-only; ngoại lệ ghi duy nhất là DM theo rule outreach bên dưới — và ngay cả ngoại lệ đó, **agent không bao giờ tự click Send, chỉ Kien mới click**.
 
 ## Không bao giờ
 1. **Không tự động post, comment, like, join group hoặc submit form trên Facebook.** Agent mặc định chỉ ĐỌC.
-   - Agent chỉ bấm Send khi người dùng đã cho phép việc gửi và workflow yêu cầu gửi. Khi gửi, dùng body nguyên văn trong database.
-   - Sau UI send thành công, ghi row `status='sent'`, `sent_at`, và audit `events(event='outreach_dm_sent', actor='agent', entity_type='post')`. Nếu UI không chắc đã gửi thì không ghi.
-   - Post, comment, like, join group, submit form **vẫn tuyệt đối cấm** dù cờ `auto_dm` là gì.
+   - Ngoại lệ ghi duy nhất là **DM cho poster hợp lệ theo `outreach_order`** (`dashboardkien_outreach`, chưa `message1_sent`) — xem `outreach-prep/SKILL.md`. Từ 2026-09-18 (bản chốt): agent mở post, verify người, mở Messenger, paste nguyên văn `message1`, rồi **dừng lại và chờ Kien tự click Send** — agent không bao giờ tự click Send, dưới bất kỳ lý do hay yêu cầu nào. Không còn cờ `auto_dm`, không còn mô hình "agent tự gửi cả queue".
+   - Agent chỉ ghi vào `outreach_messages` **NGAY SAU** khi Kien xác nhận đã click Send và Facebook xác nhận gửi thành công — 1 insert/lần gửi (`status='sent'`, `sent_at=now()`), không update từ draft. Nếu Kien không click hoặc UI không chắc thì **không insert gì**. Sau insert, ghi thêm `events(event='outreach_dm_sent', actor='human', entity_type='post')` — `actor` là `human` vì Kien là người thực hiện hành động gửi.
+   - `message1_sent` tính live từ việc tồn tại 1 row `status='sent'` trong `outreach_messages` cho poster đó — tự đúng ngay khi insert, không cần set thêm ở nơi khác. Một row `status` khác (`draft`/`approved`) không tính là đã outreach — không được để nó chặn poster đó mãi mãi (fix 2026-09-21).
+   - Post, comment, like, join group, submit form **vẫn tuyệt đối cấm**.
 2. Không mở quá **4 page load Facebook mỗi chu kỳ** scan. Không mở từng group; đọc `facebook.com/groups/feed` và `/notifications`.
 3. Chạy theo giờ trong `data/config.yaml` (`hours`); từ 2026-09-16 theo yêu cầu Kien, `hours` đặt 24/7 (`00:00`–`23:59`), không còn giới hạn khung giờ trong ngày. Không chạy khi máy vừa thức dậy dưới 2 phút.
 4. **Dừng ngay** và ghi `inbox(level=stop)` nếu thấy: checkpoint, captcha, "unusual activity", yêu cầu xác minh, trang login. Không thử lại trong 24h.
@@ -25,7 +26,7 @@
 ## Luôn luôn
 - Mỗi record có `source_url` + `seen_at`. Không có nguồn = không tồn tại.
 - Match score tính bằng `scripts/match.py` (deterministic). LLM chỉ viết `reasons`.
-- Mọi confirmed Facebook DM phải được ghi vào `outreach_messages` **sau** khi UI cho thấy đã gửi; sau đó ghi audit `events`. Nếu schema có `status`, ghi `sent`; nếu không có, không yêu cầu cột đó. Không ghi trước khi gửi và không ghi khi trạng thái UI mơ hồ.
+- Facebook DM: agent chuẩn bị `message1` cho poster hợp lệ theo luật #1 rồi dừng chờ Kien tự click Send; chỉ sau khi Kien gửi và UI xác nhận mới ghi 1 row vào `outreach_messages` (`status='sent'`, `actor='human'` trên event) và ghi audit `events`. Các loại message khác vẫn cần người dùng gửi.
 - Ghi `scan_runs` mỗi chu kỳ (page_loads, new_posts) để tự kiểm soát volume.
 - DB lỗi (RPC/HTTP) → thử lại 1 lần sau 5s; vẫn lỗi → dừng skill, `inbox(warning)`, không ghi nửa chừng (R21).
 - Mỗi skill có khối **Spec** (lịch · trigger · đọc · ghi · metrics · edge cases · rules). Registry: `docs/rules.md`, `docs/edge-cases.md`, `docs/metrics.md`. Thêm hành vi mới = cập nhật cả 3.

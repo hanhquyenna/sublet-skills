@@ -38,9 +38,6 @@ seeker_form:
   url: ""                  # link form seeker; dùng làm offer_link "apply via ..."
   csv_export_path: data/seekers_export.csv   # Tally → export CSV → seeker-intake đọc
 
-outreach:
-  auto_dm: false   # false = do not click Send; true = user-authorized send flow may click Send after identity and body checks.
-
 scam:
   flags:
     - deposit_before_viewing

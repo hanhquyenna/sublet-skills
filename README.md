@@ -6,9 +6,11 @@
 > thức) và `data-engineer` (DB-only QA/normalization/behavior aggregates).
 > **`intent-analyze` đã bật chính thức từ 2026-09-17** (ghi thật
 > `kind`/`subtype`/`poster_type`/... — xem `CLAUDE.md`), và **`outreach-prep`**
-> đọc view `dashboardkien_outreach` để soạn **draft** DM theo đúng thứ tự
-> `outreach_order`; agent được gửi **draft đã tồn tại** qua browser panel khi
-> Kien yêu cầu send rõ ràng, hoặc xử lý ready drafts khi `outreach.auto_dm=true`. Matching
+> đọc view `dashboardkien_outreach` theo đúng thứ tự `outreach_order`; agent
+> mở post, verify người, mở Messenger, paste `message1` — rồi **dừng lại và
+> chờ Kien tự click Send**, agent không bao giờ tự click. `outreach_messages`
+> chỉ ghi sau khi Kien xác nhận gửi thành công.
+> Matching
 > seeker↔offering (`sublet_insight_matches`) đã bị **xoá bỏ hoàn toàn
 > 2026-09-17** (Kien quyết định, dữ liệu bloat không tương xứng giá trị).
 >
@@ -66,8 +68,8 @@ Claude Code (Mac)                         Supabase (project riêng, ref cteunhux
 | 2 | `/sublet-scrape-14-groups` | Capture tuần tự tối đa 14 group, mỗi group 14 ngày |
 | 3 | `/validate-permalink` | Validate queue link Facebook đã capture, resume từ DB |
 | 4 | `/intent-analyze` | Ghi thật `kind`/`subtype`/`poster_type`/`confidence`/... lên listing đã có `source_url` (bật 2026-09-17) |
-| 5 | `/outreach-prep` | First outreach in strict `outreach_order`; send stored `message1` only after permission and UI identity verification |
-| 6 | `/following-message` | Verify incoming replies, record availability/answer1, and send the correct stored `message2` |
+| 5 | `/outreach-prep` | Mở post, verify người, mở Messenger, paste `message1` theo `outreach_order`; agent dừng lại và chờ Kien tự click Send |
+| 6 | `/following-message` | Verify incoming replies, record availability/answer1, and prepare the correct stored `message2` — same Kien-clicks-Send model |
 | — | `/analyze-insights` | Đọc-only, chạy bất kỳ lúc nào sau bước 2: tóm tắt offering/seeking/duplicate/risk cho Kien, bỏ qua listing đã review |
 | — | `/data-engineer` | DB-only: normalize, audit provenance, dedupe, checkpoint, customer-behavior aggregates và report |
 
@@ -84,11 +86,11 @@ Match/viewing chính thức (bảng riêng, không phải seeker↔offering matc
 | `analyze-insights` | Đọc-only trên DB (không mở Facebook): offering/seeking/other thô, cụm trùng lặp, cờ rủi ro, tóm tắt vào inbox/metrics; không re-đọc listing đã `insight_reviewed` | Không |
 | `data-engineer` | Chuẩn hoá raw/insight/lifecycle events, QA, dedupe, provenance, behavior aggregates và report; không browse Facebook, không semantic matching/outreach | Không |
 | `intent-analyze` | Phân loại chính thức offering/seeking/other, `poster_type`, `confidence`, area/rent/date, ghi thật lên DB (bật 2026-09-17) | Không |
-| `outreach-prep` | Gửi `message1` theo strict `outreach_order`, ghi confirmed outcome và resume từ order thực tế | **Có, khi user cho phép** — body nguyên văn, audit sau UI confirmation |
+| `outreach-prep` | Chuẩn bị `message1` theo `outreach_order` (mở post, verify, paste); ghi `outreach_messages` chỉ sau khi Kien tự click Send | **Có, có điều kiện** — agent chuẩn bị, Kien tự click Send, không phải agent; body phải giữ nguyên và audit sau khi gửi |
 
 ## Giới hạn an toàn (đã code vào skill)
 - ≤4 page load Facebook/chu kỳ, ≤~400/ngày, 24/7 (đổi từ 08–23h ngày 2026-09-16 theo yêu cầu Kien), dừng ngay khi thấy checkpoint.
-- Agent không bao giờ post/comment/like/join/submit form. DM chỉ được gửi khi user cho phép, qua visible browser panel, dùng body nguyên văn từ database; chỉ ghi DB/audit sau khi UI xác nhận đã gửi.
+- Agent không bao giờ post/comment/like/join/submit form, và **không bao giờ tự click Send**. DM là ngoại lệ duy nhất: agent chuẩn bị `message1` cho poster hợp lệ theo `outreach_order` (`dashboardkien_outreach`) qua visible browser panel rồi dừng lại — Kien mới là người click Send; `outreach_messages` chỉ ghi sau đó, theo `outreach-prep`.
 - Không thu tiền hộ, không giữ deposit, không chuyển địa chỉ chính xác qua bạn.
 - Không xếp hạng theo quốc tịch/giới tính/tuổi.
 
