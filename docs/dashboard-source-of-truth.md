@@ -126,7 +126,10 @@ and approved before any skill references it.
 Only rows that are still eligible get a non-null order:
 
 - poster is not `outreach_unavailable`;
-- poster has no prior outgoing `fb_dm` row at all (any post, any status);
+- poster has no prior **confirmed sent** (`status='sent'`) outgoing `fb_dm`
+  row (any post) — fixed 2026-09-21: a draft/approved row that was never
+  actually sent no longer blocks a poster forever. It previously did, and 11
+  real people were stuck behind an abandoned draft with nothing ever sent;
 - the post's group has `clean_for_outreach=true`.
 
 Eligible rows are numbered:

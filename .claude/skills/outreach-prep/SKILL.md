@@ -128,8 +128,12 @@ Only after visible send confirmation:
 ## Skip and stop rules
 
 - Skip `message1_sent=true`.
-- Skip any prior outgoing `fb_dm` row for the same `poster_id`, regardless of
-  post or status. This applies even if `status` was removed from the schema.
+- Skip a prior **confirmed sent** outgoing `fb_dm` row for the same
+  `poster_id`, regardless of which post it was attached to. **A draft or
+  approved row that was never actually sent does NOT skip the poster** —
+  2026-09-21 fix: 11 real posters were previously stuck forever behind a
+  stale, abandoned draft with no real message ever sent. Only `status='sent'`
+  counts as "already outreached," same standard `message1_sent` itself uses.
 - `scam_flag=true` is not a skip reason.
 - Do not invent a daily or 24-hour DM limit.
 - If Facebook shows login, checkpoint, CAPTCHA, unusual activity, or unclear
