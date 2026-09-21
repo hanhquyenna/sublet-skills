@@ -28,14 +28,19 @@ cookies.
 
 For scraping, inspect dashboardkien_group before deciding where to continue.
 A group with recovery_required=true or an open_scan_run_id must be repaired
-(resume_cursor / the open run) before starting a different group. Only
-clean_for_outreach=true groups feed the outreach queue.
+(resume_cursor / the open run) before starting a different group.
+clean_for_outreach is a data-hygiene signal for this group's own capture/
+validate/classify work, not a precondition for outreach (2026-09-21: the
+group-level gate was removed from dashboardkien_outreach) — a post can be a
+valid candidate while its own group still shows needs_recovery, as long as
+that specific post is validated and classified.
 
 For outreach, inspect dashboardkien_outreach in ascending outreach_order (it
 is recomputed live, not stored progress — always re-query, never resume from
 a remembered number). Pick the lowest eligible row, skip message1_sent=true,
-and skip any poster with a prior outgoing fb_dm row. Use stored message text
-exactly as stored.
+and skip any poster with a prior **confirmed sent** (status='sent') outgoing
+fb_dm row — a draft/approved row that was never sent does not skip the
+poster (fixed 2026-09-21). Use stored message text exactly as stored.
 
 After every confirmed send, record the database message and audit event, then
 re-query dashboardkien_outreach and require message1_sent=true before

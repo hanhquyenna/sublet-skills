@@ -34,22 +34,25 @@ stage unless Kien explicitly requests that separate stage — see
 ## Why the resume logic works this way
 
 `outreach_order` is not stored progress — `dashboardkien_outreach` recomputes
-it on every query from live eligibility (no prior outgoing DM, poster not
-`outreach_unavailable`, post's group `clean_for_outreach=true`). That is why
-"the lowest current order" is always the correct next candidate and can never
-drift: there is no counter to lose, no state to hand off between agents, and
-no way for two different sessions to disagree about who's next as long as
-both query fresh. Resuming from a remembered number or a Messenger scroll
-position is the actual risk here — it can silently skip someone whose order
-shifted (a group just went `clean_for_outreach=true`, or another poster
-became ineligible) or double-message someone.
+it on every query from live, per-post eligibility (post itself validated +
+classified + recent + not a duplicate, poster not `outreach_unavailable`, no
+prior confirmed-sent DM). That is why "the lowest current order" is always
+the correct next candidate and can never drift: there is no counter to lose,
+no state to hand off between agents, and no way for two different sessions
+to disagree about who's next as long as both query fresh. Resuming from a
+remembered number or a Messenger scroll position is the actual risk here —
+it can silently skip someone whose order shifted (a post just got validated
+or classified, or another poster became ineligible) or double-message
+someone.
 
-Right now the live queue can be entirely empty (`outreach_order is null` for
-every row) whenever no group has both fully finished capture **and**
-`validate-permalink` **and** `intent-analyze`. That is expected, not a
-failure of this skill — report it plainly ("no eligible group yet, N groups
-in `needs_recovery`") rather than treating an empty queue as an error to
-work around.
+**Eligibility is per-post, not per-group** (2026-09-21 — the group-level
+`clean_for_outreach` requirement was removed). A post from a group that's
+still `needs_recovery` can be a perfectly valid candidate the moment that
+specific post is validated and classified; don't wait for or report on the
+group's overall completion as a precondition for outreach. If the queue is
+empty, the real blocker is almost certainly `validate-permalink`/
+`intent-analyze` backlog on individual posts, not unfinished groups — report
+the actual unvalidated/unclassified counts, not "N groups in needs_recovery."
 
 There is a separate `posts.outreach_order` column — a legacy stored field,
 kept permanently `null`, not the same thing as `dashboardkien_outreach.outreach_order`

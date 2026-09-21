@@ -37,7 +37,11 @@ unvalidated links (`validate-permalink`) **and** zero missing classification
 (`intent-analyze`) on the same group — a clean scrape pass can still leave a
 group `needs_recovery` because of the other two, and that's correct. Report
 it as "capture-complete, waiting on validate-permalink/intent-analyze," not
-as a stuck scrape.
+as a stuck scrape. **This column is a data-hygiene signal only, not an
+outreach precondition** (2026-09-21: `dashboardkien_outreach` no longer
+requires it — see `docs/dashboard-source-of-truth.md`). A specific post can
+already be a valid outreach candidate while its group still shows
+`needs_recovery`, as long as that post itself is validated and classified.
 
 `dashboardkien_outreach` only ever considers posts from the last 7 days
 (`window_days`) — a post from 2 weeks ago can never become an outreach

@@ -76,19 +76,26 @@ next scrape run must repair the listed gap(s) — resume the open run if
 `open_scan_run_id` is set, otherwise use `resume_cursor` / the skill's normal
 resume logic — before starting a different group.
 
-Only groups with `clean_for_outreach=true` (checked per-post via a join in
-`dashboardkien_outreach`) can produce outreach candidates. A group stuck in
-`needs_recovery` silently removes its posts from the outreach queue — this is
-by design, not a bug, but it means outreach volume drops whenever recovery
-work is not being done.
+`clean_for_outreach` **no longer gates `dashboardkien_outreach` eligibility**
+(removed 2026-09-21, Kien decision). It's still a real column here, still
+means the same thing (`posts_14d_complete AND NOT recovery_required`), and
+still tells the scrape skill whether a group's own capture/validate/classify
+work is fully done — but a `needs_recovery` group's individual posts can
+still become outreach candidates as soon as *that specific post* is
+validated and classified. Requiring the whole group to finish first was why
+the outreach queue sat empty almost this entire project's life (0 → 153 the
+moment the gate was dropped, with the same underlying data). Treat
+`clean_for_outreach` as a data-hygiene target for this skill to report, not
+a precondition for outreach.
 
 ## Outreach control — `dashboardkien_outreach`
 
 One row per **poster**, from their most recent qualifying post (`offering` or
 `seeking`, `status='new'`, `canonical_post_id is null`, `link_status='validated'`,
 poster `type='individual'`, poster has a name, post from the last 7 Amsterdam
-calendar days, not flagged as a duplicate in `poster_duplicate_posts`, and the
-post's group has `clean_for_outreach=true`). Live columns, in view order:
+calendar days, not flagged as a duplicate in `poster_duplicate_posts`). No
+group-level requirement — eligibility is entirely per-post. Live columns, in
+view order:
 
 ```text
 poster_name
@@ -129,8 +136,10 @@ Only rows that are still eligible get a non-null order:
 - poster has no prior **confirmed sent** (`status='sent'`) outgoing `fb_dm`
   row (any post) — fixed 2026-09-21: a draft/approved row that was never
   actually sent no longer blocks a poster forever. It previously did, and 11
-  real people were stuck behind an abandoned draft with nothing ever sent;
-- the post's group has `clean_for_outreach=true`.
+  real people were stuck behind an abandoned draft with nothing ever sent.
+
+(No group-level requirement — see "Scraping control" above for why that was
+removed.)
 
 Eligible rows are numbered:
 
