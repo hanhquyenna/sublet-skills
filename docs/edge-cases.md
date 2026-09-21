@@ -89,7 +89,7 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | E74 | Seeker push_count hôm nay ≥3 | bỏ qua seeker đó hôm nay | sublet-draft | — |
 | E75 | Chưa có `seeker_form.url` | offer dùng "forward me the replies" | sublet-draft | — |
 | E76 | User has not authorized a send | do not click Send; do not write an outgoing row | outreach-prep | manual |
-| E77 | Agent send succeeds and UI confirms it | insert outgoing row, audit event, then require `has_outreached=true` | outreach-prep | manual |
+| E77 | Agent send succeeds and UI confirms it | insert outgoing row, audit event, then require `message1_sent=true` | outreach-prep | manual |
 | E78 | Click/send UI fails or is ambiguous | do not write sent/outgoing success; stop on the candidate | outreach-prep, following-message | manual |
 | E79 | Candidate has `scam_flag=true` | do not skip for that reason; continue normal identity and duplicate checks | outreach-prep | manual |
 
