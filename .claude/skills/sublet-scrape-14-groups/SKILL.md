@@ -39,6 +39,14 @@ group `needs_recovery` because of the other two, and that's correct. Report
 it as "capture-complete, waiting on validate-permalink/intent-analyze," not
 as a stuck scrape.
 
+`dashboardkien_outreach` only ever considers posts from the last 7 days
+(`window_days`) — a post from 2 weeks ago can never become an outreach
+candidate no matter how complete its data is. That's why chasing old,
+pre-2026-09-17 broken records was pointless work: fixing them couldn't have
+produced a single outreach candidate. Fresh capture is the only thing that
+matters going forward — get it complete the first time (full raw text,
+poster identity, link evidence) rather than relying on a later repair pass.
+
 ## Automatic resume contract
 
 At the start of every run, decide in this order (don't skip ahead while an
@@ -67,7 +75,12 @@ One group at a time; don't move on until the current one is finished or blocked.
 - `invalid_unresolved_records`: a `capture_unresolved` event missing
   `capture_contract_version=2`, exact `unresolved_reason`, `card_fingerprint`,
   or raw text. Use group search (below) to resolve it into a real post or a
-  complete v2 event.
+  complete v2 event. **2026-09-21 (Kien decision): only events created on or
+  after 2026-09-17 count here** — everything older is pre-contract legacy
+  debt, permanently written off. Do not spend page-load budget chasing it;
+  `dashboardkien_group` already excludes it from `recovery_required`. This
+  is exactly why new capture must be complete on the first pass (see below)
+  — nothing "gets fixed later" anymore.
 - `posts_without_poster`: run the poster upsert (below) from the post's
   captured `poster.display_name`/`profile_url`, then `update posts set
   poster_id = <id>`.

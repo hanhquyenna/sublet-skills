@@ -42,9 +42,17 @@ recovery_reason                     comma-joined human-readable list of which
 data_gap_count                      sum of all the gap counts below
 posts_without_permalink             url is null/blank
 posts_without_context               no context_captured event for the post
-invalid_unresolved_records          capture_unresolved events missing
+invalid_unresolved_records          capture_unresolved events created on or
+                                     after 2026-09-17 missing
                                      capture_contract_version=2, the exact
-                                     unresolved_reason, card_fingerprint, or raw text
+                                     unresolved_reason, card_fingerprint, or raw
+                                     text. Events before that date are
+                                     permanently written off (Kien decision,
+                                     2026-09-21) -- outreach only looks at the
+                                     last 7 days, so fixing month-old broken
+                                     records could never produce a candidate.
+                                     A genuinely new broken record after the
+                                     cutoff still counts.
 open_scan_run_id                    a scan_runs row for this group with
                                      finished_at is null (should be at most one
                                      open run per group+mode by design)
@@ -165,3 +173,20 @@ outreach view's duplicate filter only excludes rows that already have a
 deduplicated before reaching `dashboardkien_outreach`. This needs an owner and
 a rule (what counts as a true duplicate vs. a legitimate repost) before it can
 be closed — see the open items raised alongside this document.
+
+## Decision: legacy capture backlog is written off (2026-09-21)
+
+427 `capture_unresolved` events (all created 2026-09-15/16, before the v2
+raw-capture contract was actually being followed correctly) do not meet the
+contract and previously blocked `recovery_required`/`clean_for_outreach` for
+every group that had any. Kien's decision: these are permanently written off,
+not chased. Rationale: `dashboardkien_outreach` only ever considers posts
+from the last 7 days, so no amount of repair on a 10-day-old broken record
+could ever produce a real candidate — the repair work had zero payoff. The
+view (`invalid_unresolved_records`) now only counts broken records created
+on or after 2026-09-17; a genuinely new broken record after that date still
+counts and still blocks, so this is a one-time write-off, not a disabled
+check. `sublet-scrape-14-groups` no longer spends page-load budget on
+pre-cutoff records. The policy consequence: capture must be complete on the
+first pass from now on, since there is no longer a "repair it later" path
+for old data.
