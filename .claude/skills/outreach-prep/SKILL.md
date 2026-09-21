@@ -51,6 +51,11 @@ failure of this skill — report it plainly ("no eligible group yet, N groups
 in `needs_recovery`") rather than treating an empty queue as an error to
 work around.
 
+There is a separate `posts.outreach_order` column — a legacy stored field,
+kept permanently `null`, not the same thing as `dashboardkien_outreach.outreach_order`
+above. Never read it, never write to it. Only the computed view column means
+anything.
+
 ## Browser automation channel
 
 All Facebook actions in this skill must use Kien's already-open Chrome browser

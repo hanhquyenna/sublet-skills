@@ -145,6 +145,15 @@ run re-queries the view from scratch.
 the only valid "done" signal for that poster. `scam_flag=true` is never a skip
 reason.
 
+**`posts.outreach_order` is a different column and is never the source of
+truth.** It's a legacy stored field from before this view existed; the DB
+column comment says so, and it is kept permanently `null` (cleared
+2026-09-21, 592 stale rows from a 2026-09-19 snapshot removed). No skill
+writes to it and none should ever start. `dashboardkien_outreach.outreach_order`
+— the computed one described above — is the only value that means anything.
+If `posts.outreach_order` is ever non-null again, that is itself a bug to
+report, not a value to resume from.
+
 ## Message sequence
 
 - `message1` is the only default stage. It runs from `outreach-prep`.
