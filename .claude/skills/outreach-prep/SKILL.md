@@ -7,19 +7,49 @@ description: "Run the approved first-message Facebook outreach workflow from Sup
 
 ## Project and control surface
 
-This skill uses Supabase project `cteunhuxrghpozwbnehh`.
-The operator-facing control view is `public.dashboardkien_outreach`.
-Do not substitute another Supabase project, an old `sublet_*` schema, or a
-different dashboard view.
+This is an automation button: it must run start-to-finish from the database
+alone, with no briefing from Kien about who's next or what to send.
 
-If the Supabase MCP is not connected to project
-`cteunhuxrghpozwbnehh`, do not guess, use a different project, or print
-secrets. Ask Kien to provide the required database connection or token through
-the approved secure channel. Never ask Kien to paste a secret into a public
-prompt or commit it to the repository.
+Supabase project ref `cteunhuxrghpozwbnehh`
+(`https://cteunhuxrghpozwbnehh.supabase.co`). The operator-facing control view
+is `public.dashboardkien_outreach`. You already know this — the project, the
+view, and the underlying tables (`posts`, `posters`, `outreach_messages`,
+`outreach_availability_answers`) are fixed facts about this project, not
+something to rediscover each run. Do not substitute another Supabase project,
+an old `sublet_*` table name, or a different view.
 
-This skill is for `message1` only. It must not send `message2` or `message3`
-unless Kien explicitly requests that separate stage.
+The only thing that can be missing is the *connection*. If Supabase MCP is
+not connected to `cteunhuxrghpozwbnehh`, stop and ask Kien directly for the
+missing secret — database password, service-role token, connection string,
+whatever the specific failure needs. That is explicitly allowed. What is not
+allowed is guessing a different project, printing a secret back into the
+conversation, committing one to the repo, or sending a message without first
+confirming the database connection is real (a send with no DB write behind it
+is unverifiable and risks messaging the same person twice later).
+
+This skill is for `message1` only. It must not send `message2` or a later
+stage unless Kien explicitly requests that separate stage — see
+`following-message` for `message2`.
+
+## Why the resume logic works this way
+
+`outreach_order` is not stored progress — `dashboardkien_outreach` recomputes
+it on every query from live eligibility (no prior outgoing DM, poster not
+`outreach_unavailable`, post's group `clean_for_outreach=true`). That is why
+"the lowest current order" is always the correct next candidate and can never
+drift: there is no counter to lose, no state to hand off between agents, and
+no way for two different sessions to disagree about who's next as long as
+both query fresh. Resuming from a remembered number or a Messenger scroll
+position is the actual risk here — it can silently skip someone whose order
+shifted (a group just went `clean_for_outreach=true`, or another poster
+became ineligible) or double-message someone.
+
+Right now the live queue can be entirely empty (`outreach_order is null` for
+every row) whenever no group has both fully finished capture **and**
+`validate-permalink` **and** `intent-analyze`. That is expected, not a
+failure of this skill — report it plainly ("no eligible group yet, N groups
+in `needs_recovery`") rather than treating an empty queue as an error to
+work around.
 
 ## Browser automation channel
 
@@ -38,7 +68,7 @@ count of sent messages, or a screenshot.
 1. Query `dashboardkien_outreach` and its internal source tables with
    `outreach_order`, ascending. Keep gaps; never renumber or sort by name.
 2. For each order, treat the outcome as complete when either:
-   - `has_outreached=true`, or an outgoing `fb_dm` row exists for that
+   - `message1_sent=true`, or an outgoing `fb_dm` row exists for that
      `poster_id` (including another post), or
    - the poster is explicitly marked `outreach_unavailable=true`.
 3. Continue at the lowest `outreach_order` with neither completed outcome.
@@ -74,20 +104,25 @@ run. Never use the previous agent's message, a Messenger inbox count, or
 Only after visible send confirmation:
 
 1. Insert one outgoing row into `outreach_messages` with the current
-   `post_id`, `poster_id`, `direction='out'`, `channel='fb_dm'`, the correct
-   first-message template, exact body, and `sent_at=now()`.
+   `post_id`, `poster_id`, `direction='out'`, `channel='fb_dm'`,
+   `template='message1'`, exact body, and `sent_at=now()`. `message1_sent` is
+   computed from `template in ('message1', 'availability_check_offerer',
+   'availability_check_offering', 'availability_check_seeker',
+   'availability_check_seeking')` — the `availability_check_*` names are
+   legacy values from before this stage was renamed; always write the current
+   name, `message1`, for a new send.
 2. If the table has a `status` column, set it to `sent`; if it does not, omit
    the column. Do not require `status` to exist.
 3. Insert one `events` row with `event='outreach_dm_sent'`, the real actor
    (`agent` when the agent clicked Send, `human` when the user clicked Send),
    the post URL, and the message template.
 4. Immediately re-query `dashboardkien_outreach` for that `poster_id` and
-   require `has_outreached=true` before moving on. If verification fails,
+   require `message1_sent=true` before moving on. If verification fails,
    stop immediately and do not continue to the next person.
 
 ## Skip and stop rules
 
-- Skip `has_outreached=true`.
+- Skip `message1_sent=true`.
 - Skip any prior outgoing `fb_dm` row for the same `poster_id`, regardless of
   post or status. This applies even if `status` was removed from the schema.
 - `scam_flag=true` is not a skip reason.

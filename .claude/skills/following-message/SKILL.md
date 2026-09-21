@@ -5,10 +5,27 @@ description: "Verify Facebook replies, record answer1 and availability, and send
 
 # following-message
 
-Use this skill after first outreach to process replies and follow-up message2.
-The database is authoritative for identity, order, intent, language, and
-whether a follow-up was sent. Messenger is evidence only when the correct
-conversation and sender are visibly verified.
+## Project and control surface
+
+Supabase project ref `cteunhuxrghpozwbnehh`
+(`https://cteunhuxrghpozwbnehh.supabase.co`). The operator-facing control view
+is `public.dashboardkien_outreach`, same as `outreach-prep`. You already know
+the project and the view; the only thing that can be missing is the
+connection. If Supabase MCP is not connected to `cteunhuxrghpozwbnehh`, stop
+and ask Kien directly for the missing secret (password/token/connection
+string) rather than guessing a project or proceeding without a working DB
+write path.
+
+Use this skill only after first outreach, and only when Kien explicitly asks
+for the `message2` follow-up stage — it is never triggered automatically by a
+reply arriving. The database is authoritative for identity, order, intent,
+language, and whether a follow-up was sent. Messenger is evidence only when
+the correct conversation and sender are visibly verified.
+
+`message2_sent` is computed the same way `message1_sent` is: a confirmed
+outgoing `outreach_messages` row with `status='sent'` and the right
+`template`. Always write `template='message2'` for a new send — that is the
+only value the view currently recognizes for this stage.
 
 ## Find and verify replies
 
@@ -76,7 +93,7 @@ After visible send confirmation:
 2. Insert one `events` audit row with `event='outreach_dm_sent'` and the real
    actor (`agent` or `human`).
 3. Re-query `dashboardkien_outreach` immediately and require both
-   `has_outreached=true` and `message2_sent=true` before continuing.
+   `message1_sent=true` and `message2_sent=true` before continuing.
 
 If sending is unclear, do not insert anything. If DB verification fails, stop
 before the next person. Do not invent a daily or 24-hour limit.
