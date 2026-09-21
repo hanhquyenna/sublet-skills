@@ -272,6 +272,44 @@ exactly like this, in either direction:
    boundary with some posts from browser-panel and some from Apify with zero
    special-casing.
 
+### Duplicate poster identity (pfbid vs numeric fb_uid)
+
+Apify only exposes `user.id` as a `pfbid...` token far more often than
+browser-panel does — `fb_identity()` can't map a pfbid to the numeric ID
+Facebook actually uses (no public formula exists), so the same real person
+captured once via browser-panel (numeric `fb_uid`) and once via Apify (pfbid
+`fb_uid`) becomes **two separate `posters` rows**. Confirmed real case
+2026-09-21: "Deniz Yazar" got a second poster row this way and nearly got a
+duplicate `message1` prepared while the first identity already had a
+confirmed sent DM.
+
+**Never dedupe posters by name alone** — a DB check the same day found 50
+different real people all named "Anonymous participant" (Facebook's generic
+label for hidden posters). Blind name-match merging would have silently
+collapsed 50 distinct people into one and wrongly blocked 49 of them.
+
+The one name-based merge that **is** safe: when two posters share the exact
+same name AND one of the two has `fb_uid` in the `name:...` fallback form
+(meaning that capture never got a `profile_url` at all, so a name-based key
+was the system's own fallback already — there is no stronger identifier to
+lose by using the name). In that specific case, keep the poster with the
+real (numeric or pfbid) `fb_uid` — prefer whichever already has a confirmed
+sent DM if one does — and set `outreach_unavailable=true` on the other, with
+`outreach_unavailable_reason` naming the kept poster's id. Skip this merge
+entirely when the name is a generic placeholder ("Anonymous participant",
+"Người tham gia ẩn danh") or when **both** sides already have real,
+different fb_uids (two different real accounts can legitimately share a
+display name, e.g. "Apartment Agent").
+
+Detection query (run manually — not on a schedule):
+
+```sql
+select name, count(*), array_agg(id), array_agg(fb_uid)
+from posters
+group by name
+having count(*) > 1;
+```
+
 ## Batch state and resume
 
 `ops_state` key `scrape_14_groups_batch`:
@@ -315,6 +353,30 @@ Before opening the browser for `current_group`:
    rejects any other `unresolved_reason` value on insert. Poster shown as
    "Anonymous participant"/no profile URL → record `poster.visibility='anonymous'`,
    never infer identity from a comment/photo/other profile.
+
+   **Still find-or-create the poster** (same upsert as step 4 below) even
+   though there's no post to attach yet — the card already carries
+   `display_name`/`profile_url`, no reason to throw that identity away just
+   because the link is missing (fixed 2026-09-21: 432/433 pre-existing
+   unresolved events had this data captured but no `posters` row was ever
+   created from it). Store the result as `poster_id` in the event payload
+   (`entity_id` stays `null` — there's still no post). Skip the upsert when
+   both `display_name` and `profile_url` are null (nothing to key on), **and
+   also skip it when `profile_url` is null and `display_name` is a generic/
+   anonymous placeholder** ("Anonymous participant"/"Người tham gia ẩn danh"
+   and equivalents) — with no `profile_url`, `fb_uid` falls back to
+   `'name:'||lower(name)`, which collapses every distinct real person hidden
+   behind that same generic label into one `posters` row (caught 2026-09-21:
+   the initial rollout of this rule did exactly that — 18 unrelated
+   unresolved cards silently merged into a single pre-existing "Anonymous
+   participant" row; reverted by stripping `poster_id` back off those
+   events). Leave `poster_id` null in that case, same as before this rule
+   existed. A non-generic real name with no `profile_url` is fine to
+   find-or-create as usual (matches step 4's existing risk profile, not a
+   new one this rule introduces).
+
+   When recovery later finds the real permalink for a card that does have a
+   `poster_id`, reuse it instead of re-running find-or-create from scratch.
 
 4. **Find-or-create the poster, then write the post** — not optional.
    `dashboardkien_outreach` inner-joins `posts` to `posters`; a post with
@@ -418,7 +480,9 @@ An unresolved card uses a minimal payload instead (no fake `post_url`):
 `link_resolution_method`, `raw_card_text`, `poster{display_name,profile_url}`,
 `timestamp_label`, `media`, `reaction_count`, `comment_count`,
 `card_fingerprint` (`sha256(normalized group+poster+time+text)`),
-`missing_fields`, `unresolved_reason`(="no_link_evidence").
+`missing_fields`, `unresolved_reason`(="no_link_evidence"), `poster_id`
+(find-or-create result, `null` only when both `display_name` and
+`profile_url` are null — see step 3 above).
 
 On re-run, look up `capture_unresolved` by `card_fingerprint` before writing
 a new event. When a card gets link evidence later, create the normal
