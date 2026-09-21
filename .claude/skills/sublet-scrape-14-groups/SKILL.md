@@ -250,8 +250,14 @@ Before opening the browser for `current_group`:
    complete v2 `context_captured` event — only add one when new capture has
    genuinely better evidence.
 6. After **each batch**, write posts/posters/events plus the run's
-   cursor/progress plus the group metric row. Do not wait until the whole
-   group (or all 14 groups) is done to update the database.
+   cursor/progress plus the group metric row, and `update groups set
+   last_scanned_at = now() where id = <group_id>`. Do not wait until the whole
+   group (or all 14 groups) is done to update the database. `last_scanned_at`
+   is what Kien reads as "when was this group last touched" — leaving it
+   stale makes a group that was just worked on look untouched for days.
+   (`dashboardkien_group.latest_capture_at` is computed independently from
+   `events` and stays accurate either way, but `last_scanned_at` does not
+   update itself.)
 
 ### Default feed-first hybrid capture
 
