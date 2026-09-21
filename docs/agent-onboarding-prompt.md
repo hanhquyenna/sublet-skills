@@ -49,13 +49,25 @@ continuing.
 Keep technical identifiers in the database even when they are hidden from the
 operator-facing view. Never claim completion from a browser attempt alone.
 
-Warning: several SKILL.md files in this repo (sublet-scrape-14-groups,
-data-engineer, validate-permalink, analyze-insights, comment-analyze,
-information) and CLAUDE.md/AGENTS.md still describe the old sublet_-prefixed
-table names (sublet_listings, sublet_events, sublet_groups, ...). The live
-database was renamed to posts/events/groups/posters/... without those docs
-being updated, and the sublet_exec RPC that scripts/db.py relies on no longer
-exists. Verify a table/column/RPC name against the live schema (list_tables /
-execute_sql) before trusting a skill's literal SQL reference; do not assume
-the skill text matches the database.
+Status as of 2026-09-21, so you don't have to rediscover it: `CLAUDE.md`,
+`AGENTS.md`, `README.md`, `docs/rules.md`, `docs/edge-cases.md`,
+`docs/metrics.md`, `docs/dashboard-source-of-truth.md`,
+`docs/agent-onboarding-prompt.md` (this file), `db/schema.sql`, and the skills
+`sublet-scrape-14-groups`, `outreach-prep`, `following-message`, and
+`intent-analyze` (new — classification never existed as a runnable skill
+before today) are all schema-accurate and merged into `main`. The
+`sublet_exec` RPC exists again (recreated 2026-09-21 at Kien's request;
+`scripts/db.py` works).
+
+**Still stale — verify before trusting, don't assume**: `validate-permalink`,
+`data-engineer`, `analyze-insights`, `comment-analyze`, and `information`
+SKILL.md files still describe the old `sublet_`-prefixed schema
+(`sublet_listings`, `sublet_events`, `sublet_groups`, ...). The live database
+uses `posts`/`events`/`groups`/`posters`/... — verify any table/column name
+these specific files reference against the live schema (`list_tables`/
+`execute_sql`) before trusting their literal SQL. `validate-permalink` in
+particular needs a full rewrite before relying on its written steps — the
+logic (open link, confirm group+poster+content match, write
+`link_status`/events) is sound and was run successfully by translating it to
+the current schema on the fly, but the file itself hasn't been fixed yet.
 ```
