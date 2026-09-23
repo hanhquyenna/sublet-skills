@@ -193,9 +193,22 @@ thật đã gặp khi đọc nhanh output lần đầu:
 | `user.name` | `poster.display_name` |
 | `user.id` | `poster.profile_url` — ID số (vd `"61587509753606"`) dùng thẳng `facebook.com/profile.php?id=<id>`; ID dạng `pfbid0...` giữ nguyên trong payload và đánh dấu `profile_url_type="pfbid"` (không tự chuyển sang profile.php — sai định dạng) |
 | `groupTitle`/`facebookId` (group) | `group.name`/`group.id` — verify khớp `group_id` đang xử lý |
-| `attachments[].url`/`.image.uri` | `media` |
+| `attachments[].photo_image.uri` (hoặc `.thumbnail`, cùng giá trị) | `media` **và** `posts.image_urls` (mảng, verify thật 2026-09-23) |
 | `likesCount`/`sharesCount`/`commentsCount` | `reaction_count`/`share_count`/`comment_count` |
 | `topComments[]` | `comments` (raw, giữ `commentUrl`/`author`, vẫn ≤100/post) |
+
+**Đừng dùng `attachments[].url`** cho `image_urls` — đó là link trang xem ảnh
+của Facebook (`facebook.com/photo/?fbid=...`), một HTML page, không phải link
+ảnh CDN — nhét vào `<img src>` sẽ ra ảnh vỡ. Chỉ `photo_image.uri`/`thumbnail`
+(dạng `scontent-*.fbcdn.net/...`) mới dùng được trực tiếp. Verify thật bằng
+cách gọi `apify/facebook-posts-scraper` (actor id `KoJrdxJCTtpon81KY`) trên
+166 link offering hiện có trong `dashboardkien_outreach`: 128/166 có
+`attachments`, sau khi lọc bỏ icon giả (redirect Telegram/WhatsApp proxy qua
+`external.*.fna.fbcdn.net`, không phải ảnh phòng thật) còn lại 120 dùng được.
+Browser-panel capture cũng mắc lỗi tương tự trước đây (lấy nhầm `href` của
+thẻ `<a>` bọc ngoài thay vì `src` của `<img>` bên trong) — sửa để đọc đúng
+thuộc tính `src`/`srcset` của thẻ `<img>` thật trong DOM, không phải link
+bọc ngoài dẫn tới trình xem ảnh.
 
 Item không có field `url` (hiếm) → **không tự dựng lại permalink từ
 `attachments[].url` bằng cách suy ra `gm.<id>`** — pattern đó chưa được
