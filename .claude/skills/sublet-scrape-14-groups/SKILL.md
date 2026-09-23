@@ -43,9 +43,11 @@ requires it — see `docs/dashboard-source-of-truth.md`). A specific post can
 already be a valid outreach candidate while its group still shows
 `needs_recovery`, as long as that post itself is validated and classified.
 
-`dashboardkien_outreach` only ever considers posts from the last 7 days
-(`window_days`) — a post from 2 weeks ago can never become an outreach
-candidate no matter how complete its data is. That's why chasing old,
+`dashboardkien_outreach` only ever considers posts from the last 14 days
+(`window_days` — widened 2026-09-23 from 7 days, at Kien's request, because
+the 7-day window was shrinking faster than capture/classify/validate could
+refill it) — a post older than that can never become an outreach candidate
+no matter how complete its data is. That's why chasing old,
 pre-2026-09-17 broken records was pointless work: fixing them couldn't have
 produced a single outreach candidate. Fresh capture is the only thing that
 matters going forward — get it complete the first time (full raw text,
@@ -144,18 +146,19 @@ trên Apify console nếu actor cập nhật, đừng tin mù theo tài liệu n
 ```json
 {
   "startUrls": [{ "url": "https://www.facebook.com/groups/<slug>/" }],
-  "resultsLimit": 150,
+  "resultsLimit": 300,
   "viewOption": "CHRONOLOGICAL",
-  "onlyPostsNewerThan": "7 days"
+  "onlyPostsNewerThan": "14 days"
 }
 ```
 
 - `startUrls`: URL group public, lấy đúng từ `groups.url`. Xác nhận shape
   thật của field này (string thô hay object `{url}`) trong Input tab của
   actor trước lần chạy đầu tiên — mô tả public không ghi rõ 100%.
-- `onlyPostsNewerThan`: đặt đúng bằng `window_days` hiện tại (7 ngày) —
-  actor tự lọc theo ngày phía Apify, không cần scrape dư rồi tự cắt.
-- `resultsLimit`: tính = `posts_per_day` (từ `dashboardkien_group`) × 7 ×
+- `onlyPostsNewerThan`: đặt đúng bằng `window_days` hiện tại (14 ngày —
+  mở rộng 2026-09-23) — actor tự lọc theo ngày phía Apify, không cần scrape
+  dư rồi tự cắt.
+- `resultsLimit`: tính = `posts_per_day` (từ `dashboardkien_group`) × 14 ×
   1.3 (buffer), làm tròn lên, tối thiểu 30, tối đa 300/group. Group
   `posts_per_day` còn `null` → dùng 50 cho lần đầu, điều chỉnh theo dữ liệu
   quan sát được sau đó.
@@ -315,7 +318,7 @@ having count(*) > 1;
 `ops_state` key `scrape_14_groups_batch`:
 
 ```json
-{"batch_id":"...","window_days":7,"group_ids":[],"current_index":0,
+{"batch_id":"...","window_days":14,"group_ids":[],"current_index":0,
  "current_group":null,"completed":[],"blocked":[],"status":"running"}
 ```
 
@@ -578,7 +581,8 @@ Facebook-verified boundary.
   `posts_14d_checked_at`, move to `completed`. Blocker → `blocked`, batch stays incomplete.
 
 (`posts_14d_*` are legacy names; the live window is `window_days` — currently
-7 — read the actual value, don't infer from the column name.)
+14 (widened 2026-09-23 from 7) — read the actual value, don't infer from the
+column name.)
 
 ## Database and continuing the flow
 

@@ -94,7 +94,9 @@ reply follow-up.
 ## Active scope
 - **Context** (`information`): onboarding, quyền agent, DB, state và cách tiếp tục.
 - **Capture** (`sublet-scrape-14-groups`): chọn tối đa 14 group, scrape raw
-  theo `window_days` (hiện 7 ngày), dedupe, resume và checkpoint DB, kèm
+  theo `window_days` (hiện 14 ngày — mở rộng 2026-09-23 theo yêu cầu Kien, vì
+  cửa sổ 7 ngày cũ khiến `dashboardkien_outreach` co lại nhanh hơn tốc độ
+  scrape/classify/validate bù vào), dedupe, resume và checkpoint DB, kèm
   find-or-create `posters`. Không phân loại và không outreach.
 - **Link validation** (`validate-permalink`): xử lý tuần tự queue link Facebook
   đã capture, giữ share URL gốc, ghi canonical URL nếu xác minh được và phân
