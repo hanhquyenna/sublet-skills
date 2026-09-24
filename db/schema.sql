@@ -331,6 +331,33 @@ create table if not exists jobs (
 );
 -- 0 rows -- defined, unused.
 
+-- Contacts the poster published themselves, split out by kind (2026-09-24,
+-- Kien's explicit reversal of CLAUDE.md #5's old "no contact records" rule).
+-- Filled only by refresh_post_contacts(): deterministic regex over posts.body
+-- and outreach_availability_answers.answer1/answer2, plus the poster's
+-- Facebook profile and the post link, for every post in
+-- dashboardkien_outreach. Idempotent: re-running adds only what is missing.
+-- Phones normalised to E.164 (Dutch 0x... -> +31x...); a phone is filed as
+-- 'whatsapp' when the same text mentions WhatsApp. RLS on, no policies, and
+-- revoked from anon/authenticated: the Roomie site must never read this.
+create table if not exists post_contacts (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references posts(id) on delete cascade,
+  poster_id uuid references posters(id) on delete set null,
+  kind text not null check (kind in ('email','phone','whatsapp','telegram','instagram','facebook_profile','facebook_post')),
+  value text not null,        -- normalised: lowercased email/handle, E.164 phone, URL
+  raw text,                   -- as it appeared in the text (null for t.me handles)
+  source text not null check (source in ('post_text','answer1','answer2','outreach_whatsapp_number','posters','posts')),
+  extracted_at timestamptz not null default now(),
+  unique (post_id, kind, value)
+);
+-- 2026-09-24 first run over 676 dashboard rows: email 97, whatsapp 20,
+-- phone 27, telegram 30, instagram 6, facebook_profile 668, facebook_post 676.
+-- Refresh: select * from refresh_post_contacts();
+-- Read: public.outreach_contacts -- one row per dashboardkien_outreach row,
+--   one column per kind (emails, whatsapp, phones, telegram, instagram,
+--   facebook_profile), joined on posts.url = dashboardkien_outreach.post_link.
+
 -- ---------- NOT migrated (existed in the old schema, do not exist live) ----------
 -- sublet_seekers, sublet_matches, sublet_viewings, sublet_fees -- never had
 -- real data, dropped rather than migrated. If a seeker/demand-side table is
