@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "roomie",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd /tmp/rmclone/roomie && bun run dev --host"],
+      "port": 5173
+    }
+  ]
+}
