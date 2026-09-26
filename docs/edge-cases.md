@@ -59,6 +59,8 @@ Mã E##. Skill tham chiếu trong khối Spec. "Test" = id trong `tests/intent_c
 | E42 | Listing đã dead, poster đăng lại sau 2 tuần | listing mới (source_url khác), `notes='reposted'`, không canonical về bản dead | intent-analyze | — |
 | E43 | Comment "still available?" của người khác | không phải post → bỏ qua; nếu poster trả lời "yes" trong feed → −10 scam | sublet-scan | — |
 | E44 | QA sai ≥2/10 | sửa doc §12, `--all`, so số trước/sau | intent-analyze | tests/ |
+| E129 | Post đã có `intent` nhưng `post_details` (`room_type`/`bills_included`/`max_people`/`registration_allowed`/`sublet_permission`) vẫn null/default `unknown` | `intent-analyze` không đọc lại post đã có `intent` — cần chạy `scripts/classify_properties_jev.py` (backfill 1 lần, dùng JEV/typesafe.ai) cho tới khi read-gap này được vá trong skill | intent-analyze | 2026-09-26: 1017 post offering |
+| E130 | `furnished` chưa từng có tiêu chí trong `docs/intent-logic.md` dù cột có sẵn từ đầu | thêm §11 (2026-09-26, Kien quyết định): true/false chỉ khi nói rõ, không nhắc gì → null | intent-analyze, classify_properties_jev.py | manual |
 
 ## D. DEMAND — seeker
 | # | Tình huống | Xử lý | Skill | Test |

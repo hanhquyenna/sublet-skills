@@ -31,6 +31,7 @@
 | analyze | scam_high_rate | scam≥60 / offering 7d | 10–30% (0% = rule quá lỏng) | intent-analyze |
 | analyze | low_conf_rate | confidence=low / all 7d | ≤25% | intent-analyze |
 | analyze | qa_kind_acc | đúng/10 trong QA tuần | ≥95% | intent-analyze QA |
+| analyze | property_field_fill_rate | % post trong pool hiển thị (`alloffer_fulldetails`, giá>0) có `room_type`/`furnished`/`bills_included` không null | 2026-09-26 backfill: room_type 126/136, furnished 95/136, bills_included 128/136 | classify_properties_jev.py |
 | analyze | insight_listings_total | listings có event `insight_reviewed` | tăng dần theo capture | analyze-insights |
 | analyze | insight_new_this_run | listings mới review trong 1 run | — | analyze-insights |
 | analyze | insight_offering_like / insight_seeking_like / insight_other_like | count theo `insight_kind_guess` (heuristic, không phải `kind` chính thức) | — (đo thị trường thô) | analyze-insights |
