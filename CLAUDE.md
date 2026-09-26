@@ -78,16 +78,23 @@ aggregate và report; `analyze-insights` là bước đọc-only độc lập, c
 bất kỳ lúc nào sau capture (không cần chờ validate xong) để tóm tắt insight cho
 Kien.
 
-**Cảnh báo 2026-09-21:** `intent-analyze` được nhắc trong tài liệu như "pipeline
-phân loại chính thức, bật 2026-09-17" nhưng **không tồn tại như một SKILL.md**
-trong `.claude/skills/` — không có file, không gọi được qua `/intent-analyze`.
-1121/1122 `posts` hiện đã có `intent`/`confidence` (gần như 100%), nên phân
-loại rõ ràng ĐÃ xảy ra, nhưng nhiều khả năng qua 1 lần chạy tay/script rời của
-đồng nghiệp, không phải qua 1 skill sống lặp lại được. Hệ quả: **post mới
-capture vào (kể cả qua repair/recovery của `sublet-scrape-14-groups`) sẽ
-không tự động được phân loại `intent`/`confidence` bởi bất kỳ skill nào đang
-tồn tại** — cần Kien quyết định viết lại skill này hay dùng cách khác trước
-khi backlog phân loại phình lên lại.
+**Cập nhật 2026-09-26:** cảnh báo "intent-analyze không tồn tại như SKILL.md"
+ở trên đã cũ — `.claude/skills/intent-analyze/SKILL.md` đã được thêm (PR #7,
+2026-09-2x) và chạy được qua `/intent-analyze`. Vẫn còn một khoảng trống thật:
+`intent-analyze` chỉ đọc `where intent is null`, nên một post đã có `intent`
+sẽ không bao giờ được ghé lại — kể cả khi các cột `post_details` mà chính
+`docs/intent-logic.md §11` quy định (`room_type`, `bills_included`,
+`max_people`, `registration_allowed`, `sublet_permission`) vẫn null/mặc định
+trên post đó. Đo được 2026-09-26: 1017/1017 post `offering` còn `sublet_permission`
+ở default `unknown` chưa từng đụng tới, 758/1017 chưa có `room_type`. Vá một lần
+bằng `scripts/classify_properties_jev.py` (dùng JEV/typesafe.ai — key trong
+`~/.jev.env`, không commit; xem docstring script để biết field nào được ghi,
+ngưỡng confidence, và vì sao không đụng field đã có giá trị thật). Thêm
+`furnished` — cột có sẵn từ đầu trong schema nhưng `docs/intent-logic.md`
+chưa từng định nghĩa tiêu chí — quyết định của Kien 2026-09-26, xem §11.
+Script này là một lần vá backlog, **không phải skill sống**: post mới capture
+vào vẫn cần chạy lại tay cho tới khi khoảng trống đọc của `intent-analyze`
+được sửa (đọc thêm cả post có `intent` nhưng thiếu field `post_details`).
 
 Matching và viewing chưa nằm trong active skill scope. `outreach-prep` and
 `following-message` are active for strict-order first outreach and verified

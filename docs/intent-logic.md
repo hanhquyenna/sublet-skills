@@ -131,6 +131,7 @@ Poster hay ghi: female only, no couples, students only, no pets, working profess
 - `registration_allowed`: yes chỉ khi nói "registration possible/inschrijving mogelijk"; no khi "no registration"; còn lại unknown.
 - `sublet_permission`: yes chỉ khi nói "landlord approved/allowed/knows"; no khi "landlord doesn't know / keep it quiet"; còn lại unknown.
 - `max_people`: "couples ok / 2 people" → 2; "single only / 1 person" → 1; mặc định null.
+- `furnished` (thêm 2026-09-26, Kien quyết định — cột có sẵn trong schema từ đầu nhưng chưa từng có tiêu chí): true chỉ khi nói rõ furnished/gemeubileerd hoặc liệt kê nội thất đi kèm; false chỉ khi nói rõ unfurnished; không nhắc gì tới nội thất → null, không đoán.
 
 ## 12. Ví dụ chuẩn (dùng làm test)
 
